@@ -232,6 +232,49 @@ def detect_iucn_status(title: str, category: str, wd_map: dict[str, str]) -> str
     return wd_map.get(title, "Artengruppe / Gattung (variiert je nach Art)")
 
 
+def derive_summary(body: str) -> str:
+    """Extract a clean, complete 1-sentence summary without mid-word or abbreviation cuts."""
+    first_para = ""
+    for para in body.split("\n\n"):
+        p = para.strip()
+        if p and not p.startswith("#"):
+            first_para = re.sub(r"\s+", " ", p)
+            break
+    if not first_para:
+        return ""
+    abbrs = [
+        ("d. h.", "d._h."),
+        ("z. B.", "z._B."),
+        ("u. a.", "u._a."),
+        ("v. a.", "v._a."),
+        ("engl.", "engl_"),
+        ("eigentl.", "eigentl_"),
+        ("lat.", "lat_"),
+        ("griech.", "griech_"),
+        ("altgr.", "altgr_"),
+        ("dt.", "dt_"),
+        ("Syn.", "Syn_"),
+        ("sog.", "sog_"),
+        ("vgl.", "vgl_"),
+        ("ca.", "ca_"),
+        ("bzw.", "bzw_"),
+        ("Mio.", "Mio_"),
+        ("Mrd.", "Mrd_"),
+    ]
+    protected = first_para
+    for orig, tok in abbrs:
+        protected = protected.replace(orig, tok)
+    sentence_match = re.match(r"^(.{40,420}?[.!?])(?:\s|$)", protected)
+    if sentence_match:
+        raw_sent = sentence_match.group(1)
+    else:
+        cut = protected.rfind(" ", 0, 280)
+        raw_sent = (protected[:cut] if cut > 80 else protected[:280]).rstrip(",;:") + "..."
+    for orig, tok in abbrs:
+        raw_sent = raw_sent.replace(tok, orig)
+    return raw_sent
+
+
 def clean_extract_to_markdown(title: str, fullurl: str, extract: str, max_chars: int = 6200) -> tuple[str, str]:
     """Convert Wikipedia plain-text extract into clean Markdown and extract 1-sentence summary."""
     lines = extract.splitlines()
@@ -268,15 +311,7 @@ def clean_extract_to_markdown(title: str, fullurl: str, extract: str, max_chars:
         if cutoff > 1500:
             body = body[:cutoff].strip() + "\n\n*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*"
 
-    # Derive clean 1-sentence summary from the opening paragraph
-    first_para = ""
-    for para in body.split("\n\n"):
-        p = para.strip()
-        if p and not p.startswith("#"):
-            first_para = re.sub(r"\s+", " ", p)
-            break
-    sentence_match = re.match(r"^(.{40,260}?[.!?])(?:\s|$)", first_para)
-    summary = sentence_match.group(1) if sentence_match else first_para[:220]
+    summary = derive_summary(body)
 
     header = f"# {title}\n\n"
     source_note = f"\n\n---\nQuelle: Wikipedia Deutsch ({fullurl})\n"

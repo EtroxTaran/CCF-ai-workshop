@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
   CheckCircle2,
@@ -13,36 +14,44 @@ import {
   Pin,
   Play,
   Plus,
+  QrCode,
   Radio,
   RotateCcw,
-  Settings,
+  SlidersHorizontal,
   Sparkles,
   Sun,
   Trash2,
 } from "lucide-react";
+import { toast } from "sonner";
 import rawData from "@/data/workshopData.json";
 import { QrCodeSvg } from "@/components/QrCodeSvg";
+import { Virtual7Logo } from "@/components/Virtual7Logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
 import type { ServerHealth, SubmissionItem, WorkshopDataset } from "@/types/workshop";
 
 const data = rawData as unknown as WorkshopDataset;
 
-type DemoViewMode = "phase" | "stages" | "methods" | "architecture";
+type StageMode = "stage" | "qr" | "demo" | "wall";
+type DemoSubTab = "stages" | "methods" | "layers";
+type WallFilter = "all" | "pinned" | "belegt" | "trap";
 
 function formatMMSS(sec: number): string {
   const safe = Math.max(0, Math.floor(sec));
@@ -53,14 +62,19 @@ function formatMMSS(sec: number): string {
 
 export function BeamerApp() {
   const [darkBeamer, setDarkBeamer] = useState<boolean>(true);
+  const [stageMode, setStageMode] = useState<StageMode>("stage");
+  const [demoTab, setDemoTab] = useState<DemoSubTab>("stages");
+  const [wallFilter, setWallFilter] = useState<WallFilter>("all");
+  const [showFeedRail, setShowFeedRail] = useState<boolean>(true);
+  const [regieOpen, setRegieOpen] = useState<boolean>(false);
+
   const [phaseIdx, setPhaseIdx] = useState<number>(0);
   const [secondsLeft, setSecondsLeft] = useState<number>(data.phases[0].durationMin * 60);
   const [running, setRunning] = useState<boolean>(false);
+  const [revealSolution, setRevealSolution] = useState<boolean>(false);
   const [nowClock, setNowClock] = useState<string>(() =>
     new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })
   );
-  const [viewMode, setViewMode] = useState<DemoViewMode>("phase");
-  const [revealSolution, setRevealSolution] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
 
   // Live submissions & health
@@ -69,12 +83,11 @@ export function BeamerApp() {
   const [health, setHealth] = useState<ServerHealth | null>(null);
   const [sseConnected, setSseConnected] = useState<boolean>(false);
 
-  // Settings modal state
+  // Settings inside Regie Drawer
   const [cfgJoinUrl, setCfgJoinUrl] = useState<string>("");
   const [cfgGithubRepo, setCfgGithubRepo] = useState<string>("");
   const [cfgGithubLabel, setCfgGithubLabel] = useState<string>("workshop-question");
   const [cfgGitPull, setCfgGitPull] = useState<boolean>(false);
-  const [cfgSavedMsg, setCfgSavedMsg] = useState<string>("");
 
   const activePhase = data.phases[phaseIdx];
   const activeQuestion = useMemo(
@@ -82,7 +95,15 @@ export function BeamerApp() {
     [activePhase.activeQuestionId]
   );
 
-  // Wall clock updater
+  // CRITICAL: Sync .dark onto document.documentElement so Radix Portals (Dialog / Sheet / Toaster) inherit theme!
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.toggle("dark", darkBeamer);
+    return () => {
+      root.classList.remove("dark");
+    };
+  }, [darkBeamer]);
+
   useEffect(() => {
     const id = window.setInterval(() => {
       setNowClock(new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }));
@@ -90,7 +111,6 @@ export function BeamerApp() {
     return () => window.clearInterval(id);
   }, []);
 
-  // Countdown tick
   useEffect(() => {
     if (!running) return;
     const id = window.setInterval(() => {
@@ -99,25 +119,6 @@ export function BeamerApp() {
     return () => window.clearInterval(id);
   }, [running]);
 
-  // Keyboard shortcuts (Space = play/pause, Left/Right = phase)
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA") return;
-      if (e.code === "Space") {
-        e.preventDefault();
-        setRunning((r) => !r);
-      } else if (e.code === "ArrowRight") {
-        goPhase(Math.min(data.phases.length - 1, phaseIdx + 1));
-      } else if (e.code === "ArrowLeft") {
-        goPhase(Math.max(0, phaseIdx - 1));
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [phaseIdx]);
-
-  // Initial fetch & SSE connection
   useEffect(() => {
     fetch("/api/health")
       .then((r) => (r.ok ? r.json() : null))
@@ -129,14 +130,14 @@ export function BeamerApp() {
         setCfgGithubLabel(h.githubLabel || "workshop-question");
         setCfgGitPull(Boolean(h.gitAutoPull));
       })
-      .catch(() => {});
+      .catch(() => undefined);
 
     fetch("/api/submissions")
       .then((r) => (r.ok ? r.json() : null))
       .then((res) => {
         if (res?.items) setSubmissions(res.items);
       })
-      .catch(() => {});
+      .catch(() => undefined);
 
     const es = new EventSource("/api/events");
     es.onopen = () => setSseConnected(true);
@@ -144,9 +145,7 @@ export function BeamerApp() {
     es.addEventListener("submissions", (ev) => {
       try {
         const payload = JSON.parse((ev as MessageEvent).data);
-        if (Array.isArray(payload.items)) {
-          setSubmissions(payload.items);
-        }
+        if (Array.isArray(payload.items)) setSubmissions(payload.items);
       } catch {
         // ignore
       }
@@ -160,16 +159,48 @@ export function BeamerApp() {
     setRevealSolution(false);
   }
 
+  // Keyboard shortcuts guarded when inputs, spotlight dialog, or regie drawer are open
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (regieOpen || spotlight !== null) return;
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        setRunning((r) => !r);
+      } else if (e.code === "ArrowRight") {
+        goPhase(Math.min(data.phases.length - 1, phaseIdx + 1));
+      } else if (e.code === "ArrowLeft") {
+        goPhase(Math.max(0, phaseIdx - 1));
+      } else if (e.key === "1") {
+        setStageMode("stage");
+      } else if (e.key === "2" || e.key.toLowerCase() === "q") {
+        setStageMode((m) => (m === "qr" ? "stage" : "qr"));
+      } else if (e.key === "3") {
+        setStageMode("demo");
+      } else if (e.key === "4") {
+        setStageMode("wall");
+      } else if (e.key.toLowerCase() === "s") {
+        setRevealSolution((v) => !v);
+      } else if (e.key.toLowerCase() === "f" && !e.shiftKey) {
+        setShowFeedRail((v) => !v);
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [phaseIdx, regieOpen, spotlight]);
+
   function toggleFullscreen() {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => {});
+      document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(() => undefined);
     } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => {});
+      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(() => undefined);
     }
   }
 
   async function simulateDemoQuestion() {
-    await fetch("/api/submissions/demo", { method: "POST" }).catch(() => {});
+    const res = await fetch("/api/submissions/demo", { method: "POST" }).catch(() => null);
+    if (res?.ok) toast.success("Demo-Frage in den Live-Feed gesendet");
   }
 
   async function togglePin(item: SubmissionItem) {
@@ -177,16 +208,15 @@ export function BeamerApp() {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ pinned: !item.pinned }),
-    }).catch(() => {});
+    }).catch(() => undefined);
   }
 
   async function removeSubmission(id: string) {
-    await fetch(`/api/submissions/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => {});
+    await fetch(`/api/submissions/${encodeURIComponent(id)}`, { method: "DELETE" }).catch(() => undefined);
     if (spotlight?.id === id) setSpotlight(null);
   }
 
   async function saveServerConfig() {
-    setCfgSavedMsg("");
     const res = await fetch("/api/config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -200,9 +230,9 @@ export function BeamerApp() {
     if (res && res.ok) {
       const updated = await res.json();
       setHealth(updated.health);
-      setCfgSavedMsg("Gespeichert! Watcher & QR-Code aktualisiert.");
+      toast.success("Beamer-Einstellungen gespeichert");
     } else {
-      setCfgSavedMsg("Konnte Server-Konfiguration nicht speichern.");
+      toast.error("Server-Konfiguration konnte nicht gespeichert werden");
     }
   }
 
@@ -217,442 +247,609 @@ export function BeamerApp() {
     });
   }, [submissions]);
 
+  const wallSubmissions = useMemo(() => {
+    if (wallFilter === "pinned") return sortedSubmissions.filter((s) => s.pinned);
+    if (wallFilter === "belegt") return sortedSubmissions.filter((s) => s.evaluation.status === "belegt");
+    if (wallFilter === "trap") return sortedSubmissions.filter((s) => s.evaluation.isLikelyTrap);
+    return sortedSubmissions;
+  }, [sortedSubmissions, wallFilter]);
+
   return (
-    <div className={darkBeamer ? "dark" : ""}>
-      <div className="min-h-screen bg-background text-foreground transition-colors">
-        {/* Top Beamer Control Header */}
-        <header className="border-b bg-card/95 px-5 py-3 shadow-sm">
-          <div className="mx-auto flex max-w-[1680px] flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-v7-green text-white shadow">
-                <Sparkles className="h-6 w-6" />
+    <div className="flex min-h-dvh flex-col bg-background text-foreground lg:h-dvh lg:overflow-hidden">
+      {/* Minimal 56px Stage Header */}
+      <header className="relative flex h-14 shrink-0 items-center justify-between gap-3 border-b bg-card/90 px-4 backdrop-blur lg:px-6">
+        <div className="flex min-w-0 items-center gap-3">
+          <Virtual7Logo compact className="lg:hidden" />
+          <Virtual7Logo className="hidden h-7 lg:block" />
+          <Separator orientation="vertical" className="hidden h-5 sm:block" />
+          <span className="hidden truncate font-display text-sm font-bold sm:inline">
+            CCF Prompt-Werkstatt
+          </span>
+          <span
+            className="inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+            title={health?.llmMode || "Offline"}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${
+                sseConnected ? "animate-pulse bg-brand-lime" : "bg-amber-400"
+              }`}
+            />
+            <span className="hidden xl:inline">{sseConnected ? "Live" : "Lokal"}</span>
+          </span>
+        </div>
+
+        {/* 4-Mode Stage Switcher */}
+        <div className="inline-flex items-center rounded-xl border bg-muted p-1">
+          {[
+            { id: "stage", label: "Stage" },
+            { id: "qr", label: "QR Join" },
+            { id: "demo", label: "Demo" },
+            { id: "wall", label: `Wall (${submissions.length})` },
+          ].map((m) => {
+            const isActive = stageMode === m.id;
+            return (
+              <button
+                key={m.id}
+                type="button"
+                onClick={() => setStageMode(m.id as StageMode)}
+                className={`relative rounded-lg px-3 py-1 text-xs font-semibold transition-colors sm:text-sm ${
+                  isActive ? "text-brand-obsidian" : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {isActive && (
+                  <motion.span
+                    layoutId="beamer-mode-pill"
+                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                    className="absolute inset-0 rounded-lg bg-brand-lime"
+                  />
+                )}
+                <span className="relative z-10 num-tabular">{m.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Right Countdown + Phase Nav + Regie Drawer */}
+        <div className="flex shrink-0 items-center gap-2">
+          <div className="hidden items-center gap-1 md:flex">
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              disabled={phaseIdx === 0}
+              onClick={() => goPhase(phaseIdx - 1)}
+              title="Vorherige Phase"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <span className="num-tabular font-mono text-xs font-semibold text-muted-foreground">
+              {phaseIdx + 1}/{data.phases.length}
+            </span>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-8 w-8"
+              disabled={phaseIdx === data.phases.length - 1}
+              onClick={() => goPhase(phaseIdx + 1)}
+              title="Nächste Phase"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div className="flex items-center gap-1.5 rounded-xl border bg-muted/60 px-2.5 py-1">
+            <Clock className="hidden h-4 w-4 text-brand-ink sm:block" />
+            <span
+              className={`num-tabular font-mono text-xl font-bold tracking-tight sm:text-2xl ${
+                secondsLeft <= 60 && running ? "text-rose-400" : ""
+              }`}
+            >
+              {formatMMSS(secondsLeft)}
+            </span>
+            <Button
+              type="button"
+              size="icon"
+              variant={running ? "secondary" : "accent"}
+              className="h-7 w-7"
+              onClick={() => setRunning((r) => !r)}
+              title="Timer Start/Pause (Leertaste)"
+            >
+              {running ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              className="hidden h-7 px-2 text-xs sm:inline-flex"
+              onClick={() => setSecondsLeft((s) => s + 60)}
+              title="+1 Minute"
+            >
+              <Plus className="h-3 w-3" />1m
+            </Button>
+          </div>
+
+          {/* Single Regie Controls Drawer */}
+          <Sheet open={regieOpen} onOpenChange={setRegieOpen}>
+            <SheetTrigger asChild>
+              <Button type="button" size="sm" variant="outline" className="h-8 gap-1.5 px-2.5 text-xs">
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Regie</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right">
+              <SheetHeader>
+                <SheetTitle>Beamer-Regie &amp; Steuerung</SheetTitle>
+                <SheetDescription>
+                  Moderator-Werkzeuge (Uhrzeit aktuell {nowClock} · {health?.llmMode || "Offline"}).
+                </SheetDescription>
+              </SheetHeader>
+
+              <div className="mt-5 space-y-5 text-sm">
+                <div className="grid grid-cols-2 gap-2">
+                  <Button type="button" variant="outline" onClick={() => setSecondsLeft(activePhase.durationMin * 60)}>
+                    <RotateCcw className="h-4 w-4" />
+                    <span>Timer Reset</span>
+                  </Button>
+                  <Button type="button" variant="accent" onClick={simulateDemoQuestion}>
+                    <Sparkles className="h-4 w-4" />
+                    <span>Demo-Frage</span>
+                  </Button>
+                  <Button type="button" variant="outline" onClick={() => setDarkBeamer((d) => !d)}>
+                    {darkBeamer ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                    <span>{darkBeamer ? "Hell-Modus" : "Dark-Modus"}</span>
+                  </Button>
+                  <Button type="button" variant="outline" onClick={toggleFullscreen}>
+                    {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                    <span>{isFullscreen ? "Fenster" : "Vollbild"}</span>
+                  </Button>
+                </div>
+
+                <label className="flex items-center justify-between rounded-xl border p-3">
+                  <div>
+                    <div className="font-semibold">Live-Feed-Leiste in Stage zeigen</div>
+                    <div className="text-xs text-muted-foreground">Taste F zum schnellen Ausblenden</div>
+                  </div>
+                  <Switch checked={showFeedRail} onCheckedChange={setShowFeedRail} />
+                </label>
+
+                <Separator />
+
+                <div className="space-y-3">
+                  <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    QR-Join &amp; Dual-Modus Watcher
+                  </div>
+                  {health?.lanUrls && health.lanUrls.length > 0 && (
+                    <div className="rounded-xl border bg-muted/40 p-3 font-mono text-xs">
+                      <div className="mb-1 font-sans font-semibold text-muted-foreground">
+                        Erkannte LAN-Adressen:
+                      </div>
+                      {health.lanUrls.map((u) => (
+                        <div key={u} className="wrap-safe">
+                          {u}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <label className="text-xs font-medium">QR-Code Ziel-URL</label>
+                    <Input value={cfgJoinUrl} onChange={(e) => setCfgJoinUrl(e.target.value)} />
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium">GitHub Repo (owner/repo)</label>
+                      <Input
+                        value={cfgGithubRepo}
+                        onChange={(e) => setCfgGithubRepo(e.target.value)}
+                        placeholder="owner/repo"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-xs font-medium">Issue-Label</label>
+                      <Input value={cfgGithubLabel} onChange={(e) => setCfgGithubLabel(e.target.value)} />
+                    </div>
+                  </div>
+                  <label className="flex items-center justify-between rounded-xl border p-3">
+                    <div>
+                      <div className="text-xs font-semibold">Git Auto-Pull (20s)</div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Aktualisiert <code>live-questions/</code> per git pull
+                      </div>
+                    </div>
+                    <Switch checked={cfgGitPull} onCheckedChange={setCfgGitPull} />
+                  </label>
+                  <Button type="button" className="w-full" onClick={saveServerConfig}>
+                    Einstellungen speichern
+                  </Button>
+                </div>
+
+                <Separator />
+
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Shortcuts: Space (Timer) · ←/→ · 1–4 · Q · S · F</span>
+                  <a href="/" className="font-semibold text-brand-ink hover:underline">
+                    Teilnehmer-UI →
+                  </a>
+                </div>
               </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-lg font-extrabold tracking-tight sm:text-xl">
-                    virtual7 · CCF Prompt-Werkstatt
-                  </span>
-                  <Badge variant={sseConnected ? "success" : "warning"} className="text-xs">
-                    <Radio className="h-3 w-3" />
-                    {sseConnected ? "Live-Stream aktiv" : "Offline / Statisch"}
-                  </Badge>
-                  {health?.llmMode && (
-                    <Badge variant="outline" className="hidden md:inline-flex">
-                      Prüfer: {health.llmMode}
+            </SheetContent>
+          </Sheet>
+        </div>
+
+        {/* Hairline Top Progress Line */}
+        <div className="absolute inset-x-0 bottom-0 h-[2px] bg-muted">
+          <div
+            className="h-full bg-brand-lime transition-all duration-500"
+            style={{ width: `${elapsedPct}%` }}
+          />
+        </div>
+      </header>
+
+      {/* Main 16:9 Stage Workspace */}
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        {/* PRIMARY STAGE CANVAS */}
+        <main className="flex min-h-0 min-w-0 flex-1 flex-col justify-between overflow-y-auto p-5 sm:p-6 lg:px-9 lg:py-6">
+          <AnimatePresence mode="wait">
+            {/* MODE 1: STAGE / AKTUELLE PHASE */}
+            {stageMode === "stage" && (
+              <motion.div
+                key={`stage-${activePhase.id}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.18 }}
+                className="mx-auto flex h-full w-full max-w-[1060px] flex-col justify-between gap-4"
+              >
+                {/* Upper Focus: Phase Eyebrow + Massive Keynote Headline */}
+                <div className="space-y-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span className="num-tabular rounded-full bg-brand-lime px-3 py-1 font-mono text-xs font-bold uppercase tracking-wider text-brand-obsidian">
+                      Phase {activePhase.number} · {activePhase.timeRange} ({activePhase.durationMin} Min.)
+                    </span>
+                    <span className="text-sm font-medium text-muted-foreground">
+                      {activePhase.keyTakeaway}
+                    </span>
+                  </div>
+
+                  <h1 className="font-display text-[clamp(1.75rem,2.85vw,3.1rem)] font-extrabold leading-[1.08] tracking-[-0.03em] text-foreground">
+                    {activePhase.beamerHeadline}
+                  </h1>
+                </div>
+
+                {/* Middle Focus: Hairline-Separated Track A & Track B Cues (ZERO nested cards!) */}
+                <div className="grid gap-5 border-y py-4 md:grid-cols-2 md:gap-0 md:divide-x">
+                  <div className="space-y-1.5 md:pr-8">
+                    <div className="text-xs font-bold uppercase tracking-[0.1em] text-brand-ink">
+                      Track A · Browser &amp; Web-Chat
+                    </div>
+                    <p className="text-[clamp(1rem,1.25vw,1.3rem)] leading-relaxed text-foreground">
+                      {activePhase.trackACue}
+                    </p>
+                  </div>
+                  <div className="space-y-1.5 md:pl-8">
+                    <div className="text-xs font-bold uppercase tracking-[0.1em] text-brand-ink">
+                      Track B · Terminal, IDE &amp; Agent
+                    </div>
+                    <p className="text-[clamp(1rem,1.25vw,1.3rem)] leading-relaxed text-foreground">
+                      {activePhase.trackBCue}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Lower Anchor: Active Test Question Spotlight */}
+                <div
+                  className={`rounded-2xl border bg-card p-5 ${
+                    activeQuestion.number === 3 ? "border-l-4 border-l-rose-500" : "border-l-4 border-l-brand-lime"
+                  }`}
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <Badge variant={activeQuestion.number === 3 ? "danger" : "lime"}>
+                      Testfrage {activeQuestion.number} · {activeQuestion.type}
                     </Badge>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setRevealSolution((v) => !v)}
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                      <span>{revealSolution ? "Lösung ausblenden (S)" : "Verifizierte Lösung (S)"}</span>
+                    </Button>
+                  </div>
+                  <p className="mt-2.5 font-display text-[clamp(1.1rem,1.5vw,1.48rem)] font-bold leading-snug text-foreground">
+                    „{activeQuestion.question}“
+                  </p>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    <strong className="text-foreground">Beobachtung: </strong>
+                    {activeQuestion.whatToWatch}
+                  </p>
+                  {revealSolution && (
+                    <div className="mt-3 rounded-xl border border-emerald-500/35 bg-emerald-500/10 p-4 text-sm leading-relaxed text-foreground">
+                      <strong>Verifizierte Lösung: </strong>
+                      {activeQuestion.solutionSummary}
+                    </div>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {data.meta.timeSlot} · Phase {activePhase.number}/{data.phases.length}:{" "}
-                  <strong>{activePhase.title}</strong> ({activePhase.timeRange})
-                </p>
-              </div>
-            </div>
+              </motion.div>
+            )}
 
-            {/* Timer & Regie Controls */}
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="flex items-center gap-2 rounded-xl border bg-muted/60 px-3 py-1.5">
-                <Clock className="h-4 w-4 text-v7-green" />
-                <span
-                  className={`font-mono text-2xl font-extrabold tabular-nums ${
-                    secondsLeft <= 60 && running ? "text-rose-500" : ""
-                  }`}
-                >
-                  {formatMMSS(secondsLeft)}
-                </span>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant={running ? "secondary" : "default"}
-                  onClick={() => setRunning((r) => !r)}
-                  title="Timer Start/Pause (Leertaste)"
-                >
-                  {running ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => setSecondsLeft(activePhase.durationMin * 60)}
-                  title="Phase zurücksetzen"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setSecondsLeft((s) => s + 60)}
-                  title="+1 Minute"
-                >
-                  <Plus className="h-3.5 w-3.5" />1m
-                </Button>
-              </div>
+            {/* MODE 2: FULL-CANVAS QR JOIN TAKEOVER */}
+            {stageMode === "qr" && (
+              <motion.div
+                key="mode-qr"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18 }}
+                className="mx-auto flex h-full w-full max-w-[1160px] flex-col items-center justify-center gap-10 rounded-3xl bg-[radial-gradient(circle_at_30%_50%,rgba(169,194,63,0.12),transparent_60%)] p-6 lg:flex-row lg:gap-14"
+              >
+                <div className="relative shrink-0 rounded-3xl bg-white p-5 shadow-2xl ring-4 ring-brand-lime/40">
+                  <QrCodeSvg value={qrTargetUrl} size={300} />
+                </div>
 
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  disabled={phaseIdx === 0}
-                  onClick={() => goPhase(phaseIdx - 1)}
-                  title="Vorherige Phase (Pfeil links)"
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="icon"
-                  variant="outline"
-                  disabled={phaseIdx === data.phases.length - 1}
-                  onClick={() => goPhase(phaseIdx + 1)}
-                  title="Nächste Phase (Pfeil rechts)"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+                <div className="max-w-xl space-y-6 text-center lg:text-left">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-brand-lime/40 bg-brand-lime/15 px-3.5 py-1 text-xs font-bold uppercase tracking-[0.1em] text-brand-ink">
+                    <QrCode className="h-3.5 w-3.5" />
+                    Smartphone · Tablet · Laptop
+                  </div>
 
-              <Button type="button" size="sm" variant="secondary" onClick={simulateDemoQuestion}>
-                Demo-Frage simulieren
-              </Button>
+                  <h1 className="font-display text-[clamp(2.2rem,3.6vw,3.75rem)] font-extrabold leading-[1.06] tracking-[-0.03em]">
+                    Scannen &amp; live mitmachen
+                  </h1>
 
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button type="button" size="icon" variant="outline" title="Beamer & Watcher Einstellungen">
-                    <Settings className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Beamer-Regie &amp; Dual-Modus-Einstellungen</DialogTitle>
-                    <DialogDescription>
-                      Konfiguriere Join-URL für den QR-Code, GitHub-Issue-Watcher oder Git-Auto-Pull.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 pt-2 text-sm">
-                    {health?.lanUrls && health.lanUrls.length > 0 && (
-                      <div className="rounded-lg border bg-muted/40 p-3 text-xs">
-                        <div className="mb-1 font-semibold">Erkannte LAN-Adressen für Teilnehmer:</div>
-                        {health.lanUrls.map((u) => (
-                          <div key={u} className="font-mono">
-                            {u}
+                  <div className="wrap-safe rounded-2xl border bg-card px-5 py-3.5 font-mono text-xl font-bold text-brand-ink sm:text-2xl">
+                    {qrTargetUrl}
+                  </div>
+
+                  <div className="grid gap-3 text-left sm:grid-cols-3">
+                    {[
+                      { n: "01", t: "QR scannen oder URL öffnen" },
+                      { n: "02", t: "Track A (Chat) oder Track B (CLI) wählen" },
+                      { n: "03", t: "Ergebnisse live an den Beamer senden" },
+                    ].map((st) => (
+                      <div key={st.n} className="rounded-xl border bg-card/70 p-3">
+                        <div className="num-tabular font-mono text-xs font-bold text-brand-ink">{st.n}</div>
+                        <div className="mt-1 text-sm font-medium leading-snug">{st.t}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* MODE 3: LIVE-DEMO VERGLEICH */}
+            {stageMode === "demo" && (
+              <motion.div
+                key="mode-demo"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.16 }}
+                className="mx-auto flex h-full w-full max-w-[1220px] flex-col justify-between gap-6"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-[0.08em] text-brand-ink">
+                      Live-Demo Referenz
+                    </div>
+                    <h2 className="font-display text-2xl font-extrabold sm:text-3xl">
+                      Warum Struktur &amp; Leitplanken alles verändern
+                    </h2>
+                  </div>
+
+                  <div className="inline-flex rounded-xl border bg-muted p-1">
+                    {[
+                      { id: "stages", label: "Stufe 1 → 2 → 3" },
+                      { id: "methods", label: "4 Prompt-Methoden" },
+                      { id: "layers", label: "5 Ebenen" },
+                    ].map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setDemoTab(t.id as DemoSubTab)}
+                        className={`rounded-lg px-3.5 py-1.5 text-sm font-semibold transition-colors ${
+                          demoTab === t.id
+                            ? "bg-card text-foreground shadow-sm"
+                            : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {demoTab === "stages" && (
+                  <div className="grid flex-1 gap-5 md:grid-cols-3">
+                    {[
+                      {
+                        num: "01",
+                        title: "Stufe 1 · Chaos",
+                        folder: "stufe-1-chaos/",
+                        stripe: "border-t-rose-500",
+                        badge: "Baseline",
+                        badgeVar: "danger" as const,
+                        rows: [
+                          { k: "Prompt", v: "1 Satz ohne Quellenpflicht" },
+                          { k: "Daten", v: "68 flache .md-Dateien in docs/" },
+                          { k: "Fangfrage 3", v: "Rät oder füllt mit Vorwissen" },
+                        ],
+                      },
+                      {
+                        num: "02",
+                        title: "Stufe 2 · Harness",
+                        folder: "stufe-2-skills-guardrails/",
+                        stripe: "border-t-amber-500",
+                        badge: "Leitplanken",
+                        badgeVar: "warning" as const,
+                        rows: [
+                          { k: "Prompt", v: "Verbindliche Guardrails + Quellenpflicht" },
+                          { k: "Skills", v: "quellen-recherche & fakten-pruefer" },
+                          { k: "Fangfrage 3", v: "„Nicht in Dokumenten enthalten.“" },
+                        ],
+                      },
+                      {
+                        num: "03",
+                        title: "Stufe 3 · Markdown-RAG",
+                        folder: "stufe-3-obsidian-vault/",
+                        stripe: "border-t-brand-lime",
+                        badge: "Wissens-Graph",
+                        badgeVar: "success" as const,
+                        rows: [
+                          { k: "Architektur", v: "_index.md + wiki/ + raw/ (3 Zonen)" },
+                          { k: "Navigation", v: "Frontmatter & 294 [[Wikilinks]]" },
+                          { k: "Querverbindung 2", v: "Verbindet 4+ Artikel treffsicher" },
+                        ],
+                      },
+                    ].map((col) => (
+                      <div
+                        key={col.num}
+                        className={`flex flex-col justify-between rounded-2xl border border-t-4 ${col.stripe} bg-card p-6`}
+                      >
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <span className="num-tabular font-mono text-3xl font-extrabold text-muted-foreground/40">
+                              {col.num}
+                            </span>
+                            <Badge variant={col.badgeVar}>{col.badge}</Badge>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium">QR-Code Ziel-URL (LAN-IP oder Repo-URL)</label>
-                      <Input value={cfgJoinUrl} onChange={(e) => setCfgJoinUrl(e.target.value)} />
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2">
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium">GitHub Repo (owner/repo) für Issues</label>
-                        <Input
-                          value={cfgGithubRepo}
-                          onChange={(e) => setCfgGithubRepo(e.target.value)}
-                          placeholder="z. B. virtual7/ccf-ki-workshop"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium">Issue-Label Filter</label>
-                        <Input value={cfgGithubLabel} onChange={(e) => setCfgGithubLabel(e.target.value)} />
-                      </div>
-                    </div>
-                    <label className="flex items-center justify-between rounded-lg border p-3">
-                      <div>
-                        <div className="text-xs font-semibold">Git Auto-Pull alle 20s</div>
-                        <div className="text-[11px] text-muted-foreground">
-                          Holt automatisch neue Dateien aus <code>live-questions/</code> per git pull.
+                          <div>
+                            <h3 className="font-display text-2xl font-bold">{col.title}</h3>
+                            <code className="text-xs text-muted-foreground">{col.folder}</code>
+                          </div>
+                          <div className="divide-y">
+                            {col.rows.map((r) => (
+                              <div key={r.k} className="py-3">
+                                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                  {r.k}
+                                </div>
+                                <div className="mt-0.5 text-base font-medium">{r.v}</div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                      <Switch checked={cfgGitPull} onCheckedChange={setCfgGitPull} />
-                    </label>
-                    {cfgSavedMsg && (
-                      <div className="rounded-md bg-emerald-500/15 p-2 text-xs text-emerald-400">
-                        {cfgSavedMsg}
-                      </div>
-                    )}
-                    <div className="flex justify-end gap-2">
-                      <Button type="button" onClick={saveServerConfig}>
-                        Speichern &amp; aktivieren
-                      </Button>
-                    </div>
+                    ))}
                   </div>
-                </DialogContent>
-              </Dialog>
+                )}
 
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={() => setDarkBeamer((d) => !d)}
-                title="Hell/Dunkel umschalten"
-              >
-                {darkBeamer ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-              </Button>
-
-              <Button
-                type="button"
-                size="icon"
-                variant="outline"
-                onClick={toggleFullscreen}
-                title="Vollbild"
-              >
-                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </Button>
-
-              <span className="hidden rounded-md border px-2.5 py-1 font-mono text-sm font-semibold xl:inline-block">
-                {nowClock}
-              </span>
-            </div>
-          </div>
-          <Progress value={elapsedPct} className="mx-auto mt-2.5 h-1.5 max-w-[1680px]" />
-        </header>
-
-        {/* Main 16:9 Beamer Grid */}
-        <main className="mx-auto grid max-w-[1680px] gap-5 p-5 lg:grid-cols-12">
-          {/* LEFT 7 COLS: CURRENT PHASE + DEMO SWITCHER */}
-          <div className="space-y-4 lg:col-span-7">
-            {/* Phase Stepper Pills */}
-            <div className="grid grid-cols-7 gap-1.5">
-              {data.phases.map((p, idx) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  onClick={() => goPhase(idx)}
-                  className={`rounded-lg border px-2 py-2 text-left transition-all ${
-                    idx === phaseIdx
-                      ? "border-primary bg-primary text-primary-foreground shadow"
-                      : idx < phaseIdx
-                        ? "border-v7-green/40 bg-secondary/40 opacity-80"
-                        : "bg-card hover:bg-muted"
-                  }`}
-                >
-                  <div className="text-[11px] font-bold">
-                    {p.number}. {p.timeRange.split("–")[0]}
+                {demoTab === "methods" && (
+                  <div className="grid flex-1 gap-4 md:grid-cols-2">
+                    {data.promptMethods.map((m) => (
+                      <div key={m.id} className="flex flex-col justify-between rounded-2xl border bg-card p-6">
+                        <div className="space-y-2.5">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <h3 className="font-display text-xl font-bold">{m.name}</h3>
+                            <Badge variant="lime">{m.badge}</Badge>
+                          </div>
+                          <p className="text-base text-muted-foreground">{m.bestFor}</p>
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            {m.components.map((c) => (
+                              <Badge key={c} variant="outline">
+                                {c}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                        <p className="mt-4 border-t pt-3 text-sm leading-relaxed text-foreground">
+                          <strong className="text-brand-ink">Wirkung: </strong>
+                          {m.strength}
+                        </p>
+                      </div>
+                    ))}
                   </div>
-                  <div className="truncate text-xs font-medium">{p.title}</div>
-                </button>
-              ))}
-            </div>
+                )}
 
-            {/* View Switcher for Live Demo */}
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { id: "phase", label: "Aktuelle Phase & Auftrag" },
-                  { id: "stages", label: "Live-Demo: Stufe 1 vs. 2 vs. 3" },
-                  { id: "methods", label: "4 Prompt-Methoden" },
-                  { id: "architecture", label: "5 Ebenen & MCP" },
-                ].map((tab) => (
-                  <Button
-                    key={tab.id}
-                    type="button"
-                    size="sm"
-                    variant={viewMode === tab.id ? "default" : "outline"}
-                    onClick={() => setViewMode(tab.id as DemoViewMode)}
-                  >
-                    {tab.label}
-                  </Button>
-                ))}
-              </div>
-              <a
-                href="/"
-                className="text-xs font-medium text-v7-green hover:underline"
-              >
-                ← Zur Teilnehmer-UI
-              </a>
-            </div>
-
-            {viewMode === "phase" && (
-              <div className="space-y-4">
-                <Card className="border-v7-green/50 shadow-md">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <Badge variant="secondary" className="text-xs">
-                        JETZT DRAN · {activePhase.timeRange} ({activePhase.durationMin} Min.)
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">
-                        Leitgedanke: {activePhase.keyTakeaway}
-                      </span>
-                    </div>
-                    <CardTitle className="pt-1 text-2xl font-extrabold leading-tight sm:text-3xl">
-                      {activePhase.beamerHeadline}
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-xl border bg-muted/40 p-4">
-                      <div className="mb-1 text-xs font-bold uppercase tracking-wider text-v7-green">
-                        Track A · Browser &amp; Web-Chat
-                      </div>
-                      <p className="text-base leading-snug">{activePhase.trackACue}</p>
-                    </div>
-                    <div className="rounded-xl border bg-muted/40 p-4">
-                      <div className="mb-1 text-xs font-bold uppercase tracking-wider text-v7-green">
-                        Track B · Terminal, IDE &amp; Agent
-                      </div>
-                      <p className="text-base leading-snug">{activePhase.trackBCue}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Active Test Question Spotlight */}
-                <Card>
-                  <CardHeader className="pb-2">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <Badge variant={activeQuestion.number === 3 ? "warning" : "default"}>
-                        Aktuelle Testfrage {activeQuestion.number}: {activeQuestion.type}
-                      </Badge>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setRevealSolution((s) => !s)}
+                {demoTab === "layers" && (
+                  <div className="grid flex-1 gap-3">
+                    {data.architectureLayers.map((l, idx) => (
+                      <div
+                        key={l.layer}
+                        className="grid items-center gap-3 rounded-2xl border bg-card px-6 py-4 md:grid-cols-12"
                       >
-                        <Eye className="h-3.5 w-3.5" />
-                        <span>{revealSolution ? "Lösung ausblenden" : "Verifizierte Lösung zeigen"}</span>
-                      </Button>
-                    </div>
-                    <CardTitle className="pt-2 text-xl leading-snug">
-                      „{activeQuestion.question}“
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      <strong>Beobachtungsfokus:</strong> {activeQuestion.whatToWatch}
-                    </p>
-                    {revealSolution && (
-                      <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-sm leading-relaxed">
-                        <strong>Verifizierte Quelle &amp; Antwort:</strong> {activeQuestion.solutionSummary}
+                        <div className="font-display text-lg font-bold md:col-span-3">{l.layer}</div>
+                        <div className="text-base font-semibold text-brand-ink md:col-span-3">
+                          {l.analogy}
+                        </div>
+                        <div className="text-sm text-muted-foreground md:col-span-3">{l.persistence}</div>
+                        <div className="flex items-center gap-2 md:col-span-3">
+                          <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                            <div
+                              className="h-full rounded-full bg-brand-lime"
+                              style={{ width: `${(idx + 1) * 20}%` }}
+                            />
+                          </div>
+                          <span className="num-tabular font-mono text-xs font-bold">
+                            {(idx + 1) * 20}%
+                          </span>
+                        </div>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {viewMode === "stages" && (
-              <div className="grid gap-3 md:grid-cols-3">
-                <Card className="border-rose-500/40">
-                  <CardHeader>
-                    <Badge variant="danger" className="w-fit">Stufe 1 · Chaos</Badge>
-                    <CardTitle className="text-xl">Ungefilterter Chat</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <p><strong>Setup:</strong> Minimaler 1-Zeiler in <code>AGENTS.md</code> + 68 flache Dateien.</p>
-                    <p><strong>Symptom:</strong> Rät bei Lücken, mischt Trainingswissen ein, keine Quellen.</p>
-                    <p><strong>Fangfrage 3:</strong> Gefahr von überzeugenden Halluzinationen.</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-amber-500/40">
-                  <CardHeader>
-                    <Badge variant="warning" className="w-fit">Stufe 2 · Harness</Badge>
-                    <CardTitle className="text-xl">Skills &amp; Guardrails</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <p><strong>Setup:</strong> Klare Guardrails + <code>quellen-recherche</code> &amp; <code>fakten-pruefer</code>.</p>
-                    <p><strong>Wirkung:</strong> Zitiert Dateinamen nach jeder Aussage.</p>
-                    <p><strong>Fangfrage 3:</strong> Klare Ablehnung („nicht enthalten“).</p>
-                  </CardContent>
-                </Card>
-                <Card className="border-emerald-500/50">
-                  <CardHeader>
-                    <Badge variant="success" className="w-fit">Stufe 3 · Markdown-RAG</Badge>
-                    <CardTitle className="text-xl">Obsidian-Vault</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
-                    <p><strong>Setup:</strong> <code>_index.md</code> + Frontmatter + <code>[[Wikilinks]]</code> + <code>raw/</code>.</p>
-                    <p><strong>Wirkung:</strong> Springt gezielt über das Beziehungsnetz statt blind zu suchen.</p>
-                    <p><strong>Querverbindung 2:</strong> Verknüpft 4+ Artikel präzise.</p>
-                  </CardContent>
-                </Card>
-              </div>
-            )}
-
-            {viewMode === "methods" && (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {data.promptMethods.map((m) => (
-                  <Card key={m.id}>
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-lg">{m.name}</CardTitle>
-                        <Badge variant="secondary">{m.badge}</Badge>
-                      </div>
-                      <CardDescription>{m.bestFor}</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-sm">
-                      <div className="flex flex-wrap gap-1">
-                        {m.components.map((c) => (
-                          <Badge key={c} variant="outline" className="text-xs">{c}</Badge>
-                        ))}
-                      </div>
-                      <p className="text-xs text-muted-foreground">{m.strength}</p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-
-            {viewMode === "architecture" && (
-              <div className="space-y-2.5">
-                {data.architectureLayers.map((l) => (
-                  <Card key={l.layer}>
-                    <CardContent className="grid items-center gap-2 p-4 sm:grid-cols-12">
-                      <div className="font-bold sm:col-span-3">{l.layer}</div>
-                      <div className="text-sm text-v7-green sm:col-span-3">{l.analogy}</div>
-                      <div className="text-xs text-muted-foreground sm:col-span-3">{l.persistence}</div>
-                      <div className="rounded bg-muted p-2 text-xs sm:col-span-3">{l.example}</div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* RIGHT 5 COLS: QR JOIN PANEL + LIVE SUBMISSIONS FEED */}
-          <div className="space-y-4 lg:col-span-5">
-            {/* Compact Join & QR Card */}
-            <Card className="border-v7-green/40">
-              <CardContent className="flex items-center gap-4 p-4">
-                <QrCodeSvg value={qrTargetUrl} size={112} className="shrink-0" />
-                <div className="min-w-0 flex-1 space-y-1">
-                  <div className="text-xs font-bold uppercase tracking-wider text-v7-green">
-                    Mitmachen &amp; an Beamer senden
+                    ))}
                   </div>
-                  <div className="truncate font-mono text-sm font-bold">{qrTargetUrl}</div>
-                  <p className="text-xs text-muted-foreground">
-                    Oder per MCP: <code>send_to_beamer</code> / Ordner <code>live-questions/</code>
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+                )}
+              </motion.div>
+            )}
 
-            {/* Live Submissions & Corpus Checker Feed */}
-            <Card className="flex flex-col">
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    Live aus dem Raum
-                    <Badge variant="secondary">{submissions.length}</Badge>
-                  </CardTitle>
-                  <span className="text-xs text-muted-foreground">
-                    Klick auf Karte = Großansicht
-                  </span>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-[490px] pr-2">
-                  <div className="space-y-3">
-                    {sortedSubmissions.length === 0 && (
-                      <div className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
-                        Noch keine Live-Einträge. Sende über die UI, per MCP <code>send_to_beamer</code>{" "}
-                        oder klicke oben auf „Demo-Frage simulieren“.
-                      </div>
-                    )}
+            {/* MODE 4: FULL-CANVAS LIVE-WALL */}
+            {stageMode === "wall" && (
+              <motion.div
+                key="mode-wall"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.16 }}
+                className="mx-auto flex h-full w-full max-w-[1260px] flex-col gap-5"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-bold uppercase tracking-[0.08em] text-brand-ink">
+                      Live-Wall · Klick auf Karte für Großansicht
+                    </div>
+                    <h2 className="font-display text-2xl font-extrabold sm:text-3xl">
+                      Live aus dem Raum ({wallSubmissions.length})
+                    </h2>
+                  </div>
 
-                    {sortedSubmissions.map((sub) => {
+                  <div className="flex flex-wrap items-center gap-2">
+                    {[
+                      { id: "all", label: `Alle (${submissions.length})` },
+                      { id: "pinned", label: "Angepinnt" },
+                      { id: "belegt", label: "Belegt" },
+                      { id: "trap", label: "Fangfragen" },
+                    ].map((f) => (
+                      <button
+                        key={f.id}
+                        type="button"
+                        onClick={() => setWallFilter(f.id as WallFilter)}
+                        className={`rounded-full border px-3.5 py-1 text-xs font-semibold transition-colors ${
+                          wallFilter === f.id
+                            ? "border-brand-lime bg-brand-lime text-brand-obsidian"
+                            : "bg-card text-muted-foreground hover:text-foreground"
+                        }`}
+                      >
+                        {f.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {wallSubmissions.length === 0 ? (
+                  <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-3xl border border-dashed p-12 text-center">
+                    <Radio className="h-10 w-10 text-brand-ink" />
+                    <p className="max-w-md text-base text-muted-foreground">
+                      Noch keine Einträge in diesem Filter. Teams können über die App oder per MCP{" "}
+                      <code>send_to_beamer</code> posten.
+                    </p>
+                    <Button type="button" variant="accent" onClick={simulateDemoQuestion}>
+                      Demo-Frage simulieren
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    {wallSubmissions.map((sub) => {
                       const ev = sub.evaluation;
-                      const badgeVariant =
+                      const statusVar =
                         ev.status === "belegt"
                           ? "success"
                           : ev.status === "teilweise"
@@ -662,55 +859,60 @@ export function BeamerApp() {
                         <div
                           key={sub.id}
                           onClick={() => setSpotlight(sub)}
-                          className={`cursor-pointer rounded-xl border p-3.5 transition-all hover:border-primary ${
-                            sub.pinned ? "border-primary bg-secondary/20 ring-1 ring-primary" : "bg-card"
+                          className={`group flex cursor-pointer flex-col justify-between gap-3 rounded-2xl border bg-card p-5 transition-all hover:border-brand-lime ${
+                            sub.pinned ? "ring-2 ring-brand-lime" : ""
                           }`}
                         >
-                          <div className="mb-1.5 flex items-start justify-between gap-2">
-                            <div className="flex flex-wrap items-center gap-1.5">
-                              <span className="text-sm font-bold">{sub.team}</span>
-                              <Badge variant="outline" className="text-[11px]">{sub.source}</Badge>
-                              <Badge variant="secondary" className="text-[11px]">{sub.stage}</Badge>
-                              {sub.sample && <Badge variant="outline" className="text-[11px]">Beispiel</Badge>}
-                            </div>
-                            <div className="flex shrink-0 items-center gap-1" onClick={(e) => e.stopPropagation()}>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-7 w-7"
-                                onClick={() => togglePin(sub)}
-                                title="Anpinnen"
+                          <div className="space-y-2.5">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="truncate font-display text-base font-bold">
+                                  {sub.team}
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {sub.stage} · {sub.method} · {sub.source}
+                                </div>
+                              </div>
+                              <div
+                                className="flex shrink-0 items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
                               >
-                                <Pin className={`h-3.5 w-3.5 ${sub.pinned ? "text-v7-green" : ""}`} />
-                              </Button>
-                              <Button
-                                type="button"
-                                size="icon"
-                                variant="ghost"
-                                className="h-7 w-7"
-                                onClick={() => removeSubmission(sub.id)}
-                                title="Entfernen"
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  onClick={() => togglePin(sub)}
+                                >
+                                  <Pin className={`h-4 w-4 ${sub.pinned ? "text-brand-ink" : ""}`} />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8"
+                                  onClick={() => removeSubmission(sub.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
+
+                            <p className="text-lg font-semibold leading-snug">{sub.question}</p>
+
+                            {sub.ai_answer && (
+                              <p className="line-clamp-3 rounded-xl bg-muted/50 px-3.5 py-2.5 text-sm leading-relaxed text-muted-foreground">
+                                {sub.ai_answer}
+                              </p>
+                            )}
                           </div>
 
-                          <p className="text-sm font-medium leading-snug">{sub.question}</p>
-
-                          {sub.ai_answer && (
-                            <p className="mt-1.5 rounded bg-muted/50 px-2.5 py-2 text-xs leading-relaxed text-muted-foreground">
-                              {sub.ai_answer.length > 165 ? `${sub.ai_answer.slice(0, 162)}...` : sub.ai_answer}
-                            </p>
-                          )}
-
-                          <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                            <Badge variant={badgeVariant} className="text-[11px]">
+                          <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+                            <Badge variant={statusVar}>
                               {ev.status === "belegt" ? (
-                                <CheckCircle2 className="h-3 w-3" />
+                                <CheckCircle2 className="h-3.5 w-3.5" />
                               ) : (
-                                <AlertTriangle className="h-3 w-3" />
+                                <AlertTriangle className="h-3.5 w-3.5" />
                               )}
                               {ev.status === "belegt"
                                 ? "Im Korpus belegt"
@@ -718,91 +920,248 @@ export function BeamerApp() {
                                   ? "Teilweise belegt"
                                   : "Nicht im Korpus (Fangfrage!)"}
                             </Badge>
-                            {ev.answerHasCitation && (
-                              <Badge variant="success" className="text-[11px]">Quellen zitiert</Badge>
-                            )}
-                            {ev.answerHasGuardrailRefusal && (
-                              <Badge variant="success" className="text-[11px]">Guardrail gegriffen</Badge>
-                            )}
-                            {ev.evidence.slice(0, 2).map((m) => (
-                              <Badge key={m.slug} variant="outline" className="text-[11px]">
-                                [[{m.slug}]]
+                            {ev.evidence[0] && (
+                              <Badge variant="outline" className="font-mono">
+                                [[{ev.evidence[0].slug}]]
                               </Badge>
-                            ))}
+                            )}
                           </div>
                         </div>
                       );
                     })}
                   </div>
-                </ScrollArea>
-              </CardContent>
-            </Card>
-          </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </main>
 
-        {/* Plenum Spotlight Modal */}
-        <Dialog open={!!spotlight} onOpenChange={(o) => !o && setSpotlight(null)}>
-          <DialogContent className="max-w-3xl">
-            {spotlight && (
-              <>
-                <DialogHeader>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge>{spotlight.team}</Badge>
-                    <Badge variant="secondary">{spotlight.track}</Badge>
-                    <Badge variant="outline">{spotlight.stage} · {spotlight.method}</Badge>
-                  </div>
-                  <DialogTitle className="pt-2 text-xl leading-snug">
-                    {spotlight.question}
-                  </DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4 text-sm">
-                  {spotlight.ai_answer && (
-                    <div className="rounded-xl border bg-muted/40 p-3.5">
-                      <div className="mb-1 text-xs font-bold uppercase text-muted-foreground">
-                        Eingesandte KI-Antwort / Beobachtung
+        {/* COLLAPSIBLE COMPACT LIVE-FEED RAIL (Visible in Stage mode) */}
+        {stageMode === "stage" && showFeedRail && (
+          <aside className="flex w-full shrink-0 flex-col border-t bg-card/45 lg:w-[350px] lg:border-l lg:border-t-0 xl:w-[390px]">
+            {/* Compact Micro-QR Trigger -> Click opens full QR Join Takeover */}
+            <button
+              type="button"
+              onClick={() => setStageMode("qr")}
+              className="flex items-center gap-3.5 border-b p-4 text-left transition-colors hover:bg-muted/60"
+              title="Klicken für Vollbild-QR-Ansicht"
+            >
+              <QrCodeSvg value={qrTargetUrl} size={62} className="shrink-0 rounded-xl p-1" />
+              <div className="min-w-0 flex-1 space-y-0.5">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-brand-ink">
+                  QR Join (Vollbild ↗)
+                </div>
+                <div className="truncate font-mono text-xs font-semibold text-foreground">
+                  {qrTargetUrl}
+                </div>
+                <div className="text-[11px] text-muted-foreground">
+                  Oder MCP: <code>send_to_beamer</code>
+                </div>
+              </div>
+            </button>
+
+            <div className="flex items-center justify-between border-b px-4 py-2.5">
+              <div className="flex items-center gap-2 text-sm font-bold">
+                <span>Live aus dem Raum</span>
+                <Badge variant="secondary" className="num-tabular">
+                  {submissions.length}
+                </Badge>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStageMode("wall")}
+                className="text-xs font-semibold text-brand-ink hover:underline"
+              >
+                Alle als Wall →
+              </button>
+            </div>
+
+            <div className="min-h-0 flex-1 divide-y overflow-y-auto">
+              {sortedSubmissions.length === 0 && (
+                <div className="p-6 text-center text-xs text-muted-foreground">
+                  Noch keine Live-Einträge. Sende aus der App, per MCP oder via Regie → Demo-Frage.
+                </div>
+              )}
+
+              {sortedSubmissions.map((sub) => {
+                const ev = sub.evaluation;
+                const dotColor =
+                  ev.status === "belegt"
+                    ? "bg-emerald-400"
+                    : ev.status === "teilweise"
+                      ? "bg-amber-400"
+                      : "bg-rose-400";
+                const statusText =
+                  ev.status === "belegt"
+                    ? "Belegt"
+                    : ev.status === "teilweise"
+                      ? "Teilweise"
+                      : "Fangfrage!";
+                return (
+                  <div
+                    key={sub.id}
+                    onClick={() => setSpotlight(sub)}
+                    className={`group cursor-pointer space-y-1.5 px-4 py-3.5 transition-colors hover:bg-muted/60 ${
+                      sub.pinned ? "bg-secondary/35" : ""
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-sm font-bold text-foreground">{sub.team}</span>
+                        <span className="shrink-0 text-[11px] text-muted-foreground">{sub.stage}</span>
                       </div>
-                      <p className="whitespace-pre-wrap leading-relaxed">{spotlight.ai_answer}</p>
+                      <div
+                        className="flex shrink-0 items-center gap-0.5 opacity-80 lg:opacity-0 lg:group-hover:opacity-100"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          onClick={() => togglePin(sub)}
+                        >
+                          <Pin className={`h-3 w-3 ${sub.pinned ? "text-brand-ink" : ""}`} />
+                        </Button>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          onClick={() => removeSubmission(sub.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    <p className="line-clamp-2 text-sm leading-snug text-foreground/95">
+                      {sub.question}
+                    </p>
+
+                    <div className="flex items-center gap-2 pt-0.5 text-[11px]">
+                      <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+                        <span className={`h-2 w-2 rounded-full ${dotColor}`} />
+                        {statusText}
+                      </span>
+                      {ev.evidence[0] && (
+                        <span className="truncate font-mono text-muted-foreground">
+                          · [[{ev.evidence[0].slug}]]
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </aside>
+        )}
+      </div>
+
+      {/* Bottom 48px 7-Dot Keynote Timeline (NEVER truncates active title!) */}
+      <footer className="flex h-12 shrink-0 items-center justify-between gap-3 border-t bg-card/90 px-4 lg:px-6">
+        <div className="no-scrollbar flex flex-1 items-center gap-2 overflow-x-auto">
+          {data.phases.map((p, idx) => {
+            const isActive = idx === phaseIdx;
+            const isDone = idx < phaseIdx;
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => goPhase(idx)}
+                title={`${p.number}. ${p.title} (${p.timeRange})`}
+                className={`inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1 text-xs transition-all ${
+                  isActive
+                    ? "bg-brand-lime font-bold text-brand-obsidian shadow-sm"
+                    : isDone
+                      ? "bg-secondary/60 font-medium text-foreground hover:bg-secondary"
+                      : "bg-muted/60 font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <span className="num-tabular font-mono">{p.number}</span>
+                {isActive && (
+                  <span className="whitespace-nowrap">
+                    {p.title} · {p.timeRange}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+        <div className="hidden font-mono text-xs text-muted-foreground xl:block">
+          {nowClock}
+        </div>
+      </footer>
+
+      {/* Plenum Spotlight Modal (Inherits Dark Mode cleanly via documentElement!) */}
+      <Dialog open={!!spotlight} onOpenChange={(o) => !o && setSpotlight(null)}>
+        <DialogContent className="max-w-3xl">
+          {spotlight && (
+            <>
+              <DialogHeader>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="lime">{spotlight.team}</Badge>
+                  <Badge variant="secondary">{spotlight.track}</Badge>
+                  <Badge variant="outline">
+                    {spotlight.stage} · {spotlight.method}
+                  </Badge>
+                </div>
+                <DialogTitle className="pt-2 text-2xl leading-snug">
+                  {spotlight.question}
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="space-y-4 text-sm">
+                {spotlight.ai_answer && (
+                  <div className="rounded-xl border bg-muted/40 p-4">
+                    <div className="mb-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Eingesandte KI-Antwort
+                    </div>
+                    <p className="whitespace-pre-wrap text-base leading-relaxed">
+                      {spotlight.ai_answer}
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-2.5 border-t pt-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-bold">Automatischer Prüfmechanismus:</span>
+                    <Badge
+                      variant={
+                        spotlight.evaluation.status === "belegt"
+                          ? "success"
+                          : spotlight.evaluation.status === "teilweise"
+                            ? "warning"
+                            : "danger"
+                      }
+                    >
+                      {spotlight.evaluation.statusLabel}
+                    </Badge>
+                  </div>
+
+                  {spotlight.evaluation.llmComment && (
+                    <div className="rounded-xl border border-brand-lime/40 bg-secondary/40 p-3.5 text-sm">
+                      <strong>Live-KI-Prüfer ({spotlight.evaluation.llmProvider}):</strong>{" "}
+                      {spotlight.evaluation.llmComment}
                     </div>
                   )}
-                  <Separator />
+
                   <div className="space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-bold">Automatischer Prüfmechanismus:</span>
-                      <Badge
-                        variant={
-                          spotlight.evaluation.status === "belegt"
-                            ? "success"
-                            : spotlight.evaluation.status === "teilweise"
-                              ? "warning"
-                              : "danger"
-                        }
-                      >
-                        {spotlight.evaluation.statusLabel}
-                      </Badge>
-                    </div>
-                    {spotlight.evaluation.llmComment && (
-                      <div className="rounded-xl border border-v7-green/40 bg-secondary/30 p-3 text-sm">
-                        <strong>Live-KI-Prüfer ({spotlight.evaluation.llmProvider}):</strong>{" "}
-                        {spotlight.evaluation.llmComment}
-                      </div>
-                    )}
-                    <div className="space-y-2">
-                      {spotlight.evaluation.evidence.map((ev) => (
-                        <div key={ev.slug} className="rounded-lg border p-3 text-xs">
-                          <div className="font-semibold">
-                            {ev.wikilink} · <code>{ev.source_file}</code>
-                          </div>
-                          <p className="mt-1 text-muted-foreground">{ev.snippet}</p>
+                    {spotlight.evaluation.evidence.map((ev) => (
+                      <div key={ev.slug} className="rounded-xl border bg-muted/25 p-3 text-xs">
+                        <div className="font-mono font-bold text-brand-ink">
+                          {ev.wikilink} · {ev.source_file}
                         </div>
-                      ))}
-                    </div>
+                        <p className="mt-1 leading-relaxed text-muted-foreground">{ev.snippet}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </>
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

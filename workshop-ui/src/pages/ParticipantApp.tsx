@@ -1,15 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import {
+  ArrowLeft,
   ArrowRight,
   BookOpen,
   Bot,
+  Check,
   CheckCircle2,
   Compass,
   Cpu,
-  Download,
-  ExternalLink,
   FileCode2,
-  FolderGit2,
   Layers,
   Monitor,
   Network,
@@ -21,30 +21,42 @@ import {
   Wrench,
 } from "lucide-react";
 import rawData from "@/data/workshopData.json";
+import { ArchitectureLayerStack } from "@/components/ArchitectureLayerStack";
+import { BeamerSendSheet, type BeamerPrefill } from "@/components/BeamerSendSheet";
 import { CopyButton } from "@/components/CopyButton";
-import { VaultExplorer } from "@/components/VaultExplorer";
+import { ObsidianKnowledgeGraph } from "@/components/ObsidianKnowledgeGraph";
+import { PromptMethodComparator } from "@/components/PromptMethodComparator";
+import { StageArtifactsSheet } from "@/components/StageArtifactsSheet";
+import { Virtual7Logo } from "@/components/Virtual7Logo";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import type { EvidenceMatch, WorkshopDataset } from "@/types/workshop";
 
 const data = rawData as unknown as WorkshopDataset;
+
+type StepId = "start" | "methods" | "stages" | "mcp" | "missions";
+
+const STEPS: { id: StepId; num: string; label: string; short: string; icon: typeof Compass }[] = [
+  { id: "start", num: "01", label: "Start & Track", short: "Start", icon: Compass },
+  { id: "methods", num: "02", label: "Methoden & Ebenen", short: "Methoden", icon: Layers },
+  { id: "stages", num: "03", label: "Stufen 1 → 2 → 3", short: "Stufen", icon: BookOpen },
+  { id: "mcp", num: "04", label: "Tools & MCP", short: "MCP", icon: Plug },
+  { id: "missions", num: "05", label: "Wahl-Missionen", short: "Missionen", icon: Sparkles },
+];
 
 const CHECKLIST_ITEMS = [
   { id: "chk-setup", label: "Track (A oder B) gewählt & Teamnamen notiert" },
@@ -52,34 +64,29 @@ const CHECKLIST_ITEMS = [
   { id: "chk-priming", label: "System-Prompt / Priming vs. User-Prompt verglichen" },
   { id: "chk-s1", label: "Stufe 1 (Chaos): Fragen 1–3 getestet & Lücken beobachtet" },
   { id: "chk-s2", label: "Stufe 2 (Harness): Guardrails & Fangfrage 3 geprüft" },
-  { id: "chk-s3", label: "Stufe 3 (Vault): _index.md & [[Wikilinks]] für Frage 2 genutzt" },
+  { id: "chk-s3", label: "Stufe 3 (Vault): _index.md & Wissens-Graph für Frage 2 genutzt" },
   { id: "chk-mission", label: "Mindestens 1 Wahl-Mission oder MCP-Tool ausprobiert" },
   { id: "chk-beamer", label: "Frage oder Aha-Moment an den Beamer gesendet" },
 ];
 
-const STORAGE_KEY = "v7-ccf-workshop-state-v1";
-
-function downloadTextFile(filename: string, content: string, mime = "text/markdown;charset=utf-8") {
-  const blob = new Blob([content], { type: mime });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
+const STORAGE_KEY = "v7-ccf-workshop-state-v2";
 
 export function ParticipantApp() {
-  const [activeTab, setActiveTab] = useState<string>("overview");
+  const [step, setStep] = useState<StepId>("start");
   const [track, setTrack] = useState<"A" | "B">("A");
   const [teamName, setTeamName] = useState<string>("Tisch 1");
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [activeStageIdx, setActiveStageIdx] = useState<number>(0);
 
+  // Send-to-Beamer global drawer
+  const [sendOpen, setSendOpen] = useState(false);
+  const [sendPrefill, setSendPrefill] = useState<BeamerPrefill | null>(null);
+  const [githubRepoSlug, setGithubRepoSlug] = useState("");
+
   // MCP Playground state
-  const [mcpQuery, setMcpQuery] = useState<string>("Anemonenfische Seeanemonen Symbiose");
+  const [mcpQuery, setMcpQuery] = useState("Anemonenfische Seeanemonen Symbiose");
   const [mcpResults, setMcpResults] = useState<EvidenceMatch[] | null>(null);
-  const [verifyClaim, setVerifyClaim] = useState<string>(
+  const [verifyClaim, setVerifyClaim] = useState(
     "Eisbärentalg enthält kein Squalen und verhindert dadurch das Gefrieren des Fells."
   );
   const [verifyOutput, setVerifyOutput] = useState<{
@@ -87,32 +94,16 @@ export function ParticipantApp() {
     label: string;
     evidence: EvidenceMatch[];
   } | null>(null);
+  const [mcpActiveHop, setMcpActiveHop] = useState<number>(0);
 
-  // Send to Beamer state
-  const [sendStage, setSendStage] = useState<string>("Stufe 2");
-  const [sendMethod, setSendMethod] = useState<string>("RISEN + CoT");
-  const [sendQuestion, setSendQuestion] = useState<string>(data.testQuestions[2].question);
-  const [sendAnswer, setSendAnswer] = useState<string>("");
-  const [beamerServerUrl, setBeamerServerUrl] = useState<string>(() => {
-    if (typeof window !== "undefined" && window.location.port === "3777") {
-      return `${window.location.origin}/api/submissions`;
-    }
-    return "http://127.0.0.1:3777/api/submissions";
-  });
-  const [githubRepoSlug, setGithubRepoSlug] = useState<string>("");
-  const [sendStatus, setSendStatus] = useState<{ ok: boolean; msg: string } | null>(null);
-  const [isSending, setIsSending] = useState<boolean>(false);
-
-  // Restore saved progress
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("v7-ccf-workshop-state-v1");
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.track === "A" || parsed.track === "B") setTrack(parsed.track);
         if (typeof parsed.teamName === "string") setTeamName(parsed.teamName);
         if (parsed.checked && typeof parsed.checked === "object") setChecked(parsed.checked);
-        if (typeof parsed.beamerServerUrl === "string") setBeamerServerUrl(parsed.beamerServerUrl);
       }
     } catch {
       // ignore storage errors
@@ -121,36 +112,26 @@ export function ParticipantApp() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ track, teamName, checked, beamerServerUrl })
-      );
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ track, teamName, checked }));
     } catch {
       // ignore
     }
-  }, [track, teamName, checked, beamerServerUrl]);
+  }, [track, teamName, checked]);
 
-  // Fetch optional githubRepo from server health if connected
   useEffect(() => {
     fetch("/api/health")
       .then((r) => (r.ok ? r.json() : null))
       .then((h) => {
         if (h?.githubRepo) setGithubRepoSlug(h.githubRepo);
       })
-      .catch(() => {});
+      .catch(() => undefined);
   }, []);
 
   const completedCount = useMemo(
     () => CHECKLIST_ITEMS.filter((item) => checked[item.id]).length,
     [checked]
   );
-  const progressPct = Math.round((completedCount / CHECKLIST_ITEMS.length) * 100);
 
-  function toggleCheck(id: string) {
-    setChecked((prev) => ({ ...prev, [id]: !prev[id] }));
-  }
-
-  // Starter packs for Track A Web-Chats
   const trackAPacks = useMemo(() => {
     const pick = (slugs: string[]) =>
       data.starterArticles
@@ -164,12 +145,37 @@ export function ParticipantApp() {
     };
   }, []);
 
-  async function runMcpSearch() {
+  function goToStep(next: StepId) {
+    setStep(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function openBeamerSheet(prefill?: BeamerPrefill) {
+    setSendPrefill(prefill || null);
+    setSendOpen(true);
+  }
+
+  function toggleCheck(id: string) {
+    setChecked((prev) => ({ ...prev, [id]: !prev[id] }));
+  }
+
+  function animatePipelinePulse() {
+    setMcpActiveHop(1);
+    window.setTimeout(() => setMcpActiveHop(2), 180);
+    window.setTimeout(() => setMcpActiveHop(3), 360);
+    window.setTimeout(() => setMcpActiveHop(4), 540);
+    window.setTimeout(() => setMcpActiveHop(0), 1400);
+  }
+
+  async function runMcpSearch(customQuery?: string) {
+    const q = (customQuery ?? mcpQuery).trim();
+    if (customQuery !== undefined) setMcpQuery(customQuery);
+    animatePipelinePulse();
     try {
       const res = await fetch("/api/tools/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: mcpQuery, limit: 5 }),
+        body: JSON.stringify({ query: q, limit: 5 }),
       });
       if (res.ok) {
         const json = await res.json();
@@ -177,12 +183,9 @@ export function ParticipantApp() {
         return;
       }
     } catch {
-      // fallback below
+      // local fallback
     }
-    const qTokens = mcpQuery
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((t) => t.length >= 3);
+    const qTokens = q.toLowerCase().split(/\s+/).filter((t) => t.length >= 3);
     const localMatches: EvidenceMatch[] = data.vaultArticles
       .map((a) => {
         const hay = `${a.title} ${a.habitat} ${a.summary} ${a.tags.join(" ")}`.toLowerCase();
@@ -203,12 +206,15 @@ export function ParticipantApp() {
     setMcpResults(localMatches);
   }
 
-  async function runMcpVerify() {
+  async function runMcpVerify(customClaim?: string) {
+    const c = (customClaim ?? verifyClaim).trim();
+    if (customClaim !== undefined) setVerifyClaim(customClaim);
+    animatePipelinePulse();
     try {
       const res = await fetch("/api/tools/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ claim: verifyClaim }),
+        body: JSON.stringify({ claim: c }),
       });
       if (res.ok) {
         const json = await res.json();
@@ -220,9 +226,9 @@ export function ParticipantApp() {
         return;
       }
     } catch {
-      // client fallback
+      // fallback
     }
-    const tokens = verifyClaim
+    const tokens = c
       .toLowerCase()
       .replace(/[^a-z0-9äöüß\s]/g, " ")
       .split(/\s+/)
@@ -248,189 +254,102 @@ export function ParticipantApp() {
       status: hits.length > 0 && hits[0].score >= 2 ? "belegt" : "nicht_belegt",
       label:
         hits.length > 0 && hits[0].score >= 2
-          ? "Starke Übereinstimmung im lokalen Starter-Korpus."
-          : "Keine eindeutigen Belege gefunden (ggf. voller Korpus auf dem Beamer-Server).",
+          ? "Starke Übereinstimmung im Starter-Korpus."
+          : "Keine eindeutigen Belege gefunden (mögliche Fangfrage).",
       evidence: hits,
     });
   }
 
-  async function submitToBeamer(e: React.FormEvent) {
-    e.preventDefault();
-    if (!teamName.trim() || !sendQuestion.trim()) {
-      setSendStatus({ ok: false, msg: "Bitte gib Teamnamen und Frage/Befund ein." });
-      return;
-    }
-    setIsSending(true);
-    setSendStatus(null);
-    const payload = {
-      team: teamName.trim(),
-      track: track === "A" ? "Track A (Browser/Chat)" : "Track B (CLI/Agent)",
-      stage: sendStage,
-      method: sendMethod,
-      question: sendQuestion.trim(),
-      ai_answer: sendAnswer.trim(),
-      source: "web-ui",
-    };
-
-    try {
-      const res = await fetch(beamerServerUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setChecked((prev) => ({ ...prev, "chk-beamer": true }));
-      setSendStatus({
-        ok: true,
-        msg: "Erfolgreich an die Beamer-Leinwand gesendet! Der Prüfmechanismus wertet deine Frage live aus.",
-      });
-    } catch {
-      setSendStatus({
-        ok: false,
-        msg: `Server unter ${beamerServerUrl} nicht direkt erreichbar. Nutze unten „Als JSON herunterladen“ (für live-questions/) oder „Als GitHub Issue senden“, oder trage die LAN-IP des Trainers ein.`,
-      });
-    } finally {
-      setIsSending(false);
-    }
-  }
-
-  function downloadSubmissionJson() {
-    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
-    const slug = teamName.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "team";
-    const obj = {
-      id: `ui-${stamp}-${slug}`,
-      created_at: new Date().toISOString(),
-      team: teamName,
-      track: track === "A" ? "Track A (Browser/Chat)" : "Track B (CLI/Agent)",
-      stage: sendStage,
-      method: sendMethod,
-      question: sendQuestion,
-      ai_answer: sendAnswer,
-      source: "json-export",
-    };
-    downloadTextFile(`${stamp}-${slug}.json`, JSON.stringify(obj, null, 2), "application/json;charset=utf-8");
-  }
-
-  function openGithubIssue() {
-    const repo = githubRepoSlug || "OWNER/REPO";
-    const title = encodeURIComponent(`[Workshop] ${teamName}: ${sendQuestion.slice(0, 70)}`);
-    const body = encodeURIComponent(
-      `team: ${teamName}\ntrack: Track ${track}\nstage: ${sendStage}\nmethod: ${sendMethod}\n\n### Frage / Befund\n${sendQuestion}\n\n### KI-Antwort / Beobachtung\n${sendAnswer || "(keine Angabe)"}`
-    );
-    window.open(`https://github.com/${repo}/issues/new?labels=workshop-question&title=${title}&body=${body}`, "_blank");
-  }
-
+  const stepIndex = STEPS.findIndex((s) => s.id === step);
+  const prevStep = stepIndex > 0 ? STEPS[stepIndex - 1] : null;
+  const nextStep = stepIndex < STEPS.length - 1 ? STEPS[stepIndex + 1] : null;
   const currentStage = data.stages[activeStageIdx];
+  const progressPct = Math.round((completedCount / CHECKLIST_ITEMS.length) * 100);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Top virtual7 Navigation & Progress Bar */}
-      <header className="sticky top-0 z-40 border-b bg-card/95 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-v7-green text-white shadow-sm">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-base font-bold tracking-tight sm:text-lg">
-                  {data.meta.title}
-                </h1>
-                <Badge variant="secondary" className="hidden sm:inline-flex">
-                  {data.meta.timeSlot}
-                </Badge>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                {data.meta.cluster} · {data.meta.presenter} · {data.meta.articleCount} öffentliche Artikel
-              </p>
-            </div>
+    <div className="min-h-dvh bg-background text-foreground">
+      {/* Slim Single-Row Sticky Header (56px) */}
+      <header className="sticky top-0 z-40 h-14 border-b bg-background/90 backdrop-blur-md">
+        <div className="mx-auto flex h-full max-w-[1320px] items-center justify-between gap-2 px-4">
+          <div className="flex min-w-0 items-center gap-2">
+            <Virtual7Logo compact className="sm:hidden" />
+            <Virtual7Logo className="hidden h-7 sm:block" />
+            <Separator orientation="vertical" className="hidden h-5 sm:block" />
+            <span className="whitespace-nowrap font-display text-sm font-bold tracking-tight">
+              <span className="sm:hidden">CCF</span>
+              <span className="hidden sm:inline">Prompt-Werkstatt</span>
+            </span>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Track Switcher */}
-            <div className="inline-flex items-center rounded-lg border bg-muted p-0.5 text-xs">
+          <div className="flex shrink-0 items-center gap-2">
+            {/* Compact Track Segmented Switch */}
+            <div className="inline-flex rounded-lg border bg-muted p-0.5 text-xs">
               <button
                 type="button"
                 onClick={() => setTrack("A")}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-medium transition-colors ${
-                  track === "A" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                className={`rounded-md px-2 py-1 font-medium transition-colors ${
+                  track === "A" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                 }`}
               >
-                <Compass className="h-3.5 w-3.5 text-v7-greenDark" />
-                Track A · Browser/Chat
+                <span className="sm:hidden">A</span>
+                <span className="hidden sm:inline">Track A · Chat</span>
               </button>
               <button
                 type="button"
                 onClick={() => setTrack("B")}
-                className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 font-medium transition-colors ${
-                  track === "B" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+                className={`rounded-md px-2 py-1 font-medium transition-colors ${
+                  track === "B" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                 }`}
               >
-                <Terminal className="h-3.5 w-3.5 text-v7-greenDark" />
-                Track B · CLI/Agent
+                <span className="sm:hidden">B</span>
+                <span className="hidden sm:inline">Track B · CLI</span>
               </button>
             </div>
 
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => setActiveTab("beamer-send")}
-              className="gap-1.5"
-            >
-              <Send className="h-3.5 w-3.5" />
-              <span>An Beamer senden</span>
-            </Button>
-
-            <a
-              href="/beamer"
-              className="inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-              title="Beamer-Ansicht öffnen"
-            >
-              <Monitor className="h-3.5 w-3.5" />
-              <span className="hidden md:inline">Beamer</span>
-            </a>
-          </div>
-        </div>
-
-        {/* Live Progress Strip */}
-        <div className="border-t bg-muted/40">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2 text-xs">
-            <div className="flex min-w-[220px] flex-1 items-center gap-3">
-              <span className="font-semibold text-v7-charcoal dark:text-foreground">
-                Fortschritt: {completedCount}/{CHECKLIST_ITEMS.length} ({progressPct}%)
-              </span>
-              <Progress value={progressPct} className="max-w-xs" />
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Team:</span>
-              <Input
-                value={teamName}
-                onChange={(e) => setTeamName(e.target.value)}
-                className="h-7 w-36 text-xs"
-                aria-label="Teamname"
-              />
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button type="button" size="sm" variant="outline" className="h-7 text-xs">
-                    Checkliste ({completedCount}/{CHECKLIST_ITEMS.length})
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Euer Workshop-Fortschritt</DialogTitle>
-                    <DialogDescription>
-                      Hakt erledigte Etappen ab – wird lokal in eurem Browser gespeichert.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-2.5 pt-2">
+            {/* Checklist & Team Drawer Trigger */}
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="num-tabular h-8 gap-1.5 px-2.5 text-xs"
+                  title="Fortschritt & Team-Einstellungen"
+                >
+                  <CheckCircle2 className="h-3.5 w-3.5 text-brand-ink" />
+                  <span>
+                    {completedCount}/{CHECKLIST_ITEMS.length}
+                  </span>
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right">
+                <SheetHeader>
+                  <SheetTitle>Euer Fortschritt ({progressPct}%)</SheetTitle>
+                  <SheetDescription>
+                    Wird automatisch im Browser gespeichert. Teamname gilt für den Beamer-Feed.
+                  </SheetDescription>
+                </SheetHeader>
+                <div className="mt-5 space-y-5">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      Team / Tisch
+                    </label>
+                    <Input
+                      value={teamName}
+                      onChange={(e) => setTeamName(e.target.value)}
+                      placeholder="z. B. Tisch 1"
+                    />
+                  </div>
+                  <div className="space-y-2">
                     {CHECKLIST_ITEMS.map((item) => (
                       <label
                         key={item.id}
-                        className="flex cursor-pointer items-center gap-3 rounded-lg border p-2.5 text-sm hover:bg-muted/40"
+                        className="flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm hover:bg-muted/40"
                       >
                         <Checkbox
                           checked={!!checked[item.id]}
                           onCheckedChange={() => toggleCheck(item.id)}
+                          className="mt-0.5"
                         />
                         <span className={checked[item.id] ? "line-through text-muted-foreground" : ""}>
                           {item.label}
@@ -438,877 +357,784 @@ export function ParticipantApp() {
                       </label>
                     ))}
                   </div>
-                </DialogContent>
-              </Dialog>
-            </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            {/* Global Send to Beamer CTA */}
+            <Button
+              type="button"
+              size="sm"
+              className="h-8 gap-1.5 px-2.5 text-xs sm:px-3"
+              onClick={() => openBeamerSheet()}
+            >
+              <Send className="h-3.5 w-3.5" />
+              <span className="sm:hidden">Beamer</span>
+              <span className="hidden sm:inline">An Beamer</span>
+            </Button>
+
+            <a
+              href="/beamer"
+              className="hidden h-8 items-center gap-1 rounded-lg border px-2.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground md:inline-flex"
+              title="Zur Beamer-Ansicht wechseln"
+            >
+              <Monitor className="h-3.5 w-3.5" />
+            </a>
           </div>
         </div>
       </header>
 
-      {/* Main Content Tabs */}
-      <main className="mx-auto max-w-7xl px-4 py-6">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-5">
-          <TabsList className="w-full justify-start overflow-x-auto">
-            <TabsTrigger value="overview">0 · Start & Checkliste</TabsTrigger>
-            <TabsTrigger value="methods">1 · Prompt-Methoden & Priming</TabsTrigger>
-            <TabsTrigger value="stages">2 · Stufen 1 → 2 → 3</TabsTrigger>
-            <TabsTrigger value="mcp">3 · Tools & MCP</TabsTrigger>
-            <TabsTrigger value="missions">4 · Wahl-Missionen</TabsTrigger>
-            <TabsTrigger value="beamer-send">5 · An Beamer senden</TabsTrigger>
-          </TabsList>
-
-          {/* TAB 0: OVERVIEW */}
-          <TabsContent value="overview" className="space-y-5">
-            <div className="grid gap-4 lg:grid-cols-3">
-              <Card className="border-v7-green/50 lg:col-span-2">
-                <CardHeader>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant="success">
-                      <ShieldCheck className="h-3.5 w-3.5" />
-                      virtual7 KI-Richtlinie konform
-                    </Badge>
-                    <Badge variant="outline">68 öffentliche Wikipedia-Artikel</Badge>
-                  </div>
-                  <CardTitle className="text-xl">
-                    Worum geht es in den nächsten 60 Minuten?
-                  </CardTitle>
-                  <CardDescription className="text-sm leading-relaxed">
-                    Im Vormittagsblock haben wir gesehen: <strong>57 %</strong> im Cluster wünschen sich
-                    Prompt-Training, <strong>62 %</strong> haben noch keine Agent-Erfahrung und{" "}
-                    <strong>66 %</strong> wünschen sich Klarheit zu RAG. Genau diese Lücke schließen wir jetzt
-                    praktisch – mit <strong>einer gemeinsamen Wissensbasis</strong> aus Tierwelt &amp; Ökosystemen.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="grid gap-3 sm:grid-cols-2">
-                  <div
-                    onClick={() => setTrack("A")}
-                    className={`cursor-pointer rounded-xl border p-4 transition-all ${
-                      track === "A" ? "border-primary bg-secondary/40 ring-1 ring-primary" : "hover:bg-muted/40"
-                    }`}
-                  >
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 font-semibold">
-                        <Compass className="h-4 w-4 text-v7-greenDark" />
-                        Track A · Browser &amp; Web-Chat
-                      </span>
-                      {track === "A" && <Badge>Aktiv</Badge>}
-                    </div>
-                    <p className="text-xs leading-relaxed text-muted-foreground">
-                      Ideal für ChatGPT, Claude oder Gemini im Browser: Du kopierst Prompts,
-                      System-Regeln und kompakte Artikel-Pakete mit einem Klick aus dieser Oberfläche.
-                    </p>
-                  </div>
-
-                  <div
-                    onClick={() => setTrack("B")}
-                    className={`cursor-pointer rounded-xl border p-4 transition-all ${
-                      track === "B" ? "border-primary bg-secondary/40 ring-1 ring-primary" : "hover:bg-muted/40"
-                    }`}
-                  >
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <span className="flex items-center gap-1.5 font-semibold">
-                        <Terminal className="h-4 w-4 text-v7-greenDark" />
-                        Track B · Terminal, IDE &amp; Agent
-                      </span>
-                      {track === "B" && <Badge>Aktiv</Badge>}
-                    </div>
-                    <p className="text-xs leading-relaxed text-muted-foreground">
-                      Ideal für Claude Code, Codex, Gemini CLI oder OpenCode: Du öffnest die drei
-                      Projekt-Ordner nacheinander direkt im Repository und testest MCP-Tools.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Interactive Checklist */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <CheckCircle2 className="h-4 w-4 text-v7-greenDark" />
-                    Euer roter Faden
-                  </CardTitle>
-                  <CardDescription>Hakt jeden Schritt ab, sobald ihr ihn erlebt habt.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {CHECKLIST_ITEMS.map((item) => (
-                    <label
-                      key={item.id}
-                      className="flex cursor-pointer items-start gap-2.5 rounded-lg border bg-muted/20 p-2 text-xs hover:bg-muted/50"
-                    >
-                      <Checkbox
-                        checked={!!checked[item.id]}
-                        onCheckedChange={() => toggleCheck(item.id)}
-                        className="mt-0.5"
-                      />
-                      <span className={checked[item.id] ? "line-through text-muted-foreground" : ""}>
-                        {item.label}
-                      </span>
-                    </label>
-                  ))}
-                </CardContent>
-              </Card>
+      {/* Main Responsive Shell: Left Step-Rail (lg+) + Calm Guided Canvas */}
+      <div className="mx-auto flex max-w-[1320px]">
+        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-[256px] shrink-0 flex-col justify-between border-r px-4 py-8 lg:flex">
+          <nav aria-label="Workshop-Schritte" className="space-y-1.5">
+            <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              Lernpfad (11:00–12:00)
             </div>
-
-            {/* 7-Phase Schedule */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Ablauf (11:00–12:00 Uhr)</CardTitle>
-              </CardHeader>
-              <CardContent className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
-                {data.phases.map((p) => (
-                  <div key={p.id} className="rounded-xl border bg-card p-3">
-                    <div className="mb-1 flex items-center justify-between text-xs">
-                      <Badge variant="outline">{p.timeRange}</Badge>
-                      <span className="font-medium text-muted-foreground">{p.durationMin} Min.</span>
-                    </div>
-                    <div className="text-sm font-semibold">
-                      {p.number}. {p.title}
-                    </div>
-                    <p className="mt-1 text-xs text-muted-foreground">{p.subtitle}</p>
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-
-            <div className="flex justify-end">
-              <Button type="button" onClick={() => setActiveTab("methods")} className="gap-2">
-                <span>Weiter zu Schritt 1: Prompt-Methoden &amp; Priming</span>
-                <ArrowRight className="h-4 w-4" />
-              </Button>
-            </div>
-          </TabsContent>
-
-          {/* TAB 1: PROMPT METHODS & PRIMING */}
-          <TabsContent value="methods" className="space-y-6">
-            <Card className="border-v7-green/40 bg-secondary/20">
-              <CardHeader>
-                <CardTitle className="text-lg">
-                  1 Aufgabe – 4 Schreibweisen: Warum Prompt-Struktur die Antwort komplett verändert
-                </CardTitle>
-                <CardDescription>
-                  Gleiche Aufgabe: <strong>„{data.promptComparisonTask}“</strong> — kopiere zwei bis vier
-                  Varianten nacheinander in deinen Chat oder Agenten und vergleiche Qualität, Format und
-                  Quellentreue.
-                </CardDescription>
-              </CardHeader>
-              {track === "A" && (
-                <CardContent className="flex flex-wrap items-center gap-2 pt-0">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    Für Track A direkt die passenden Klimawandel-Dateien mitkopieren:
-                  </span>
-                  <CopyButton
-                    text={`${trackAPacks.arctic}\n\n${trackAPacks.reef}`}
-                    label="Kontext-Dateien (Arktis + Korallen) kopieren"
-                    variant="secondary"
-                  />
-                </CardContent>
-              )}
-            </Card>
-
-            <div className="grid gap-4 lg:grid-cols-2">
-              {data.promptMethods.map((m) => (
-                <Card key={m.id} className="flex flex-col">
-                  <CardHeader className="pb-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <CardTitle className="text-base">{m.name}</CardTitle>
-                      <Badge variant="secondary">{m.badge}</Badge>
-                    </div>
-                    <CardDescription>{m.bestFor}</CardDescription>
-                    <div className="flex flex-wrap gap-1 pt-1">
-                      {m.components.map((c) => (
-                        <Badge key={c} variant="outline" className="text-[11px]">
-                          {c}
-                        </Badge>
-                      ))}
-                    </div>
-                  </CardHeader>
-                  <CardContent className="flex flex-1 flex-col justify-between gap-3">
-                    <pre className="whitespace-pre-wrap rounded-lg border bg-muted/40 p-3 font-mono text-xs leading-relaxed">
-                      {m.prompt}
-                    </pre>
-                    <div className="space-y-1 text-xs">
-                      <div>
-                        <strong className="text-emerald-700 dark:text-emerald-400">Stärke:</strong> {m.strength}
-                      </div>
-                      <div>
-                        <strong className="text-amber-700 dark:text-amber-400">Grenze:</strong> {m.risk}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between pt-1">
-                      <CopyButton text={m.prompt} label="Prompt kopieren" />
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => {
-                          setSendMethod(m.name);
-                          setSendQuestion(data.promptComparisonTask);
-                          setActiveTab("beamer-send");
-                        }}
-                      >
-                        Ergebnis teilen →
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <Separator />
-
-            {/* System Prompt vs Priming vs User Prompt vs Harness vs MCP */}
-            <div className="space-y-3">
-              <div>
-                <h2 className="flex items-center gap-2 text-lg font-bold">
-                  <Layers className="h-5 w-5 text-v7-greenDark" />
-                  Vom User-Prompt zum KI-System: Was ist Priming, System-Prompt, Harness &amp; MCP?
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                  Ob Web-Chat (Track A) oder Coding-Agent (Track B) – darunter stecken exakt dieselben 5
-                  Steuerungs-Ebenen:
-                </p>
-              </div>
-
-              <div className="grid gap-3 md:grid-cols-5">
-                {data.architectureLayers.map((layer) => (
-                  <Card key={layer.layer} className="bg-card">
-                    <CardHeader className="p-4 pb-2">
-                      <CardTitle className="text-sm">{layer.layer}</CardTitle>
-                      <CardDescription className="text-xs font-medium text-v7-greenDark">
-                        {layer.analogy}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-2 p-4 pt-0 text-xs text-muted-foreground">
-                      <div>
-                        <strong>Lebensdauer:</strong> {layer.persistence}
-                      </div>
-                      <div>
-                        <strong>Durchsetzung:</strong> {layer.authority}
-                      </div>
-                      <div className="rounded bg-muted p-2 text-[11px] text-foreground">{layer.example}</div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <CardTitle className="text-base">
-                      Sofort-Vorlage: Priming / System-Regel für deinen Browser-Chat (Track A)
-                    </CardTitle>
-                    <CopyButton text={data.trackAPrimingTemplate} label="Priming kopieren" />
-                  </div>
-                  <CardDescription>
-                    In Track B liegt das Äquivalent automatisch als <code>AGENTS.md</code> bzw.{" "}
-                    <code>CLAUDE.md</code> im Projektordner. Im Web-Chat fügst du es als erste Nachricht
-                    (Priming) oder Custom Instruction ein.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <pre className="whitespace-pre-wrap rounded-lg border bg-muted/40 p-3 font-mono text-xs">
-                    {data.trackAPrimingTemplate}
-                  </pre>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-
-          {/* TAB 2: STAGES 1 -> 2 -> 3 */}
-          <TabsContent value="stages" className="space-y-6">
-            {/* Stage Picker */}
-            <div className="grid gap-3 md:grid-cols-3">
-              {data.stages.map((st, idx) => (
+            {STEPS.map((s) => {
+              const Icon = s.icon;
+              const isActive = s.id === step;
+              return (
                 <button
-                  key={st.id}
+                  key={s.id}
                   type="button"
-                  onClick={() => setActiveStageIdx(idx)}
-                  className={`rounded-xl border p-4 text-left transition-all ${
-                    activeStageIdx === idx
-                      ? "border-primary bg-secondary/40 ring-1 ring-primary"
-                      : "bg-card hover:bg-muted/40"
+                  onClick={() => goToStep(s.id)}
+                  className={`flex w-full items-center gap-3 rounded-xl border-l-2 px-3 py-2.5 text-left text-sm transition-all ${
+                    isActive
+                      ? "border-l-primary bg-secondary/70 font-semibold text-foreground"
+                      : "border-l-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground"
                   }`}
                 >
-                  <div className="mb-1 flex items-center justify-between gap-2">
-                    <span className="font-semibold">{st.title}</span>
-                    <Badge variant={activeStageIdx === idx ? "default" : "outline"}>{st.badge}</Badge>
+                  <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-brand-ink" : ""}`} />
+                  <div className="min-w-0 flex-1">
+                    <span className="num-tabular mr-1.5 font-mono text-xs opacity-60">{s.num}</span>
+                    <span className="truncate">{s.label}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground">{st.summary}</p>
                 </button>
-              ))}
+              );
+            })}
+          </nav>
+
+          <div className="space-y-2 rounded-xl border bg-card p-3.5 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-foreground">{teamName || "Mein Team"}</span>
+              <Badge variant="secondary" className="text-[10px]">
+                Track {track}
+              </Badge>
             </div>
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
+              <span>68 öffentliche Wikipedia-Artikel</span>
+            </div>
+          </div>
+        </aside>
 
-            {/* Active Stage Execution Guide */}
-            <Card className="border-v7-green/40">
-              <CardHeader>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <CardTitle className="text-lg">{currentStage.title}</CardTitle>
-                    <CardDescription>
-                      Ordner im Repository: <code className="rounded bg-muted px-1.5 py-0.5">{currentStage.folder}/</code>
-                    </CardDescription>
-                  </div>
-                  <Badge variant="secondary">
-                    {track === "A" ? "Anleitung für Track A (Browser/Chat)" : "Anleitung für Track B (CLI/Agent)"}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {track === "A" ? (
-                  <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
-                    <div className="text-sm font-semibold">
-                      Track A: So simulierst du {currentStage.title} im Web-Chat
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      1. Starte einen <strong>neuen Chat</strong> (wichtig, damit alte Regeln nicht nachwirken).
-                      <br />
-                      2. Kopiere die System-Anweisung (<code>AGENTS.md</code>) und ggf. die Skills in den Chat.
-                      <br />
-                      3. Kopiere das passende Artikel-Paket (oder lade Dateien aus <code>{currentStage.folder}/docs/</code> hoch)
-                      und stelle die 4 Testfragen unten.
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <CopyButton text={currentStage.agentsMd} label="AGENTS.md kopieren" variant="default" />
-                      {currentStage.skills.map((sk) => (
-                        <CopyButton
-                          key={sk.name}
-                          text={sk.content}
-                          label={`Skill „${sk.name}“ kopieren`}
-                          variant="secondary"
-                        />
-                      ))}
-                      {currentStage.indexMd && (
-                        <CopyButton
-                          text={currentStage.indexMd}
-                          label="_index.md (MOC) kopieren"
-                          variant="secondary"
-                        />
-                      )}
-                      <CopyButton text={trackAPacks.arctic} label="Paket Arktis (4 Dateien)" />
-                      <CopyButton text={trackAPacks.reef} label="Paket Korallenriff (6 Dateien)" />
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => downloadTextFile("starter-korpus-12-artikel.md", trackAPacks.all12)}
-                      >
-                        <Download className="h-3.5 w-3.5" />
-                        <span>12 Starter-Artikel (.md) laden</span>
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="space-y-3 rounded-xl border bg-muted/20 p-4">
-                    <div className="text-sm font-semibold">
-                      Track B: So arbeitest du in {currentStage.folder}/ mit deinem CLI/IDE-Agenten
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Öffne genau diesen Unterordner als Arbeitsverzeichnis in Claude Code, Codex, Gemini CLI
-                      oder OpenCode (damit nur die dortige <code>AGENTS.md</code> / <code>CLAUDE.md</code> gilt):
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <code className="rounded-md border bg-card px-3 py-1.5 font-mono text-xs">
-                        cd {currentStage.folder}
-                      </code>
-                      <CopyButton text={`cd ${currentStage.folder}`} label="cd-Befehl kopieren" />
-                      <CopyButton text={currentStage.trackBPrompt} label="Starter-Prompt kopieren" variant="secondary" />
-                    </div>
-                  </div>
-                )}
-
-                <Accordion type="single" collapsible>
-                  <AccordionItem value="agents-preview">
-                    <AccordionTrigger>
-                      Inhalt ansehen: {currentStage.folder}/AGENTS.md &amp; Skills ({currentStage.skills.length})
-                    </AccordionTrigger>
-                    <AccordionContent className="space-y-3">
-                      <pre className="whitespace-pre-wrap rounded-lg border bg-muted/40 p-3 font-mono text-xs">
-                        {currentStage.agentsMd}
-                      </pre>
-                      {currentStage.skills.map((sk) => (
-                        <div key={sk.name}>
-                          <div className="mb-1 text-xs font-semibold">
-                            .agents/skills/{sk.name}/SKILL.md
-                          </div>
-                          <pre className="whitespace-pre-wrap rounded-lg border bg-muted/40 p-3 font-mono text-xs">
-                            {sk.content}
-                          </pre>
-                        </div>
-                      ))}
-                    </AccordionContent>
-                  </AccordionItem>
-                </Accordion>
-              </CardContent>
-            </Card>
-
-            {/* The 4 Test Questions */}
-            <div className="space-y-3">
-              <h2 className="flex items-center gap-2 text-lg font-bold">
-                <BookOpen className="h-5 w-5 text-v7-greenDark" />
-                Die 4 Testfragen (für alle 3 Stufen identisch!)
-              </h2>
-              <div className="grid gap-4 md:grid-cols-2">
-                {data.testQuestions.map((q) => (
-                  <Card key={q.id} className="flex flex-col justify-between">
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between gap-2">
-                        <Badge variant={q.number === 3 ? "warning" : "secondary"}>
-                          Frage {q.number} · {q.type}
-                        </Badge>
-                        <CopyButton text={q.question} label="Frage kopieren" />
+        {/* Focused Editorial Content Canvas */}
+        <main className="min-w-0 flex-1 px-4 pb-28 pt-6 sm:px-8 lg:px-12 lg:py-10">
+          <div className="mx-auto max-w-[920px]">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={step}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.16 }}
+                className="space-y-10"
+              >
+                {/* STEP 0: START & TRACK */}
+                {step === "start" && (
+                  <div className="space-y-9">
+                    <section className="space-y-4">
+                      <div className="inline-flex items-center gap-2 rounded-full border bg-secondary/50 px-3 py-1 text-xs font-semibold text-brand-ink">
+                        <ShieldCheck className="h-3.5 w-3.5" />
+                        <span>virtual7 CCF Clustertag · 100 % öffentliche Daten</span>
                       </div>
-                      <CardTitle className="pt-1 text-sm leading-snug">{q.question}</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2 text-xs">
-                      <div className="rounded-lg bg-muted/40 p-2.5 text-muted-foreground">
-                        <strong>Worauf achten?</strong> {q.whatToWatch}
+                      <h1 className="font-display text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
+                        Vom ungefilterten Chat zum strukturierten KI-System.
+                      </h1>
+                      <p className="editorial-measure text-base leading-relaxed text-muted-foreground">
+                        In unserer Vormittagsumfrage wünschten sich <strong>57 %</strong> praktisches
+                        Prompting-Training, <strong>62 %</strong> hatten noch keine Agent-Erfahrung und{" "}
+                        <strong>66 %</strong> wollten Klarheit zu RAG. Genau das erlebst du jetzt in 5
+                        klaren Schritten.
+                      </p>
+                    </section>
+
+                    <section className="space-y-3">
+                      <div className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                        1 · Wähle dein Arbeitswerkzeug (gleiches Lernziel für alle)
                       </div>
-                      <Accordion type="single" collapsible>
-                        <AccordionItem value="sol" className="border-none">
-                          <AccordionTrigger className="py-1.5 text-xs text-v7-greenDark">
-                            Verifizierte Musterlösung anzeigen (erst nach dem Testen öffnen)
-                          </AccordionTrigger>
-                          <AccordionContent className="rounded-lg border bg-secondary/30 p-2.5 text-xs leading-relaxed">
-                            {q.solutionSummary}
-                          </AccordionContent>
-                        </AccordionItem>
-                      </Accordion>
-                      <div className="flex justify-end">
-                        <Button
+                      <div className="grid gap-4 sm:grid-cols-2">
+                        <button
                           type="button"
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => {
-                            setSendStage(currentStage.id === "stufe-1" ? "Stufe 1" : currentStage.id === "stufe-2" ? "Stufe 2" : "Stufe 3");
-                            setSendQuestion(q.question);
-                            setActiveTab("beamer-send");
-                          }}
+                          onClick={() => setTrack("A")}
+                          className={`flex flex-col justify-between gap-3 rounded-2xl border p-5 text-left transition-all ${
+                            track === "A"
+                              ? "border-primary bg-secondary/45 ring-1 ring-primary"
+                              : "bg-card hover:bg-muted/40"
+                          }`}
                         >
-                          Beobachtung an Beamer senden →
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-
-            {/* Interactive Vault Explorer */}
-            <VaultExplorer articles={data.vaultArticles} />
-          </TabsContent>
-
-          {/* TAB 3: TOOLS & MCP */}
-          <TabsContent value="mcp" className="space-y-6">
-            <Card className="border-v7-green/40">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <Plug className="h-5 w-5 text-v7-greenDark" />
-                  Wie Tools &amp; MCP (Model Context Protocol) die KI mit der Außenwelt verbinden
-                </CardTitle>
-                <CardDescription>
-                  Mit MCP spricht jede kompatible KI über einen einheitlichen Standard direkt mit Werkzeugen,
-                  Datenbanken oder unserem Beamer – ohne individuellen Klebecode pro Modell.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-3 md:grid-cols-4">
-                  <div className="rounded-xl border bg-muted/30 p-3">
-                    <div className="mb-1 flex items-center gap-1.5 text-sm font-semibold">
-                      <Bot className="h-4 w-4 text-v7-greenDark" />
-                      1. KI-Host (Chat/CLI)
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Claude, Codex, Gemini CLI, VS Code oder Langdock-Client erkennt verfügbare Tools.
-                    </p>
-                  </div>
-                  <div className="rounded-xl border bg-muted/30 p-3">
-                    <div className="mb-1 flex items-center gap-1.5 text-sm font-semibold">
-                      <Network className="h-4 w-4 text-v7-greenDark" />
-                      2. MCP-Protokoll
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Standardisiertes JSON-RPC (stdio / HTTP): Übergibt Tool-Namen, Schema und Parameter.
-                    </p>
-                  </div>
-                  <div className="rounded-xl border bg-muted/30 p-3">
-                    <div className="mb-1 flex items-center gap-1.5 text-sm font-semibold">
-                      <Cpu className="h-4 w-4 text-v7-greenDark" />
-                      3. Workshop-MCP-Server
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      <code>mcp-server/server.mjs</code> stellt 3 Live-Tools ohne Fremdpakete bereit.
-                    </p>
-                  </div>
-                  <div className="rounded-xl border bg-muted/30 p-3">
-                    <div className="mb-1 flex items-center gap-1.5 text-sm font-semibold">
-                      <Monitor className="h-4 w-4 text-v7-greenDark" />
-                      4. Daten &amp; Beamer-Aktion
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Vault-Suche, Fakten-Gegenprüfung und Live-Zustellung an <code>/beamer</code>.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Live Browser Playground for the 3 MCP Tools */}
-            <div className="grid gap-4 lg:grid-cols-2">
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Wrench className="h-4 w-4 text-v7-greenDark" />
-                    Live-Tool-Test 1: <code>search_wildlife_vault</code>
-                  </CardTitle>
-                  <CardDescription>
-                    Probiere direkt im Browser aus, was das MCP-Tool der KI als strukturierten Kontext liefert.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex gap-2">
-                    <Input
-                      value={mcpQuery}
-                      onChange={(e) => setMcpQuery(e.target.value)}
-                      placeholder="Suchbegriff eingeben..."
-                    />
-                    <Button type="button" onClick={runMcpSearch}>
-                      Ausführen
-                    </Button>
-                  </div>
-                  {mcpResults && (
-                    <ScrollArea className="h-56 rounded-lg border bg-muted/20 p-2.5">
-                      <div className="space-y-2">
-                        {mcpResults.length === 0 && (
-                          <div className="text-xs text-muted-foreground">Keine Treffer gefunden.</div>
-                        )}
-                        {mcpResults.map((m) => (
-                          <div key={m.slug} className="rounded-lg border bg-card p-2.5 text-xs">
-                            <div className="flex items-center justify-between font-semibold">
-                              <span>{m.wikilink}</span>
-                              <Badge variant="outline">Score {m.score}</Badge>
-                            </div>
-                            <div className="text-[11px] text-muted-foreground">{m.rel_path}</div>
-                            <p className="mt-1 text-muted-foreground">{m.snippet}</p>
+                          <div className="flex w-full items-center justify-between gap-2">
+                            <span className="flex items-center gap-2 font-display text-base font-bold">
+                              <Compass className="h-5 w-5 text-brand-ink" />
+                              Track A · Browser &amp; Web-Chat
+                            </span>
+                            {track === "A" && (
+                              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                                <Check className="h-3.5 w-3.5" />
+                              </span>
+                            )}
                           </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  )}
-                </CardContent>
-              </Card>
+                          <p className="text-sm leading-relaxed text-muted-foreground">
+                            ChatGPT, Claude oder Gemini im Browser. Du nutzt 1-Klick-Kopierpakete für
+                            Prompts, Regeln und Starter-Artikel direkt aus dieser PWA.
+                          </p>
+                        </button>
 
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <ShieldCheck className="h-4 w-4 text-v7-greenDark" />
-                    Live-Tool-Test 2: <code>verify_claim_against_corpus</code>
-                  </CardTitle>
-                  <CardDescription>
-                    Prüfe eine Behauptung oder Fangfrage gegen alle lokalen Vault-Artikel.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <Textarea
-                    value={verifyClaim}
-                    onChange={(e) => setVerifyClaim(e.target.value)}
-                    rows={2}
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="button" onClick={runMcpVerify}>
-                      Behauptung prüfen
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setVerifyClaim(
-                          "Im Schweizerischen Nationalpark leben 45 Schneeleoparden und das Ticket kostet 25 Euro."
-                        )
-                      }
-                    >
-                      Fangfrage testen
-                    </Button>
-                  </div>
-                  {verifyOutput && (
-                    <div className="space-y-2 rounded-lg border bg-muted/20 p-3 text-xs">
-                      <div className="flex items-center gap-2">
-                        <Badge
-                          variant={
-                            verifyOutput.status === "belegt"
-                              ? "success"
-                              : verifyOutput.status === "teilweise"
-                                ? "warning"
-                                : "danger"
-                          }
+                        <button
+                          type="button"
+                          onClick={() => setTrack("B")}
+                          className={`flex flex-col justify-between gap-3 rounded-2xl border p-5 text-left transition-all ${
+                            track === "B"
+                              ? "border-primary bg-secondary/45 ring-1 ring-primary"
+                              : "bg-card hover:bg-muted/40"
+                          }`}
                         >
-                          {verifyOutput.status.toUpperCase()}
-                        </Badge>
-                        <span>{verifyOutput.label}</span>
+                          <div className="flex w-full items-center justify-between gap-2">
+                            <span className="flex items-center gap-2 font-display text-base font-bold">
+                              <Terminal className="h-5 w-5 text-brand-ink" />
+                              Track B · Terminal, IDE &amp; Agent
+                            </span>
+                            {track === "B" && (
+                              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                                <Check className="h-3.5 w-3.5" />
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm leading-relaxed text-muted-foreground">
+                            Claude Code, Codex, Gemini CLI oder OpenCode. Du öffnest die drei
+                            Projekt-Ordner nacheinander lokal und bindest den MCP-Server ein.
+                          </p>
+                        </button>
                       </div>
-                      {verifyOutput.evidence.map((ev) => (
-                        <div key={ev.slug} className="rounded border bg-card p-2">
-                          <div className="font-semibold">{ev.wikilink}</div>
-                          <p className="text-muted-foreground">{ev.snippet}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                    </section>
 
-            {/* Config snippets for Track B */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-base">
-                  <FileCode2 className="h-4 w-4 text-v7-greenDark" />
-                  MCP-Konfiguration zum Mitnehmen (Track B &amp; CLI-Schnelltest)
-                </CardTitle>
-                <CardDescription>
-                  Im Repository-Root liegt bereits <code>.mcp.json</code> – Claude Code erkennt den Server
-                  sofort. Weitere Clients:
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Tabs defaultValue="claude">
-                  <TabsList>
-                    <TabsTrigger value="claude">Claude Code</TabsTrigger>
-                    <TabsTrigger value="gemini">Gemini CLI</TabsTrigger>
-                    <TabsTrigger value="codex">Codex</TabsTrigger>
-                    <TabsTrigger value="vscode">VS Code / Cursor</TabsTrigger>
-                    <TabsTrigger value="cli">1-Zeiler CLI</TabsTrigger>
-                  </TabsList>
-                  <TabsContent value="claude" className="space-y-2">
-                    <div className="flex justify-end">
-                      <CopyButton text={data.mcpConfigs.claudeCode} />
-                    </div>
-                    <pre className="rounded-lg border bg-muted/40 p-3 font-mono text-xs">{data.mcpConfigs.claudeCode}</pre>
-                  </TabsContent>
-                  <TabsContent value="gemini" className="space-y-2">
-                    <div className="flex justify-end">
-                      <CopyButton text={data.mcpConfigs.geminiCli} />
-                    </div>
-                    <pre className="rounded-lg border bg-muted/40 p-3 font-mono text-xs">{data.mcpConfigs.geminiCli}</pre>
-                  </TabsContent>
-                  <TabsContent value="codex" className="space-y-2">
-                    <div className="flex justify-end">
-                      <CopyButton text={data.mcpConfigs.codex} />
-                    </div>
-                    <pre className="rounded-lg border bg-muted/40 p-3 font-mono text-xs">{data.mcpConfigs.codex}</pre>
-                  </TabsContent>
-                  <TabsContent value="vscode" className="space-y-2">
-                    <div className="flex justify-end">
-                      <CopyButton text={data.mcpConfigs.vscodeCursor} />
-                    </div>
-                    <pre className="rounded-lg border bg-muted/40 p-3 font-mono text-xs">{data.mcpConfigs.vscodeCursor}</pre>
-                  </TabsContent>
-                  <TabsContent value="cli" className="space-y-2">
-                    <div className="flex justify-end">
-                      <CopyButton text={data.mcpConfigs.cliCommand} />
-                    </div>
-                    <pre className="rounded-lg border bg-muted/40 p-3 font-mono text-xs">{data.mcpConfigs.cliCommand}</pre>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* TAB 4: INCLUSIVE MISSIONS */}
-          <TabsContent value="missions" className="space-y-5">
-            <Card className="border-v7-green/40">
-              <CardHeader>
-                <CardTitle className="text-lg">Freie Wahl-Missionen: Für jeden etwas</CardTitle>
-                <CardDescription>
-                  Ob Faktenprüfung, strukturierte Daten, klares Management-Briefing oder eigenes MCP-Experiment
-                  – wählt das Szenario, das euch am meisten Spaß macht!
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              {data.missions.map((m) => (
-                <Card key={m.id} className="flex flex-col justify-between">
-                  <CardHeader>
-                    <div className="flex items-center justify-between gap-2">
-                      <CardTitle className="text-base">{m.title}</CardTitle>
-                      <Badge variant="secondary">{m.tag}</Badge>
-                    </div>
-                    <CardDescription>{m.description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <pre className="whitespace-pre-wrap rounded-lg border bg-muted/40 p-3 font-mono text-xs">
-                      {m.prompt}
-                    </pre>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <CopyButton text={m.prompt} label="Missions-Prompt kopieren" />
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        onClick={() => {
-                          setChecked((prev) => ({ ...prev, "chk-mission": true }));
-                          setSendQuestion(m.title + ": " + m.description);
-                          setActiveTab("beamer-send");
-                        }}
-                      >
-                        Ergebnis an Beamer →
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-
-          {/* TAB 5: SEND TO BEAMER */}
-          <TabsContent value="beamer-send" className="space-y-5">
-            <div className="grid gap-4 lg:grid-cols-3">
-              <Card className="lg:col-span-2">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Send className="h-5 w-5 text-v7-greenDark" />
-                    Frage oder Aha-Moment live auf die Beamer-Leinwand senden
-                  </CardTitle>
-                  <CardDescription>
-                    Dein Beitrag landet im Live-Feed auf <code>/beamer</code> und wird vom Prüfmechanismus
-                    automatisch gegen alle 68 Artikel gecheckt.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={submitToBeamer} className="space-y-4">
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium">Euer Team / Name</label>
+                    <section className="flex flex-col gap-3 rounded-2xl border bg-card p-5 sm:flex-row sm:items-end">
+                      <div className="flex-1 space-y-1.5">
+                        <label className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                          2 · Euer Team- oder Tischname (für Beamer-Einträge)
+                        </label>
                         <Input
                           value={teamName}
                           onChange={(e) => setTeamName(e.target.value)}
-                          placeholder="z. B. Tisch 2 - Polarfuchs"
+                          placeholder="z. B. Tisch 1 - Polarfuchs"
                         />
                       </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium">Projekt-Stufe</label>
-                        <select
-                          value={sendStage}
-                          onChange={(e) => setSendStage(e.target.value)}
-                          className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                        >
-                          <option>Prompt-Labor</option>
-                          <option>Stufe 1</option>
-                          <option>Stufe 2</option>
-                          <option>Stufe 3</option>
-                          <option>Wahl-Mission / MCP</option>
-                        </select>
-                      </div>
-                      <div className="space-y-1">
-                        <label className="text-xs font-medium">Prompt-Methode</label>
-                        <select
-                          value={sendMethod}
-                          onChange={(e) => setSendMethod(e.target.value)}
-                          className="flex h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
-                        >
-                          <option>Zero-Shot</option>
-                          <option>CO-STAR</option>
-                          <option>Few-Shot</option>
-                          <option>RISEN + CoT</option>
-                          <option>Frei / MCP</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium">Eure Testfrage oder Beobachtung</label>
-                      <Textarea
-                        value={sendQuestion}
-                        onChange={(e) => setSendQuestion(e.target.value)}
-                        rows={3}
-                        placeholder="Welche Frage habt ihr getestet?"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium">
-                        KI-Antwort oder Aha-Moment (optional – wird auf Quellen &amp; Guardrails geprüft)
-                      </label>
-                      <Textarea
-                        value={sendAnswer}
-                        onChange={(e) => setSendAnswer(e.target.value)}
-                        rows={3}
-                        placeholder="Was hat eure KI geantwortet? Hat sie halluziniert oder sauber abgelehnt?"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">
-                        Beamer-Server-URL (Standard: aktueller Host bzw. Trainer-IP im WLAN)
-                      </label>
-                      <Input
-                        value={beamerServerUrl}
-                        onChange={(e) => setBeamerServerUrl(e.target.value)}
-                        className="font-mono text-xs"
-                      />
-                    </div>
-
-                    {sendStatus && (
-                      <div
-                        className={`rounded-lg border p-3 text-sm ${
-                          sendStatus.ok
-                            ? "border-emerald-300 bg-emerald-50 text-emerald-900"
-                            : "border-amber-300 bg-amber-50 text-amber-900"
-                        }`}
+                      <Button
+                        type="button"
+                        size="lg"
+                        onClick={() => {
+                          setChecked((prev) => ({ ...prev, "chk-setup": true }));
+                          goToStep("methods");
+                        }}
                       >
-                        {sendStatus.msg}
+                        <span>Los geht’s: Prompt-Methoden</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </Button>
+                    </section>
+
+                    <Accordion type="single" collapsible className="rounded-2xl border bg-card px-5">
+                      <AccordionItem value="schedule" className="border-none">
+                        <AccordionTrigger className="font-display text-sm font-semibold">
+                          Ablaufplan ansehen (7 Phasen · 11:00–12:00 Uhr)
+                        </AccordionTrigger>
+                        <AccordionContent className="divide-y pb-3">
+                          {data.phases.map((p) => (
+                            <div
+                              key={p.id}
+                              className="flex flex-col gap-1 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="num-tabular font-mono text-xs font-semibold text-brand-ink">
+                                  {p.timeRange}
+                                </span>
+                                <span className="text-sm font-semibold">
+                                  {p.number}. {p.title}
+                                </span>
+                              </div>
+                              <span className="text-xs text-muted-foreground">{p.subtitle}</span>
+                            </div>
+                          ))}
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </div>
+                )}
+
+                {/* STEP 1: PROMPT METHODS & 5 ARCHITECTURE LAYERS */}
+                {step === "methods" && (
+                  <div className="space-y-12">
+                    <div className="space-y-2">
+                      <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+                        Schritt 02 · Prompting &amp; Steuerung
                       </div>
-                    )}
-
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="submit" disabled={isSending}>
-                        <Send className="h-4 w-4" />
-                        <span>{isSending ? "Sende..." : "Live an Beamer senden"}</span>
-                      </Button>
-                      <Button type="button" variant="outline" onClick={downloadSubmissionJson}>
-                        <FolderGit2 className="h-4 w-4" />
-                        <span>Als JSON für live-questions/ speichern</span>
-                      </Button>
-                      <Button type="button" variant="outline" onClick={openGithubIssue}>
-                        <ExternalLink className="h-4 w-4" />
-                        <span>Als GitHub Issue öffnen</span>
-                      </Button>
+                      <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
+                        Prompt-Methoden &amp; System-Ebenen
+                      </h1>
+                      <p className="editorial-measure text-sm leading-relaxed text-muted-foreground">
+                        Vergleiche, wie exakt dieselbe Frage durch Methodik (Zero-Shot, CO-STAR,
+                        Few-Shot, RISEN + CoT) völlig unterschiedliche Ergebnisse erzwingt.
+                      </p>
                     </div>
-                  </form>
-                </CardContent>
-              </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base">Für Agent-Fans (Track B / MCP)</CardTitle>
-                  <CardDescription>
-                    Du kannst deiner KI auch direkt im Chat oder Terminal sagen:
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-3 text-xs">
-                  <div className="rounded-lg border bg-muted/40 p-3 font-medium">
-                    „Stell folgende Frage über das MCP-Tool <code>send_to_beamer</code> auf den Beamer und
-                    merke dir unser Team!“
+                    <PromptMethodComparator
+                      task={data.promptComparisonTask}
+                      methods={data.promptMethods}
+                      track={track}
+                      arcticAndReefBundle={`${trackAPacks.arctic}\n\n${trackAPacks.reef}`}
+                      onShareMethod={(methodName, promptTask) => {
+                        setChecked((prev) => ({ ...prev, "chk-methods": true }));
+                        openBeamerSheet({
+                          stage: "Prompt-Labor",
+                          method: methodName,
+                          question: promptTask,
+                        });
+                      }}
+                    />
+
+                    <Separator />
+
+                    <ArchitectureLayerStack
+                      layers={data.architectureLayers}
+                      primingTemplate={data.trackAPrimingTemplate}
+                    />
                   </div>
-                  <CopyButton
-                    text={`Nutze das MCP-Tool send_to_beamer mit team="${teamName}", stage="${sendStage}", method="${sendMethod}" und question="${sendQuestion}".`}
-                    label="Agent-Auftrag kopieren"
-                  />
-                  <Separator />
-                  <div className="text-muted-foreground">
-                    Oder klassisch per CLI (ohne MCP-Setup):
+                )}
+
+                {/* STEP 2: STAGES 1 -> 2 -> 3 & OBSIDIAN KNOWLEDGE GRAPH */}
+                {step === "stages" && (
+                  <div className="space-y-10">
+                    <div className="space-y-2">
+                      <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+                        Schritt 03 · Das 3-Stufen-Experiment
+                      </div>
+                      <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
+                        Stufe 1 → Stufe 2 → Stufe 3
+                      </h1>
+                      <p className="editorial-measure text-sm leading-relaxed text-muted-foreground">
+                        Stelle dieselben 4 Fragen nacheinander in allen drei Stufen und erlebe den
+                        Unterschied zwischen Chaos, Harness und Markdown-RAG.
+                      </p>
+                    </div>
+
+                    {/* Clean 3-Stage Selector */}
+                    <div className="grid gap-3 md:grid-cols-3">
+                      {data.stages.map((st, idx) => {
+                        const isActive = idx === activeStageIdx;
+                        const dotColor =
+                          idx === 0
+                            ? "bg-rose-500"
+                            : idx === 1
+                              ? "bg-amber-500"
+                              : "bg-brand-lime";
+                        return (
+                          <button
+                            key={st.id}
+                            type="button"
+                            onClick={() => setActiveStageIdx(idx)}
+                            className={`flex flex-col gap-1.5 rounded-2xl border p-4 text-left transition-all ${
+                              isActive
+                                ? "border-primary bg-secondary/45 ring-1 ring-primary"
+                                : "bg-card hover:bg-muted/40"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="inline-flex items-center gap-2 font-display text-sm font-bold">
+                                <span className={`h-2.5 w-2.5 rounded-full ${dotColor}`} />
+                                {st.title.split(" · ")[0]}
+                              </span>
+                              <Badge variant="outline" className="text-[11px]">
+                                {st.badge}
+                              </Badge>
+                            </div>
+                            <div className="text-xs font-medium text-foreground">
+                              {st.title.split(" · ")[1]}
+                            </div>
+                            <p className="text-xs text-muted-foreground">{st.summary}</p>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Calm Track-Aware Execution Strip (Raw Markdown lives cleanly in Slide-Over Drawer!) */}
+                    <div className="flex flex-col gap-4 rounded-2xl border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0 space-y-1">
+                        <div className="text-xs font-semibold uppercase tracking-wider text-brand-ink">
+                          {track === "A"
+                            ? `Track A · ${currentStage.title}`
+                            : `Track B · cd ${currentStage.folder}`}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {track === "A"
+                            ? "1. Neuen Chat öffnen → 2. AGENTS.md & Skills kopieren → 3. Starter-Artikel + Testfrage senden."
+                            : `Öffne ${currentStage.folder}/ als Arbeitsverzeichnis in Claude Code, Codex, Gemini CLI oder OpenCode.`}
+                        </p>
+                      </div>
+
+                      <div className="flex shrink-0 flex-wrap items-center gap-2">
+                        {track === "A" ? (
+                          <CopyButton
+                            text={currentStage.agentsMd}
+                            label="AGENTS.md kopieren"
+                            variant="default"
+                          />
+                        ) : (
+                          <CopyButton
+                            text={`cd ${currentStage.folder}`}
+                            label={`cd ${currentStage.folder}`}
+                            variant="default"
+                          />
+                        )}
+                        <StageArtifactsSheet
+                          stage={currentStage}
+                          arcticPack={trackAPacks.arctic}
+                          reefPack={trackAPacks.reef}
+                          all12Pack={trackAPacks.all12}
+                        />
+                      </div>
+                    </div>
+
+                    {/* The 4 Verified Test Questions */}
+                    <section className="space-y-4">
+                      <h2 className="font-display text-lg font-bold">
+                        Die 4 Testfragen (für alle 3 Stufen identisch)
+                      </h2>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {data.testQuestions.map((q) => (
+                          <div
+                            key={q.id}
+                            className={`flex flex-col justify-between gap-4 rounded-2xl border bg-card p-5 ${
+                              q.number === 3 ? "border-l-4 border-l-rose-500" : ""
+                            }`}
+                          >
+                            <div className="space-y-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex min-w-0 items-center gap-2">
+                                  <span className="num-tabular font-mono text-xs font-bold text-brand-ink">
+                                    0{q.number}
+                                  </span>
+                                  <span className="text-xs font-semibold text-muted-foreground">
+                                    {q.type}
+                                  </span>
+                                </div>
+                                <CopyButton text={q.question} label="Kopieren" />
+                              </div>
+
+                              <p className="text-[15px] font-medium leading-snug text-foreground">
+                                {q.question}
+                              </p>
+
+                              <p className="rounded-xl bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
+                                <strong className="text-foreground">Fokus: </strong>
+                                {q.whatToWatch}
+                              </p>
+                            </div>
+
+                            <div className="space-y-2 border-t pt-3">
+                              <Accordion type="single" collapsible>
+                                <AccordionItem value="sol" className="border-none">
+                                  <AccordionTrigger className="py-1 text-xs font-medium text-brand-ink">
+                                    Verifizierte Lösung (nach dem Testen öffnen)
+                                  </AccordionTrigger>
+                                  <AccordionContent className="rounded-xl bg-secondary/40 p-3 text-xs leading-relaxed text-foreground">
+                                    {q.solutionSummary}
+                                  </AccordionContent>
+                                </AccordionItem>
+                              </Accordion>
+
+                              <div className="flex justify-end">
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 px-2 text-xs text-brand-ink"
+                                  onClick={() =>
+                                    openBeamerSheet({
+                                      stage:
+                                        currentStage.id === "stufe-1"
+                                          ? "Stufe 1"
+                                          : currentStage.id === "stufe-2"
+                                            ? "Stufe 2"
+                                            : "Stufe 3",
+                                      question: q.question,
+                                    })
+                                  }
+                                >
+                                  <Send className="h-3.5 w-3.5" />
+                                  <span>Beobachtung an Beamer</span>
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    {/* Real Obsidian Force-Directed Knowledge Graph */}
+                    <section className="space-y-3">
+                      <div className="space-y-1">
+                        <h2 className="font-display text-lg font-bold">
+                          Warum Stufe 3 gewinnt: Der Wissens-Graph hinter dem Vault
+                        </h2>
+                        <p className="editorial-measure text-sm text-muted-foreground">
+                          Erkunde alle 68 Artikel interaktiv — jeder Klick auf einen Knoten oder ein{" "}
+                          <code>[[Wikilink]]</code> zeigt exakt, wie der Agent Beziehungen verfolgt.
+                        </p>
+                      </div>
+                      <ObsidianKnowledgeGraph articles={data.vaultArticles} />
+                    </section>
                   </div>
-                  <pre className="whitespace-pre-wrap rounded-lg border bg-muted/40 p-2.5 font-mono text-[11px]">
-                    {data.mcpConfigs.cliCommand}
-                  </pre>
-                  <CopyButton text={data.mcpConfigs.cliCommand} label="CLI-Befehl kopieren" />
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </main>
+                )}
+
+                {/* STEP 3: TOOLS & MCP */}
+                {step === "mcp" && (
+                  <div className="space-y-8">
+                    <div className="space-y-2">
+                      <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+                        Schritt 04 · Protokoll &amp; Live-Werkzeuge
+                      </div>
+                      <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
+                        Tools &amp; Model Context Protocol (MCP)
+                      </h1>
+                      <p className="editorial-measure text-sm leading-relaxed text-muted-foreground">
+                        Mit MCP greift jede kompatible KI standardisiert auf unseren Vault, auf
+                        Faktenprüfer und direkt auf den Beamer zu.
+                      </p>
+                    </div>
+
+                    {/* Interactive Animated 4-Node Protocol Pipeline */}
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                      {[
+                        { hop: 1, icon: Bot, title: "1 · KI-Host", desc: "Claude, Codex, Gemini CLI oder UI" },
+                        { hop: 2, icon: Network, title: "2 · JSON-RPC", desc: "Standardisiertes MCP-Protokoll" },
+                        { hop: 3, icon: Cpu, title: "3 · MCP-Server", desc: "mcp-server/server.mjs (3 Tools)" },
+                        { hop: 4, icon: Monitor, title: "4 · Vault & Beamer", desc: "Suche, Prüfung & Live-Post" },
+                      ].map((node) => {
+                        const Icon = node.icon;
+                        const lit = mcpActiveHop === node.hop;
+                        return (
+                          <div
+                            key={node.hop}
+                            className={`rounded-2xl border p-4 transition-all ${
+                              lit
+                                ? "border-brand-lime bg-secondary/70 shadow-sm ring-1 ring-brand-lime"
+                                : "bg-card"
+                            }`}
+                          >
+                            <div className="mb-1.5 flex items-center gap-2 font-display text-sm font-bold">
+                              <Icon className={`h-4 w-4 ${lit ? "text-brand-ink" : "text-muted-foreground"}`} />
+                              <span>{node.title}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground">{node.desc}</p>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Unified Interactive Tool Lab */}
+                    <div className="rounded-2xl border bg-card p-5 sm:p-6">
+                      <Tabs defaultValue="search" className="space-y-4">
+                        <TabsList>
+                          <TabsTrigger value="search" className="gap-1.5">
+                            <Wrench className="h-3.5 w-3.5" />
+                            <span>search_wildlife_vault</span>
+                          </TabsTrigger>
+                          <TabsTrigger value="verify" className="gap-1.5">
+                            <ShieldCheck className="h-3.5 w-3.5" />
+                            <span>verify_claim_against_corpus</span>
+                          </TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="search" className="space-y-4">
+                          <div className="flex flex-col gap-2 sm:flex-row">
+                            <Input
+                              value={mcpQuery}
+                              onChange={(e) => setMcpQuery(e.target.value)}
+                              placeholder="Suchbegriff eingeben…"
+                            />
+                            <Button type="button" onClick={() => runMcpSearch()} className="shrink-0">
+                              Tool ausführen
+                            </Button>
+                          </div>
+
+                          <div className="flex flex-wrap gap-1.5">
+                            {[
+                              "Anemonenfische Symbiose",
+                              "Eisbär Talg Squalen",
+                              "Korallenbleiche Temperatur",
+                              "Alpenmurmeltier Winterschlaf",
+                            ].map((preset) => (
+                              <button
+                                key={preset}
+                                type="button"
+                                onClick={() => runMcpSearch(preset)}
+                                className="rounded-full border bg-muted/50 px-2.5 py-1 text-xs hover:bg-secondary"
+                              >
+                                {preset}
+                              </button>
+                            ))}
+                          </div>
+
+                          {mcpResults && (
+                            <div className="divide-y rounded-xl border bg-muted/20">
+                              {mcpResults.length === 0 && (
+                                <div className="p-4 text-xs text-muted-foreground">
+                                  Keine Treffer gefunden.
+                                </div>
+                              )}
+                              {mcpResults.map((m) => (
+                                <div key={m.slug} className="space-y-1 p-3.5 text-xs">
+                                  <div className="flex flex-wrap items-center justify-between gap-2">
+                                    <span className="wrap-safe font-mono font-bold text-brand-ink">
+                                      {m.wikilink}
+                                    </span>
+                                    <Badge variant="outline">Score {m.score}</Badge>
+                                  </div>
+                                  <div className="font-mono text-[11px] text-muted-foreground">
+                                    {m.rel_path}
+                                  </div>
+                                  <p className="leading-relaxed text-foreground/90">{m.snippet}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </TabsContent>
+
+                        <TabsContent value="verify" className="space-y-4">
+                          <Textarea
+                            value={verifyClaim}
+                            onChange={(e) => setVerifyClaim(e.target.value)}
+                            rows={2}
+                          />
+                          <div className="flex flex-wrap gap-2">
+                            <Button type="button" onClick={() => runMcpVerify()}>
+                              Behauptung prüfen
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                runMcpVerify(
+                                  "Im Schweizerischen Nationalpark leben 45 Schneeleoparden und das Ticket kostet 25 Euro."
+                                )
+                              }
+                            >
+                              Fangfrage testen
+                            </Button>
+                          </div>
+
+                          {verifyOutput && (
+                            <div className="space-y-3 rounded-xl border bg-muted/25 p-4 text-xs">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge
+                                  variant={
+                                    verifyOutput.status === "belegt"
+                                      ? "success"
+                                      : verifyOutput.status === "teilweise"
+                                        ? "warning"
+                                        : "danger"
+                                  }
+                                >
+                                  {verifyOutput.status.toUpperCase()}
+                                </Badge>
+                                <span className="font-medium">{verifyOutput.label}</span>
+                              </div>
+                              {verifyOutput.evidence.map((ev) => (
+                                <div key={ev.slug} className="rounded-lg border bg-card p-3">
+                                  <div className="wrap-safe font-mono font-semibold text-brand-ink">
+                                    {ev.wikilink}
+                                  </div>
+                                  <p className="mt-1 text-muted-foreground">{ev.snippet}</p>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </TabsContent>
+                      </Tabs>
+                    </div>
+
+                    {/* Track B MCP Configs (Strict overflow-x-auto inside min-w-0!) */}
+                    <Accordion type="single" collapsible className="rounded-2xl border bg-card px-5">
+                      <AccordionItem value="mcp-cfg" className="border-none">
+                        <AccordionTrigger className="font-display text-sm font-semibold">
+                          <span className="flex items-center gap-2">
+                            <FileCode2 className="h-4 w-4 text-brand-ink" />
+                            MCP-Konfiguration für Track B anzeigen (5 Clients)
+                          </span>
+                        </AccordionTrigger>
+                        <AccordionContent className="min-w-0 pb-4">
+                          <Tabs defaultValue="claude" className="min-w-0">
+                            <TabsList className="h-auto w-full flex-wrap gap-1 overflow-visible bg-muted p-1.5">
+                              <TabsTrigger value="claude" className="px-2.5 py-1 text-xs">Claude Code</TabsTrigger>
+                              <TabsTrigger value="gemini" className="px-2.5 py-1 text-xs">Gemini CLI</TabsTrigger>
+                              <TabsTrigger value="codex" className="px-2.5 py-1 text-xs">Codex</TabsTrigger>
+                              <TabsTrigger value="vscode" className="px-2.5 py-1 text-xs">VS Code</TabsTrigger>
+                              <TabsTrigger value="cli" className="px-2.5 py-1 text-xs">1-Zeiler CLI</TabsTrigger>
+                            </TabsList>
+                            {[
+                              { id: "claude", code: data.mcpConfigs.claudeCode },
+                              { id: "gemini", code: data.mcpConfigs.geminiCli },
+                              { id: "codex", code: data.mcpConfigs.codex },
+                              { id: "vscode", code: data.mcpConfigs.vscodeCursor },
+                              { id: "cli", code: data.mcpConfigs.cliCommand },
+                            ].map((cfg) => (
+                              <TabsContent key={cfg.id} value={cfg.id} className="min-w-0 space-y-2">
+                                <div className="flex justify-end">
+                                  <CopyButton text={cfg.code} />
+                                </div>
+                                <pre className="max-w-full overflow-x-auto rounded-xl border bg-muted/40 p-3.5 font-mono text-xs">
+                                  {cfg.code}
+                                </pre>
+                              </TabsContent>
+                            ))}
+                          </Tabs>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </div>
+                )}
+
+                {/* STEP 4: INCLUSIVE MISSIONS */}
+                {step === "missions" && (
+                  <div className="space-y-8">
+                    <div className="space-y-2">
+                      <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+                        Schritt 05 · Freie Wahl-Missionen
+                      </div>
+                      <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
+                        Für jeden etwas: Wähle deine Bonus-Mission
+                      </h1>
+                      <p className="editorial-measure text-sm leading-relaxed text-muted-foreground">
+                        Ob Faktenprüfung, strukturierte Daten, klares Management-Briefing oder eigenes
+                        MCP-Gimmick — wählt nach Lust und Laune und schickt euer Ergebnis an den Beamer!
+                      </p>
+                    </div>
+
+                    <div className="grid gap-5 md:grid-cols-2">
+                      {data.missions.map((m) => (
+                        <div
+                          key={m.id}
+                          className="flex flex-col justify-between gap-4 rounded-2xl border bg-card p-6"
+                        >
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="text-xs font-semibold uppercase tracking-wider text-brand-ink">
+                                {m.tag}
+                              </span>
+                            </div>
+                            <h3 className="font-display text-lg font-bold">{m.title}</h3>
+                            <p className="text-sm leading-relaxed text-muted-foreground">
+                              {m.description}
+                            </p>
+                            <pre className="whitespace-pre-wrap break-words rounded-xl border bg-muted/35 p-3.5 font-mono text-xs leading-relaxed">
+                              {m.prompt}
+                            </pre>
+                          </div>
+
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+                            <CopyButton text={m.prompt} label="Prompt kopieren" />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              className="text-brand-ink"
+                              onClick={() => {
+                                setChecked((prev) => ({ ...prev, "chk-mission": true }));
+                                openBeamerSheet({
+                                  stage: "Wahl-Mission",
+                                  method: "Frei / MCP",
+                                  question: `${m.title}: ${m.description}`,
+                                });
+                              }}
+                            >
+                              <Send className="h-3.5 w-3.5" />
+                              <span>An Beamer teilen</span>
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Step Footer Navigation */}
+            <footer className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t pt-6">
+              {prevStep ? (
+                <Button type="button" variant="outline" onClick={() => goToStep(prevStep.id)}>
+                  <ArrowLeft className="h-4 w-4" />
+                  <span>Zurück: {prevStep.label}</span>
+                </Button>
+              ) : (
+                <div />
+              )}
+              {nextStep ? (
+                <Button type="button" onClick={() => goToStep(nextStep.id)}>
+                  <span>Weiter: {nextStep.label}</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button type="button" onClick={() => openBeamerSheet()}>
+                  <Send className="h-4 w-4" />
+                  <span>Abschluss-Learning an Beamer senden</span>
+                </Button>
+              )}
+            </footer>
+          </div>
+        </main>
+      </div>
+
+      {/* Fixed Mobile Bottom Step-Bar (Safe-Area Aware) */}
+      <nav
+        aria-label="Mobile Navigation"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
+      >
+        {STEPS.map((s) => {
+          const Icon = s.icon;
+          const isActive = s.id === step;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              onClick={() => goToStep(s.id)}
+              className={`relative flex min-h-[56px] flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[11px] font-medium transition-colors ${
+                isActive ? "text-brand-ink" : "text-muted-foreground"
+              }`}
+            >
+              {isActive && (
+                <span className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-brand-lime" />
+              )}
+              <Icon className="h-4 w-4" />
+              <span className="truncate max-w-full">{s.short}</span>
+            </button>
+          );
+        })}
+      </nav>
+
+      {/* Global Slide-Over Send-to-Beamer Sheet */}
+      <BeamerSendSheet
+        open={sendOpen}
+        onOpenChange={setSendOpen}
+        teamName={teamName}
+        onTeamNameChange={setTeamName}
+        track={track}
+        prefill={sendPrefill}
+        githubRepoSlug={githubRepoSlug}
+        cliCommandTemplate={data.mcpConfigs.cliCommand}
+        onSuccess={() => setChecked((prev) => ({ ...prev, "chk-beamer": true }))}
+      />
     </div>
   );
 }

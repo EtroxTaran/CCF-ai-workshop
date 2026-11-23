@@ -15,10 +15,9 @@ export function QrCodeSvg({ value, size = 148, className = "" }: QrCodeSvgProps)
     if (!value) return;
     QRCode.toString(value, {
       type: "svg",
-      width: size,
       margin: 1,
       color: {
-        dark: "#262625",
+        dark: "#0B0F0A",
         light: "#FFFFFF",
       },
     })
@@ -31,23 +30,23 @@ export function QrCodeSvg({ value, size = 148, className = "" }: QrCodeSvgProps)
     return () => {
       active = false;
     };
-  }, [value, size]);
+  }, [value]);
 
   if (!svgMarkup) {
     return (
       <div
-        className={`flex items-center justify-center rounded-lg border bg-white text-xs text-muted-foreground ${className}`}
+        className={`flex max-w-full items-center justify-center rounded-xl border bg-white text-xs text-neutral-500 ${className}`}
         style={{ width: size, height: size }}
       >
-        QR wird geladen...
+        QR lädt…
       </div>
     );
   }
 
   return (
     <div
-      className={`overflow-hidden rounded-lg border bg-white p-1.5 shadow-sm ${className}`}
-      style={{ width: size + 12, height: size + 12 }}
+      className={`aspect-square max-w-full rounded-2xl bg-white p-2.5 shadow-sm [&_svg]:block [&_svg]:h-full [&_svg]:w-full ${className}`}
+      style={{ width: size }}
       dangerouslySetInnerHTML={{ __html: svgMarkup }}
       aria-label={`QR-Code für ${value}`}
     />

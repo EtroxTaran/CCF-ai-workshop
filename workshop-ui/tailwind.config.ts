@@ -5,6 +5,11 @@ export default {
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        display: ['"Plus Jakarta Sans"', "Inter", "system-ui", "-apple-system", "sans-serif"],
+        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
+        mono: ['"JetBrains Mono"', "ui-monospace", "SFMono-Regular", "monospace"],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -39,18 +44,36 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        v7: {
-          green: "#A9C23F",
-          greenDark: "#6E831B",
-          greenSoft: "#EDF1C6",
-          charcoal: "#575756",
-          olive: "#8A9E38",
+        brand: {
+          lime: "#A9C23F",
+          ink: "hsl(var(--brand-text))",
+          obsidian: "#0B0F0A",
+          surface: "#111610",
         },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        "fade-in": {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
+        "slide-in-right": {
+          from: { transform: "translateX(100%)" },
+          to: { transform: "translateX(0)" },
+        },
+        "slide-in-bottom": {
+          from: { transform: "translateY(100%)" },
+          to: { transform: "translateY(0)" },
+        },
+      },
+      animation: {
+        "fade-in": "fade-in 180ms ease-out",
+        "slide-in-right": "slide-in-right 220ms cubic-bezier(0.16, 1, 0.3, 1)",
+        "slide-in-bottom": "slide-in-bottom 220ms cubic-bezier(0.16, 1, 0.3, 1)",
       },
     },
   },

@@ -1,17 +1,20 @@
 import { useState } from "react";
 import { Check, Copy } from "lucide-react";
+import { toast } from "sonner";
 import { Button, type ButtonProps } from "@/components/ui/button";
 
 interface CopyButtonProps extends Omit<ButtonProps, "onClick"> {
   text: string;
   label?: string;
   copiedLabel?: string;
+  toastMessage?: string;
 }
 
 export function CopyButton({
   text,
   label = "Kopieren",
-  copiedLabel = "Kopiert!",
+  copiedLabel = "Kopiert",
+  toastMessage,
   variant = "outline",
   size = "sm",
   ...rest
@@ -32,12 +35,13 @@ export function CopyButton({
       document.body.removeChild(ta);
     }
     setCopied(true);
+    toast.success(toastMessage || `${label} in Zwischenablage kopiert`);
     window.setTimeout(() => setCopied(false), 1800);
   }
 
   return (
     <Button type="button" variant={variant} size={size} onClick={handleCopy} {...rest}>
-      {copied ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+      {copied ? <Check className="h-3.5 w-3.5 text-current" /> : <Copy className="h-3.5 w-3.5" />}
       <span>{copied ? copiedLabel : label}</span>
     </Button>
   );

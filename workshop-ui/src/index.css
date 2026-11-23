@@ -4,57 +4,121 @@
 
 @layer base {
   :root {
-    --background: 60 15% 98%;
-    --foreground: 0 1% 22%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 1% 22%;
+    color-scheme: light;
+    --background: 60 20% 98%;         /* #FAFAF8 crisp warm alabaster */
+    --foreground: 96 9% 11%;          /* #1C1F1A obsidian ink */
+    --card: 0 0% 100%;                /* #FFFFFF */
+    --card-foreground: 96 9% 11%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 1% 22%;
-    --primary: 72 65% 31%;
+    --popover-foreground: 96 9% 11%;
+    --primary: 73 70% 25%;            /* #586B12 accessible dark olive (>5.7:1 white ink) */
     --primary-foreground: 0 0% 100%;
-    --secondary: 66 56% 89%;
-    --secondary-foreground: 0 1% 24%;
-    --muted: 60 12% 94%;
-    --muted-foreground: 0 1% 42%;
-    --accent: 68 58% 87%;
-    --accent-foreground: 72 52% 24%;
-    --destructive: 0 72% 51%;
+    --secondary: 72 48% 91%;          /* #EEF3D8 crisp lime wash */
+    --secondary-foreground: 74 78% 16%;
+    --muted: 72 19% 95%;              /* #F3F4EF */
+    --muted-foreground: 93 6% 35%;    /* #585D54 (>6.4:1 contrast) */
+    --accent: 71 52% 50%;             /* #A9C23F official virtual7 lime */
+    --accent-foreground: 108 20% 5%;  /* #0B0F0A (10.5:1 contrast on #A9C23F) */
+    --destructive: 347 77% 41%;
     --destructive-foreground: 0 0% 100%;
-    --border: 60 10% 87%;
-    --input: 60 10% 84%;
-    --ring: 72 52% 48%;
+    --border: 82 14% 89%;             /* #E4E7DF */
+    --input: 82 14% 84%;
+    --ring: 71 52% 50%;
+    --brand-text: 73 72% 22%;         /* #4D610F accessible editorial lime ink */
     --radius: 0.75rem;
   }
 
   .dark {
-    --background: 0 2% 11%;
-    --foreground: 60 10% 96%;
-    --card: 0 2% 15%;
-    --card-foreground: 60 10% 96%;
-    --popover: 0 2% 15%;
-    --popover-foreground: 60 10% 96%;
-    --primary: 72 54% 52%;
-    --primary-foreground: 0 0% 10%;
-    --secondary: 72 18% 22%;
-    --secondary-foreground: 66 60% 86%;
-    --muted: 0 2% 20%;
-    --muted-foreground: 60 6% 72%;
-    --accent: 72 24% 24%;
-    --accent-foreground: 66 70% 88%;
-    --destructive: 0 66% 52%;
+    color-scheme: dark;
+    --background: 108 20% 5%;         /* #0B0F0A obsidian-emerald stage */
+    --foreground: 80 20% 95%;         /* #F2F4EE */
+    --card: 110 16% 7.5%;             /* #111610 */
+    --card-foreground: 80 20% 95%;
+    --popover: 110 16% 8.5%;
+    --popover-foreground: 80 20% 95%;
+    --primary: 71 52% 50%;            /* #A9C23F luminous lime */
+    --primary-foreground: 108 20% 5%; /* #0B0F0A dark ink on lime (>10.5:1) */
+    --secondary: 107 18% 12%;         /* #1B2419 */
+    --secondary-foreground: 75 56% 84%;
+    --muted: 107 18% 10%;             /* #171E15 */
+    --muted-foreground: 95 9% 64%;    /* #9FA998 (>7.5:1 contrast) */
+    --accent: 71 52% 50%;
+    --accent-foreground: 108 20% 5%;
+    --destructive: 350 89% 60%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 2% 24%;
-    --input: 0 2% 26%;
-    --ring: 72 54% 52%;
+    --border: 104 15% 15%;            /* #232B20 */
+    --input: 104 15% 18%;
+    --ring: 71 52% 50%;
+    --brand-text: 71 52% 50%;         /* #A9C23F */
   }
-}
 
-@layer base {
   * {
     @apply border-border;
   }
+
+  html {
+    overflow-x: clip;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-sans;
+    overflow-x: clip;
+    min-height: 100dvh;
     font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display;
+    overflow-wrap: break-word;
+  }
+
+  p, li, dd, blockquote {
+    overflow-wrap: break-word;
+  }
+
+  code, pre {
+    @apply font-mono;
+  }
+
+  .dark ::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+  .dark ::-webkit-scrollbar-track {
+    background: #0b0f0a;
+  }
+  .dark ::-webkit-scrollbar-thumb {
+    background: #273223;
+    border-radius: 9999px;
+  }
+  .dark ::-webkit-scrollbar-thumb:hover {
+    background: #3a4a34;
+  }
+}
+
+@layer utilities {
+  .editorial-measure {
+    max-width: 65ch;
+  }
+
+  .wrap-safe {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .num-tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
   }
 }
