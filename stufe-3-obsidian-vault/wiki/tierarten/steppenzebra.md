@@ -1,0 +1,56 @@
+---
+title: "Steppenzebra"
+category: tierart
+habitat: "Savanne"
+status: "Potenziell gefährdet (NT)"
+tags:
+  - tierart
+  - huftier
+  - savanne
+source_file: "raw/steppenzebra.md"
+---
+
+# Steppenzebra
+
+> **Kategorie:** `tierart` · **Lebensraum:** [[savanne|Savanne]] · **Status:** Potenziell gefährdet (NT) · **Rohquelle:** `raw/steppenzebra.md`
+
+## Kurzüberblick
+
+Das Steppenzebra (Equus quagga) oder Pferdezebra ist ein Zebra aus der Gattung der Pferde (Equus) innerhalb der Familie der Pferde (Equidae). Es stellt heute die häufigste Zebra-Art in Afrika dar und ist vom Nordosten bis in den Süden des Kontinents verbreitet. Es lebt gesellig in kleinen Herdenverbänden und ernährt sich hauptsächlich von Gräsern. Im Gegensatz zu den anderen heutigen Pferdearten kommt es auch in teilweise geschlossenen Landschaften vor. Der Bestand, dessen größte Population heute in der Serengeti lebt, gilt als nicht gefährdet. Es werden sechs rezente Unterarten unterschieden, die sich meistens deutlich in der Streifenzeichnung voneinander abheben.
+
+## Wichtige Fakten auf einen Blick
+
+- Das Steppenzebra (Equus quagga) oder Pferdezebra ist ein Zebra aus der Gattung der Pferde (Equus) innerhalb der Familie der Pferde (Equidae).
+- Es stellt heute die häufigste Zebra-Art in Afrika dar und ist vom Nordosten bis in den Süden des Kontinents verbreitet.
+- Es lebt gesellig in kleinen Herdenverbänden und ernährt sich hauptsächlich von Gräsern.
+- Im Gegensatz zu den anderen heutigen Pferdearten kommt es auch in teilweise geschlossenen Landschaften vor.
+
+## Vernetzte Themen im Vault
+
+- [[savanne|Savanne]] (Lebensraum · Savanne)
+- [[streifengnu|Streifengnu]] (Tierart · Savanne)
+- [[loewe|Löwe]] (Tierart · Savanne)
+- [[tarnung-biologie|Tarnung (Biologie)]] (Konzept · Übergreifend)
+
+## Detailinformationen aus der Quelle
+
+## Merkmale
+
+### Habitus
+
+Das Steppenzebra ist das kleinste der heute lebenden Zebra-Arten und erreicht eine Kopf-Rumpf-Länge von etwa 230 cm, eine Schulterhöhe von 110 bis 145 cm und ein Gewicht von ungefähr 175 bis 385 kg. Die Schwanzlänge beträgt 52 cm. Weibliche Tiere (Stuten) sind durchschnittlich etwas kleiner als männliche (Hengste). Die Zebraform zeichnet sich durch relativ kurze Beine und charakteristisch breite, pferdeartige Hufe aus. Die typischen chestnuts, schwielenartige Hautausstülpungen an den Beinen, sind kleiner als beim Bergzebra (Equus zebra), jedoch größer als beim Grevyzebra (Equus grevyi). Der Schwanz ist schwarz oder weiß gefärbt, das Maul weist eine schwarze Färbung auf, während die runden Ränder der üblicherweise kurzen und dunklen Ohren weiß sind. Weiterhin typisch ist die kurze Stehmähne, die vom Scheitel bis zum Widerrist reicht; sie tritt bei einigen Populationen vor allem im nördlichen Verbreitungsgebiet jedoch auch gar nicht auf.
+Das Steppenzebra zeichnet sich im Vergleich zu den beiden anderen Zebra-Arten, dem Grevy- und dem Bergzebra, durch die breitesten Streifen aus. Das Streifenmuster der Steppenzebraformen ist örtlich sowie auch individuell außerordentlich variabel, die Beinzeichnung aber reicht immer weit auf die Körperseiten hinaus. Je nach lokaler Form unterscheidet sich die Farbe der Streifung von lackschwarz bis dunkelrotbraun, die helle Grundfarbe ist in der Regel klarweiß, lediglich das ausgestorbene Quagga besaß eine gelblichbraune Körperfärbung, allerdings waren Bauch und Beine weiß. Die breitesten Streifen besitzt heute die Unterart Böhm-Zebra in Ostafrika, sogenannte „Schattenstreifen“, die manchmal die weißen Streifen überlagern, kommen hier kaum vor. Die Streifenzeichnungen werden schmaler, aber weniger bei Populationen, die im Süden leben, hier treten dann auch sehr häufig „Schattenstreifen“ auf. Im Gegensatz zu den anderen Zebraformen setzt sich ein Teil der vertikalen Streifen auf dem Bauch fort. Am Hinterteil kippen die Streifen in die Horizontale. Ebenfalls horizontal sind die Streifen an den Beinen, allerdings weisen einige Populationen, vor allem im südlichen Afrika, keine Beinstreifen mehr auf, so unter anderem das Burchell-Zebra. Gelegentlich treten komplett schwarz gefärbte Tiere auf, die unregelmäßig verteilte weiße Punkte besitzen. Die Streifen bilden sich bereits im Embryonalalter mit drei Wochen aus, was früher ist als bei den anderen Zebra-Arten.
+
+### Schädel- und Gebissmerkmale
+
+Der Schädel des Steppenzebras ist zwischen 44 und 49 cm lang und dabei lang und schmal geformt, allerdings mit breiten Jochbeinbögen. Die Stirnlinie verläuft charakteristisch konvex, das Hinterhauptsbein ist über die Gelenkansatzflächen der Halswirbel (Kondylen) hinausgezogen und besitzt einen deutlichen Wulst für den Ansatz der Nackenmuskulatur. Das Nasenbein ist relativ grazil, aber deutlich konvex gebogen. Der Naseninnenraum zwischen Nasenbein und Zwischenkieferknochen hat wie bei allen modernen Pferden eine große Ausdehnung.
+Der im Durchschnitt 41 cm lange Unterkiefer ist massiv gebaut mit einem kräftigen Unterkieferknochen und hohen Gelenkflächen. Das Gebiss ist nur wenig reduziert und weist bei erwachsenen Tieren folgende Zahnformel auf: 3.1.3(4).33.1.3.3. Die Schneidezähne weisen bei einigen Populationen, die hauptsächlich im südlichen Verbreitungsgebiet beobachtet werden, keine Zahnschmelzstülpungen (Infundibulum) auf. Der Eckzahn ist bei weiblichen Tieren nicht immer ausgebildet und wenn, dann wesentlich kleiner als bei männlichen. Zur hinteren Bezahnung besteht ein großes Diastema. Die Backenzähne weisen generell hohe Zahnkronen und viel Zahnzement auf, die Prämolaren ähneln den Molaren und sind dadurch deutlich molarisiert. Der Zahnschmelz weist charakteristische Faltungen auf der Kauoberfläche auf. Auf den unteren Molaren befindet sich am hinteren, zungenseitigen Ende der Zähne zwischen zwei markanten Zahnschmelzvorsprüngen (Metaconid und Metastylid) eine deutliche, eher V-förmig gestaltete Eintiefung, aufgrund derer das Steppenzebra zu den stenoninen Pferden gerechnet wird.
+
+### Sinnesleistungen und Lautäußerungen
+
+Das Steppenzebra reagiert auf das Streifenmuster der Artgenossen und vermag diese daran zu unterscheiden. Insgesamt sind sechs Lautäußerungen bekannt. Ein zweisilbiger Alarmlaut ertönt bei Sichtung eines Fressfeindes, ein lautes Schnauben des Hengstes beim Betreten von möglicherweise gefährlichem Terrain. Hengste quietschen, wenn sie gebissen werden, oder schnauben lang anhaltend bei Zufriedenheit. Fohlen geben in Stresssituationen einen jammerartigen Ton von sich. Bei Begrüßung oder Kontakt geben die Tiere einen A-ha oder Ka-ha-ähnlichen Laut von sich.
+
+*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*
+
+---
+Quelle (unverändert): `raw/steppenzebra.md` · Wikipedia: https://de.wikipedia.org/wiki/Steppenzebra

@@ -1,0 +1,59 @@
+---
+title: "Weißwal"
+category: tierart
+habitat: "Arktis"
+status: "Nicht gefährdet (LC)"
+tags:
+  - tierart
+  - wal
+  - arktis
+source_file: "raw/weisswal.md"
+---
+
+# Weißwal
+
+> **Kategorie:** `tierart` · **Lebensraum:** [[arktis|Arktis]] · **Status:** Nicht gefährdet (LC) · **Rohquelle:** `raw/weisswal.md`
+
+## Kurzüberblick
+
+Der Weißwal (Delphinapterus leucas) oder die Beluga (russisch белуха belucha, von белый bely „weiß“) ist eine Art der Gründelwale, die in arktischen und subarktischen Gewässern lebt. Wie die nahe verwandten Narwale besitzen Weißwale keine Rückenfinne; auffällig ist ihre bläulich-weiße bis cremeweiße Färbung.
+
+## Wichtige Fakten auf einen Blick
+
+- Der Weißwal (Delphinapterus leucas) oder die Beluga (russisch белуха belucha, von белый bely „weiß“) ist eine Art der Gründelwale, die in arktischen und subarktischen Gewässern lebt.
+- Wie die nahe verwandten Narwale besitzen Weißwale keine Rückenfinne; auffällig ist ihre bläulich-weiße bis cremeweiße Färbung.
+- Weißwale sind zwischen drei und maximal sechs Meter lang bei einem Gewicht von 400 bis 1000 Kilogramm; die Männchen sind in der Regel größer und schwerer als die Weibchen.
+- Der Körper wirkt massig und ist im Schulterbereich rechteckig ausladend.
+
+## Vernetzte Themen im Vault
+
+- [[arktis|Arktis]] (Lebensraum · Arktis)
+- [[eisbaer|Eisbär]] (Tierart · Arktis)
+- [[polarfuchs|Polarfuchs]] (Tierart · Arktis)
+- [[ringelrobbe|Ringelrobbe]] (Tierart · Arktis)
+
+## Detailinformationen aus der Quelle
+
+## Aussehen
+
+Weißwale sind zwischen drei und maximal sechs Meter lang bei einem Gewicht von 400 bis 1000 Kilogramm; die Männchen sind in der Regel größer und schwerer als die Weibchen. Der Körper wirkt massig und ist im Schulterbereich rechteckig ausladend. Der Kopf ist relativ kurz und trägt eine vorgewölbte Verdickung, die sich im Laufe des Lebens ausbildet und ein Melone genanntes Organ enthält. Der Hals ist meist gut durch einen Nackenabschnitt zu erkennen und der Kopf ist durch unverwachsene Halswirbel recht gut beweglich. Die Fluke (Schwanzflosse) ist verhältnismäßig breit und wird mit dem Alter der Tiere zunehmend ginkgoblattförmig. Die Flipper (Brustflossen) sind abgerundet rechteckig, der Außenrand rollt sich bei älteren Tieren auf. Die Augen sind sehr klein und liegen dicht hinter den Mundwinkeln, die Ohröffnung ist fast gar nicht sichtbar. Kurz vor dem Nacken liegt das halbmondförmige Blasloch.
+Wie bei allen Walen ist die Haut unbehaart und besitzt eine dicke Oberschicht. Diese Epidermis ist bei den Weißwalen zwischen 5 und 12 Zentimeter dick und liegt damit auch für Wale über dem Durchschnitt, ebenso die darunter liegenden Schichten. Das Unterhautgewebe ist zu einer Fettschicht ausgebildet, die, abhängig vom Ernährungszustand, dem Geschlecht und der Jahreszeit, zwischen 2 und 22 Zentimeter dick ist. Die Zitzen der Weibchen liegen in speziellen Taschen und sind nur bei alten oder säugenden Tieren sichtbar.
+Ihren Namen erhielten die Weißwale durch ihre Färbung, die sich im Laufe ihres Lebens ändert. So sind neugeborene Weißwale eher schiefergrau bis braun und erhalten nach etwa einem Jahr eine blaugraue Färbung, die sie bis zum fünften Lebensjahr behalten. In dieser Zeit werden sie als „blues“ bezeichnet. Danach werden die Tiere gänzlich weiß, wobei ein bläulicher Schimmer vor allem bei Weibchen bleiben kann. Da sich die Belugas häufig an der Packeisgrenze aufhalten, nützt ihnen ihre weiße Färbung wahrscheinlich als Tarnschutz gegen Eisbärangriffe.
+Ein wichtiges Merkmal der Weißwale sind die Zähne. Sie sind gleichmäßig kegelförmig und die vorderen Zähne sind, besonders bei den Jungtieren, vorn umgebogen. Von diesen Zähnen besitzen Weißwale im Oberkiefer 10 bis 22, im Unterkiefer 6 bis 22; eine Unterscheidung in verschiedene Zahntypen ist, wie bei allen Zahnwalen, nicht möglich.
+Durch eine Reihe physiognomischer Eigenheiten, die der Kommunikation dienen, sind Weißwale in der Lage, ihren Gesichtsausdruck zu ändern. Sie können beispielsweise ihre Mundwinkel nach oben oder unten ziehen, was allerdings kein Ausdruck von Freude oder Missmut ist, und sogar die Lippen spitzen.
+
+## Verbreitung
+
+Belugas sind in den meisten arktischen und subarktischen Gewässern anzutreffen, vor allem an den Küsten Alaskas, Kanadas und Russlands. Die südlichsten Vorkommen liegen im Ochotskischen Meer und dem Japanischen Meer in Asien sowie im Bereich der St.-Lorenz-Mündung in Kanada.
+In Europa ist ihr Vorkommen ausschließlich auf den äußersten Norden Norwegens im Bereich des Varangerfjords, auf die Barentssee und die Gewässer an der Halbinsel Kola sowie um die Inselgruppen Franz-Joseph-Land und Spitzbergen beschränkt. Sporadische Funde sind allerdings auch um Island, Großbritannien und sogar aus der Ostsee bekannt. Am 18. Mai 1966 wurde ein Einzeltier sogar im Rhein gesichtet. Nachdem der Moby Dick genannte Wal über mehrere Wochen den Nachstellungen durch interessierte Biologen entkommen war und sich etwa 400 Kilometer stromaufwärts bei Bonn befand, schwamm er am 16. Juni 1966, streckenweise eskortiert von zwei Polizeifahrzeugen, zurück ins Meer.
+Die Einwanderung in Flüsse wird bei Belugas sehr häufig beobachtet. So stieß man auch in der Loire, in der Elbe und in beinahe allen sibirischen Flüssen auf Einzeltiere oder kleinere Gruppen. Dieses Einwandern steht meist im Zusammenhang mit den jahreszeitlichen Wanderungen der Tiere oder ihren Versammlungen zur Paarung vor den Flussmündungen. Sie können bei allen Populationen beobachtet werden und dienen wahrscheinlich dem Auffinden von Nahrungsgründen, Paarungsplätzen oder Kalbungsorten.
+
+## Lebensweise
+
+Die Weißwale bevorzugen als Lebensraum ruhige Küstenbereiche mit mäßiger Tiefe, besonders Meeresbuchten oder den Mündungsbereich größerer Flüsse. Der Brandungsgürtel der Meere wird gemieden. Häufig sind sie auch im Treibeisbereich oder am Rande des Packeises zu finden, die offene See passieren sie wahrscheinlich nur während ihrer Wanderungen.
+Weißwale ernähren sich beinahe ausschließlich von tierischer Nahrung. Dabei stellt die Zusammensetzung ihrer Nahrung unter den bislang untersuchten Walen die abwechslungsreichste dar. Insgesamt sind über hundert verschiedene Futtertiere bekannt; das Spektrum reicht von Hohltieren über Tintenfische, Muscheln, Krebstiere und Gliederwürmer bis hin zu größeren Knochenfischen wie Dorschen und Lachsen. Die Nahrung nehmen die Wale vor allem in flachen Meerestiefen von maximal zehn Metern auf, indem sie den Boden nach Organismen absuchen; daneben können sie jedoch auch im Freiwasser jagen. Die maximal dokumentierten Tauchtiefen liegen bei etwa 200 Metern; diese werden allerdings mit hoher Wahrscheinlichkeit eher selten erreicht. Die Nahrungszusammensetzung verändert sich bei den Weißwalen auch mit dem Alter. Besteht sie bei den Neugeborenen und den „blues“ noch vor allem aus Krebsen wie den Sandgarnelen (Gattung Crangon), verschiebt sie sich mit zunehmendem Alter mehr in Richtung der Fische.
+
+*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*
+
+---
+Quelle (unverändert): `raw/weisswal.md` · Wikipedia: https://de.wikipedia.org/wiki/Wei%C3%9Fwal

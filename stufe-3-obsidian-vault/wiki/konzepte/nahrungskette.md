@@ -1,0 +1,54 @@
+---
+title: "Nahrungskette"
+category: konzept
+habitat: "Übergreifend"
+status: "Konzept / Lebensraum"
+tags:
+  - konzept
+  - trophie
+  - oekologie
+source_file: "raw/nahrungskette.md"
+---
+
+# Nahrungskette
+
+> **Kategorie:** `konzept` · **Lebensraum:** Übergreifend · **Status:** Konzept / Lebensraum · **Rohquelle:** `raw/nahrungskette.md`
+
+## Kurzüberblick
+
+Eine Nahrungskette ist ein Modell für die linearen energetischen und stofflichen Beziehungen zwischen verschiedenen Arten von Lebewesen, wobei jede Art Nahrungsgrundlage einer anderen Art ist, ausgenommen die Art am Ende der Nahrungskette. Man spricht auch von trophischen Beziehungen (abgeleitet von griechisch trophein „sich ernähren“). Am Beginn von Nahrungsketten stehen Vertreter der Produzenten (vor allem Pflanzen), dann folgen Konsumenten (Pflanzenfresser und Fleischfresser). Am Ende einer solchen Kette steht oft ein Spitzenprädator. Nahrungsketten werden in der Ökologie untersucht und sind auch in der Ökotoxikologie von Bedeutung.
+Nahrungsketten sind vereinfachte Modelle. Die meisten Pflanzen- und Tierarten dienen mehreren anderen Arten als Nahrung und die meisten Konsumenten ernähren sich von mehreren anderen Arten. Allesfresser ernähren sich sowohl von Pflanzen als auch von Tieren. Spitzenprädatoren sind nach ihrem Tod Nahrungsgrundlage für Aasfresser oder Destruenten – ebenso viele Organismen der anderen Stufen. Die trophischen Beziehungen in realen Ökosystemen sind daher wesentlich komplexer und werden als Nahrungsnetz bezeichnet.
+
+## Wichtige Fakten auf einen Blick
+
+- Eine Nahrungskette ist ein Modell für die linearen energetischen und stofflichen Beziehungen zwischen verschiedenen Arten von Lebewesen, wobei jede Art Nahrungsgrundlage einer anderen Art ist, ausgenommen die Art am Ende der Nahrungskette.
+- Man spricht auch von trophischen Beziehungen (abgeleitet von griechisch trophein „sich ernähren“).
+- Am Beginn von Nahrungsketten stehen Vertreter der Produzenten (vor allem Pflanzen), dann folgen Konsumenten (Pflanzenfresser und Fleischfresser).
+- Am Ende einer solchen Kette steht oft ein Spitzenprädator.
+
+## Vernetzte Themen im Vault
+
+- [[raeuber-beute-beziehung|Räuber-Beute-Beziehung]] (Konzept · Übergreifend)
+- [[eisbaer|Eisbär]] (Tierart · Arktis)
+- [[ringelrobbe|Ringelrobbe]] (Tierart · Arktis)
+- [[alpenmurmeltier|Alpenmurmeltier]] (Tierart · Alpen)
+- [[steinadler|Steinadler]] (Tierart · Alpen)
+- [[oekosystem|Ökosystem]] (Konzept · Übergreifend)
+
+## Detailinformationen aus der Quelle
+
+## Trophieniveaus
+
+Nahrungsketten werden häufig gedanklich nach Trophieniveaus strukturiert. Ein Trophieniveau umfasst alle Organismen (bzw. Arten) mit gleicher Position in der Nahrungskette. Das unterste Trophieniveau sind die Produzenten, die sich gar nicht von anderen Organismen ernähren, aber solchen selbst als Nahrung dienen können (in der Regel grüne Pflanzen). Alle Organismen, die keine Produzenten sind, kann man als Konsumenten zusammenfassen, die zur Ernährung andere Organismen benötigen. Meist werden Konsumenten gegliedert in Primärkonsumenten, d. h. Pflanzenfresser (auch Herbivoren oder Phytophagen genannt), und Sekundärkonsumenten, also „Räuber“ (auch Carnivoren, Prädatoren, Zoophagen oder Beutegreifer genannt). Prädatoren, die Sekundärkonsumenten erbeuten, werden als Tertiärkonsument bezeichnet. Das oberste Trophieniveau sind Spitzenprädatoren (oder Top-Prädatoren), die nicht oder nur ausnahmsweise anderen Organismen als Nahrung dienen. Die „zwischen“ den Phytophagen und den Top-Prädatoren liegenden Organismen ernähren sich selbst von anderen Organismen (sie sind also Konsumenten), dienen selbst aber ebenfalls als Nahrung für andere. Je nach Komplexität umfassen Ökosysteme unterschiedlich viele Trophieniveaus, aber nicht unbegrenzt viele.
+Während die Position der Herbivoren noch relativ eindeutig zu definieren ist, ist die Rolle der Prädatoren schwieriger zu fassen, weil sie sich in der Regel von verschiedenen Organismen ernähren, die durchaus unterschiedliche Position in der Nahrungskette haben können. Zum Beispiel können Habichte Tauben erbeuten (Tauben sind Samenfresser, also Phytophagen). Die Nahrungskette umfasst dann drei Glieder, mit dem Habicht in dritter Position. Zu ihrem Beutespektrum gehören aber auch Meisen; diese sind Insektenfresser, also ihrerseits Prädatoren. Hier wäre der Habicht in vierter Position (Pflanze > Insekt > Meise > Habicht), oder sogar in fünfter, wenn das von der Meise erbeutete Insekt ebenfalls bereits ein Prädator war. Eine Art kann also mehr als eine Trophiestufe besitzen. Das Trophieniveau wird in der Regel nach der gemittelten Bedeutung der Nahrungsbeziehungen für die betreffende Art bestimmt. Problematisch für die Bestimmung des Trophieniveaus sind außerdem die Allesfresser („Omnivoren“), sie ernähren sich sowohl von Pflanzen als auch als Prädatoren. Problematisch sind ferner kannibalistische Arten, bei denen Alttiere zum Beispiel Jungtiere derselben Art fressen. Meist werden auch Parasiten bei der Definition der trophischen Ebenen außer Acht gelassen.
+
+## Nahrungsnetze
+
+Eine Nahrungskette in einem Ökosystem ist in der Regel eine gedankliche Abstraktion, weil sich Arten von mehreren Beutearten ernähren können und auch selbst verschiedenen Arten von Räubern zum Opfer fallen können. Nahrungsketten sind deshalb in der Regel verzweigt, man spricht vom Nahrungsnetz.
+Die Untersuchung von Nahrungsnetzen realer Ökosysteme ist wegen der extremen Komplexität, die bereits in artenarmen Ökosystemen auftreten kann, ein schwieriges Problem der Ökologie. Zudem sind alle Populationen im Ökosystem ständigen Schwankungen unterworfen, die sich über die Abhängigkeiten im Nahrungsnetz direkt oder indirekt auf die Populationen mehrerer anderer Arten auswirken und deren Nahrungsauswahl beeinflussen. Eine mathematische Beschreibung der Populationsdynamik, wie sie für einzelne Räuber-Beute-Beziehungen in den Lotka-Volterra-Gleichungen möglich ist, lässt sich nur begrenzt auf Nahrungsnetze anwenden. Neben vereinfachenden Annahmen kommen auch Untersuchungen in künstlich vereinfachten Ökosystemen, den sogenannten Mesokosmen, zur Anwendung.
+Unterschieden wird zwischen „kumulativen“ Netzen, die alle Arten umfassen, von denen trophische Beziehungen bekannt sind, und Netzen zu jeweils bestimmten Zeitpunkten. Diese sind regelmäßig viel kleiner als kumulative Netze, aber schwieriger zu erfassen. Kumulativ ermittelte Netze neigen dazu, die Stärke der Interaktionen zwischen den beteiligten Arten (die „Koppelungsdichte“) zu überschätzen.
+
+*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*
+
+---
+Quelle (unverändert): `raw/nahrungskette.md` · Wikipedia: https://de.wikipedia.org/wiki/Nahrungskette

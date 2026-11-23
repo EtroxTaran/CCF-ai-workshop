@@ -1,0 +1,46 @@
+---
+title: "Tarnung (Biologie)"
+category: konzept
+habitat: "Übergreifend"
+status: "Konzept / Lebensraum"
+tags:
+  - konzept
+  - anpassung
+  - oekologie
+source_file: "raw/tarnung-biologie.md"
+---
+
+# Tarnung (Biologie)
+
+> **Kategorie:** `konzept` · **Lebensraum:** Übergreifend · **Status:** Konzept / Lebensraum · **Rohquelle:** `raw/tarnung-biologie.md`
+
+## Kurzüberblick
+
+Tarnung, in der Verhaltensbiologie auch als Krypsis (von altgriechisch κρύψις krýpsis, deutsch ‚das Verbergen, Sichverbergen‘) bezeichnet, ist bei Tieren der Vorgang oder Zustand, der darauf abzielt, irreführende Signale an ein anderes Lebewesen zu senden. Es ist sowohl der simpelste und effektivste Mechanismus zur Reduzierung des Prädationsrisikos als auch eine mögliche evolutionäre Anpassung von Beutegreifern, die aufgrund ihrer Tarnung von potentiellen Beutetieren weniger leicht wahrgenommen werden. Diese Irreführung kann sich gegen alle Sinnesorgane richten, also zum Beispiel die visuelle Wahrnehmung („das Auge“) täuschen, die auditive Wahrnehmung („das Ohr“) oder die olfaktorische Wahrnehmung („den Geruchssinn“). Als Sonderform der Tarnung können auch bestimmte Mimikry-Varianten aufgefasst werden, bei denen zum Beispiel wohlschmeckende oder wehrlose Arten äußere Merkmale übelschmeckender oder wehrhafter Arten kopieren und sich so gegenüber potenziellen Fressfeinden tarnen.
+Wird das visuelle (das äußerlich sichtbare) Erscheinungsbild eines Tieres zur Tarnung genutzt, bezeichnet der Fachmann dieses Aussehen als Tarntracht.
+
+## Wichtige Fakten auf einen Blick
+
+- Tarnung, in der Verhaltensbiologie auch als Krypsis (von altgriechisch κρύψις krýpsis, deutsch ‚das Verbergen, Sichverbergen‘) bezeichnet, ist bei Tieren der Vorgang oder Zustand, der darauf abzielt, irreführende Signale an ein anderes Lebewesen zu senden.
+- Es ist sowohl der simpelste und effektivste Mechanismus zur Reduzierung des Prädationsrisikos als auch eine mögliche evolutionäre Anpassung von Beutegreifern, die aufgrund ihrer Tarnung von potentiellen Beutetieren weniger leicht wahrgenommen werden.
+- Diese Irreführung kann sich gegen alle Sinnesorgane richten, also zum Beispiel die visuelle Wahrnehmung („das Auge“) täuschen, die auditive Wahrnehmung („das Ohr“) oder die olfaktorische Wahrnehmung („den Geruchssinn“).
+- Als Sonderform der Tarnung können auch bestimmte Mimikry-Varianten aufgefasst werden, bei denen zum Beispiel wohlschmeckende oder wehrlose Arten äußere Merkmale übelschmeckender oder wehrhafter Arten kopieren und sich so gegenüber potenziellen Fressfeinden tarnen.
+
+## Vernetzte Themen im Vault
+
+- [[mimikry|Mimikry]] (Konzept · Übergreifend)
+- [[schneehase|Schneehase]] (Tierart · Alpen)
+- [[polarfuchs|Polarfuchs]] (Tierart · Arktis)
+- [[gepard|Gepard]] (Tierart · Savanne)
+
+## Detailinformationen aus der Quelle
+
+## Entstehung
+
+Der Austausch von Signalen ist eine wesentliche Voraussetzung für jegliche Kommunikation und erfordert mindestens einen Sender und einen Empfänger von Signalen. Die Tarnung bei Tieren kann daher beschrieben werden als eine im Verlauf der Stammesgeschichte erworbene Befähigung, zumindest unter bestimmten Umständen nur solche Signale zu senden, die sich in möglichst geringem Maße von den Gegebenheiten unterscheiden, die das Individuum umgeben. Die Tarnung kann sowohl dem Verbergen vor Fressfeinden dienen als auch dem Verbergen vor potenzieller Beute (Angriffstarnung).
+2025 hat eine internationale Forschergruppe erläutert, welche Faktoren dazu führen, dass die Individuen mancher Arten sich durch Tarnung vor Fressfeinden verstecken, während die Individuen anderer Arten – durch Aposematismus, eine gegensätzliche Überlebensstrategie – Fressfeinde mit auffälligen Farben vor einem Angriff warnen. In einem Begleittext der Max-Planck-Gesellschaft zur Studie hieß es, „dass die Räubergemeinschaft den größten Einfluss hat. In Gebieten mit starker Konkurrenz unter Räubern war Tarnung erfolgreicher, da die Räuber eher bereit waren, das Risiko einzugehen, potenziell giftige Beute anzugreifen. Kryptische Strategien funktionierten jedoch nicht immer. In hellen Lebensräumen waren getarnte Beutetiere besser sichtbar und wurden häufiger angegriffen als Beutetiere mit klassischen Warnfarben. Und wo Tarnung weit verbreitet war, wurden Räuber besser darin, sie zu erkennen, wodurch ihre Wirksamkeit verringert wurde.“
+
+*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*
+
+---
+Quelle (unverändert): `raw/tarnung-biologie.md` · Wikipedia: https://de.wikipedia.org/wiki/Tarnung_(Biologie)

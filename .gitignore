@@ -1,0 +1,19 @@
+# Dependencies & build artifacts (NOTE: workshop-ui/dist is intentionally committed for zero-friction offline start)
+workshop-ui/node_modules/
+__pycache__/
+*.pyc
+*.pyo
+
+# Local secrets & environment overrides
+.env
+.env.local
+.env.*.local
+
+# OS & editor noise
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+
+# Temporary presentation render previews
+presentation/_preview_pngs/

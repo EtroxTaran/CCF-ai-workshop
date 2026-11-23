@@ -1,0 +1,54 @@
+---
+title: "Giraffen"
+category: tierart
+habitat: "Savanne"
+status: "Artengruppe / Gattung (variiert je nach Art)"
+tags:
+  - tierart
+  - huftier
+  - savanne
+source_file: "raw/giraffen.md"
+---
+
+# Giraffen
+
+> **Kategorie:** `tierart` · **Lebensraum:** [[savanne|Savanne]] · **Status:** Artengruppe / Gattung (variiert je nach Art) · **Rohquelle:** `raw/giraffen.md`
+
+## Kurzüberblick
+
+Die Giraffen (Giraffa), bundesdeutsches und Schweizer Hochdeutsch: [ɡiˈrafə] , österreichisches Hochdeutsch: [ʒiˈrafɛ] (von arabisch جرافة ǧurāfa, vgl. Standardarabisch زرافة zarāfa, zurāfa), sind eine Gattung der  Säugetiere aus der Ordnung der Paarhufer. Ursprünglich wurde ihr mit Giraffa camelopardalis und der Trivialbezeichnung „Giraffe“ nur eine einzige Art zugewiesen. Molekulargenetische Untersuchungen aus den Jahren 2016 und 2020 zeigen jedoch, dass die Gattung mehrere Arten mit zehn eigenständigen Populationen (davon eine schon ausgestorben) umfasst. 2025 bestätigte eine Studie der IUCN, dass die Gattung der Giraffen vier Arten umfasst: die Nord-Giraffe, die Netzgiraffe, die Süd-Giraffe und die Massai-Giraffe.
+Bezogen auf die Kopf- und Halsposition stellen die Giraffen heute die höchsten landlebenden Tiere der Welt. Zur Unterscheidung vom verwandten Okapi (sogenannte „Waldgiraffe“) werden sie auch als Steppengiraffen bezeichnet.
+
+## Wichtige Fakten auf einen Blick
+
+- Die Giraffen (Giraffa), bundesdeutsches und Schweizer Hochdeutsch: [ɡiˈrafə] , österreichisches Hochdeutsch: [ʒiˈrafɛ] (von arabisch جرافة ǧurāfa, vgl.
+- Standardarabisch زرافة zarāfa, zurāfa), sind eine Gattung der Säugetiere aus der Ordnung der Paarhufer.
+- Ursprünglich wurde ihr mit Giraffa camelopardalis und der Trivialbezeichnung „Giraffe“ nur eine einzige Art zugewiesen.
+- Molekulargenetische Untersuchungen aus den Jahren 2016 und 2020 zeigen jedoch, dass die Gattung mehrere Arten mit zehn eigenständigen Populationen (davon eine schon ausgestorben) umfasst.
+
+## Vernetzte Themen im Vault
+
+- [[savanne|Savanne]] (Lebensraum · Savanne)
+- [[afrikanischer-elefant|Afrikanischer Elefant]] (Tierart · Savanne)
+- [[loewe|Löwe]] (Tierart · Savanne)
+- [[gepard|Gepard]] (Tierart · Savanne)
+
+## Detailinformationen aus der Quelle
+
+## Merkmale
+
+### Körperbau
+
+Männchen (Bullen) werden bis zu 6 Meter hoch und wiegen durchschnittlich rund 1600 Kilogramm. Weibchen (Kühe) werden bis zu 4,5 Meter hoch und wiegen etwa 830 Kilogramm bei einer Schulterhöhe zwischen 2 und 3,5 Metern.
+
+#### Hals
+
+Der Hals der Giraffen ist außergewöhnlich lang. Wie bei fast allen Säugetieren besteht die Halswirbelsäule gleichwohl aus nur sieben Halswirbeln, die aber stark verlängert sind. Zusätzlich ähnelt der erste Brustwirbel einem Halswirbel, so dass der Hals funktional aus acht Wirbeln besteht. Dies hat auch zur Folge, dass einzelne Weichteilbildungen etwas weiter hinten ansetzen als bei den meisten Säugetieren, etwa der Plexus brachialis und Musculus longus colli. Der Hals wird von einer einzigen, sehr starken Sehne in einem Winkel von etwa 55° gehalten. Die Sehne verläuft vom Hinterkopf der Giraffe bis zum Steiß und ist für den „Höcker“ zwischen Hals und Körper verantwortlich. Der Ruhezustand hält Hals und Kopf in der aufrechten Position; um den Kopf nach unten zu bewegen, z. B. zum Trinken, muss die Giraffe Muskelarbeit aufbringen.
+Die ersten Versuche, den langen Hals der Giraffe zu erklären, unternahm 1809 Jean-Baptiste Lamarck, der postulierte, dass die Verlängerung zustande kam, weil die Giraffen ständig ihren Hals recken, um auch das höchstgewachsene verfügbare Laub zu fressen. Charles Darwin postulierte, dass die Halsverlängerung durch die Vererbung dieses Merkmals erfolgte, und dass die Giraffen überleben und sich vermehren konnten, da sie sich von der höher wachsenden Vegetation ernähren konnten, wenn sie knapp und für andere Pflanzenfresser mit kurzem Hals nicht erreichbar war. Keiner der Autoren erklärte jedoch, warum nur Giraffen diese Möglichkeit nutzten. Darwins Ansicht ist auch heute noch die beliebteste. Da männliche Giraffen mit ihren muskulösen Hälsen um die Weibchen kämpfen, wird auch angenommen, dass die größte Giraffe mit dem längsten Hals am erfolgreichsten ist und ihre Eigenschaften am wahrscheinlichsten an die nächste Generation weitergibt. Giraffenkühe kämpfen zwar auch, wenn auch nur selten, und wenn sie es tun, dann nur mit Bullen. Die Argumente für die Selektion langer Hälse durch ein derartiges Kampfverhalten werden häufig als schwach eingestuft, da es keine großen Unterschiede zwischen männlichen und weiblichen Giraffenhälsen im Verhältnis zur Körpergröße gibt. Als unterstützend für diese Annahme lassen sich aber einzelne Fossilformen im weiteren Verwandtschaftsumfeld der Giraffen wie etwa Discokeryx heranziehen. Diese bildeten massive Halswirbel heraus und wiesen Schädel mit verdickter Stirnplatte auf, was als Anpassung an Rivalenkämpfe gedeutet wird und wodurch einzelne Entwicklungen bei den Giraffen vorweggenommen sind. Das einzigartige Fellmuster der Giraffe hilft darüber hinaus bei der Thermoregulation, aber auch die aus dem langen Hals resultierende Körperflächenvergrößerung kann nicht allein als Selektion für die Halsstreckung gelten, da in Bezug auf die Thermoregulation die meisten großen Huftiere evolutionär eher an Körpervolumen insgesamt als an Höhe zugenommen haben, um dies zu erreichen. Plausibel scheint noch, dass die langen Hälse den Giraffen ein erweitertes Blickfeld eröffnen, was ihnen ein besseres Erkunden ihrer Umgebung nach Nahrungsquellen, Verteilung und Nähe von Artgenossen sowie potenziellen Prädatoren in der offenen Savanne ermöglicht.
+
+#### Haarkleid
+
+*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*
+
+---
+Quelle (unverändert): `raw/giraffen.md` · Wikipedia: https://de.wikipedia.org/wiki/Giraffen

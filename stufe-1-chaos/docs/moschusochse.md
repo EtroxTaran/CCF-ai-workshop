@@ -1,0 +1,19 @@
+# Moschusochse
+
+Der Moschusochse (Ovibos moschatus), auch als Bisamochse oder Schafsochse bezeichnet, ist ein Paarhufer aus der Unterfamilie der Antilopinae; innerhalb derer gehört er in die Verwandtschaftsgruppe der Ziegenartigen (Caprini). Die bis zu 1,50 m hohen männlichen und bis zu 1,30 m hohen weiblichen Tiere sind Bewohner der arktischen Tundren und heute ursprünglich nur noch in Grönland und Kanada zu finden. Allerdings gab es erfolgreiche Wiederansiedlungen in Alaska, Sibirien und Norwegen sowie eine Zuwanderung nach Schweden von Norwegen aus. Der Gesamtbestand der Tiere nimmt ab und wurde Ende 2020 auf rund 127.000 Tiere geschätzt.
+
+## Paläontologie
+
+Die Vorläufer der heutigen Moschusochsen entwickelten sich vor etwa einer Million Jahren in der Tundra des nördlichen Zentralasien.
+Die ältesten Fossilien der Moschusochsen-Gattung Ovibos wurden in Deutschland gefunden und stammen aus der Mindeleiszeit. Diese pleistozänen Moschusochsen unterscheiden sich von der heutigen Form durch größere Körpermaße und sonstige Merkmale und werden deshalb zoologisch meist als eigene Art (Ovibos pallantis im Gegensatz zu Ovibos moschatus) eingestuft. Ihr Verbreitungsgebiet erstreckte sich über die nördlichen Teile Eurasiens und Nordamerikas, das sie vor etwa 500.000 Jahren über die Beringstraße erreichten. In besonders kalten Zeitabschnitten zogen sie sich weit nach Süden zurück und gelangten bis nach Ungarn, Frankreich und vermutlich sogar Nordspanien. Am Ende der Würmeiszeit gingen vor allem die Bestände der eurasischen Vorkommen zurück, vermutlich durch das Verschwinden der Mammutsteppen und trockenen Tundren verursacht. Diese trockenen Flächen wurden durch feuchte Moostundren und dichte Wälder abgelöst, die den Moschusochsen als Lebensraum wenig zusagen. In Eurasien hielten sie sich am längsten auf der Taimyr-Halbinsel, von wo sie erst vor etwa 4000 Jahren verschwanden. Das Aussterben der eurasischen Moschusochsen fällt zeitlich mit dem der letzten Mammuts auf der nordsibirischen Wrangelinsel zusammen. Im Norden von Nordamerika und in Nordostgrönland überlebten die Moschusochsen dagegen bis in die Gegenwart.
+Paläontologische Funde zeigen, dass der Moschusochse die letzte nicht ausgestorbene Art eines mehrere Arten umfassenden Hornträger-Zweiges ist. Sein Überleben verdankt der Moschusochse offenbar der Anpassung an extrem kalte Standorte. Die ausgestorbenen Arten waren dagegen an wärmere Klimazonen angepasst (z. B. der Praeovibos priscus, der trotz dieser Bezeichnung keinen Vorläufer, sondern eine parallel zu Ovibos moschatus existierende Art darstellte).
+Während des Pleistozäns war der größer und schlanker als Ovibos moschatus gewachsene Helm-Moschusochse (Symbos cavifrons = Bootherium bombifrons oder Bootherium sargenti) in Nordamerika weit verbreitet. Mit der Bestimmung seiner Fossilfunde tat sich die zoologische Forschung schwer: Zunächst hielt man den Helm-Moschusochsen für eine ausgestorbene Bisonart (Bison appalachicolus), dann wurde Bootherium, heute allgemein als Weibchen von Symbos cavifrons eingestuft, als eigene Gattung beschrieben. Andere fossile Moschusochsen waren Euceratherium collinum, eine an Gebirgsgegenden angepasste Moschusart, und Soergelia mayfieldi.
+
+## Herkunft des Namens
+
+Ihren Namen verdanken die Moschusochsen dem Umstand, dass die Männchen zur Paarungszeit eine Substanz in den Urin abgeben, die moschusartig süßlich riecht; eine Moschus-Drüse wie etwa die Moschustiere besitzen die Moschusochsen jedoch nicht. Der Wortteil „Ochse“ nimmt auf die an Rinder erinnernde Gesamterscheinung Bezug. Er ist auch im lateinischen Gattungsnamen Ovibos (= „Schafsrind“, „Schafsochse“) enthalten. In Inuktitut, der Sprache der Inuit, heißt der Moschusochse Umimmaq (d. h. „Tier mit Fell wie ein Bart“, von umik „Bart“).
+
+*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*
+
+---
+Quelle: Wikipedia Deutsch (https://de.wikipedia.org/wiki/Moschusochse)

@@ -1,0 +1,1520 @@
+[
+  {
+    "slug": "arktis",
+    "title": "Arktis",
+    "query_title": "Arktis",
+    "fullurl": "https://de.wikipedia.org/wiki/Arktis",
+    "category": "lebensraum",
+    "habitat": "Arktis",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "lebensraum",
+      "polar",
+      "meereis"
+    ],
+    "summary": "Die Arktis, auch Nordpolargebiet und Nordpolgebiet, bezeichnet die Region um den Nordpol und damit eines der beiden Polargebiete.",
+    "char_count": 6129,
+    "related": [
+      "eisbaer",
+      "ringelrobbe",
+      "polarfuchs",
+      "narwal",
+      "klimawandel",
+      "raeuber-beute-beziehung",
+      "artensterben"
+    ]
+  },
+  {
+    "slug": "tropischer-regenwald",
+    "title": "Tropischer Regenwald",
+    "query_title": "Tropischer Regenwald",
+    "fullurl": "https://de.wikipedia.org/wiki/Tropischer_Regenwald",
+    "category": "lebensraum",
+    "habitat": "Tropischer Regenwald",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "lebensraum",
+      "tropen",
+      "wald"
+    ],
+    "summary": "Tropischer Regenwald ist der Oberbegriff für die immerfeuchten Wälder der tropischen Klimazone.",
+    "char_count": 5676,
+    "related": [
+      "jaguar",
+      "faultiere",
+      "blattschneiderameisen",
+      "orang-utans",
+      "biodiversitaet",
+      "artensterben"
+    ]
+  },
+  {
+    "slug": "korallenriff",
+    "title": "Korallenriff",
+    "query_title": "Korallenriff",
+    "fullurl": "https://de.wikipedia.org/wiki/Korallenriff",
+    "category": "lebensraum",
+    "habitat": "Korallenriff",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "lebensraum",
+      "ozean",
+      "riff"
+    ],
+    "summary": "Ein Korallenriff (auch „Regenwald der Meere“ wegen der sehr großen Artenvielfalt) ist eine von hermatypischen (riffbildenden) Nesseltieren gebildete Riffstruktur im Meer, die groß genug wird, um einen bedeutenden physika",
+    "char_count": 5202,
+    "related": [
+      "steinkorallen",
+      "anemonenfische",
+      "seeanemonen",
+      "korallenbleiche",
+      "symbiose",
+      "schluesselart"
+    ]
+  },
+  {
+    "slug": "alpen",
+    "title": "Alpen",
+    "query_title": "Alpen",
+    "fullurl": "https://de.wikipedia.org/wiki/Alpen",
+    "category": "lebensraum",
+    "habitat": "Alpen",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "lebensraum",
+      "hochgebirge",
+      "europa"
+    ],
+    "summary": "Die Alpen sind das höchste Hochgebirge in Europa.",
+    "char_count": 4894,
+    "related": [
+      "alpensteinbock",
+      "alpenmurmeltier",
+      "steinadler",
+      "bartgeier",
+      "winterschlaf",
+      "klimawandel"
+    ]
+  },
+  {
+    "slug": "savanne",
+    "title": "Savanne",
+    "query_title": "Savanne",
+    "fullurl": "https://de.wikipedia.org/wiki/Savanne",
+    "category": "lebensraum",
+    "habitat": "Savanne",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "lebensraum",
+      "grasland",
+      "afrika"
+    ],
+    "summary": "Als Savanne (über spanisch sabana aus einer karibischen Sprache entlehnt) wird im Allgemeinen ein tropischer oder subtropischer Vegetationstyp bezeichnet, der aus einer geschlossenen Krautschicht und einer eher offenen G",
+    "char_count": 2993,
+    "related": [
+      "afrikanischer-elefant",
+      "loewe",
+      "gepard",
+      "steppenzebra",
+      "streifengnu",
+      "schluesselart"
+    ]
+  },
+  {
+    "slug": "eisbaer",
+    "title": "Eisbär",
+    "query_title": "Eisbär",
+    "fullurl": "https://de.wikipedia.org/wiki/Eisb%C3%A4r",
+    "category": "tierart",
+    "habitat": "Arktis",
+    "status": "Gefährdet (VU)",
+    "tags": [
+      "tierart",
+      "raubtier",
+      "arktis"
+    ],
+    "summary": "Der Eisbär (Ursus maritimus), auch Polarbär genannt, ist eine Raubtierart aus der Familie der Bären (Ursidae).",
+    "char_count": 5183,
+    "related": [
+      "arktis",
+      "ringelrobbe",
+      "walross",
+      "polarfuchs",
+      "klimawandel",
+      "nahrungskette",
+      "tarnung-biologie"
+    ]
+  },
+  {
+    "slug": "polarfuchs",
+    "title": "Polarfuchs",
+    "query_title": "Polarfuchs",
+    "fullurl": "https://de.wikipedia.org/wiki/Polarfuchs",
+    "category": "tierart",
+    "habitat": "Arktis",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "raubtier",
+      "arktis"
+    ],
+    "summary": "Der Polarfuchs, Weißfuchs, Schneefuchs oder Eisfuchs (Vulpes lagopus, Synonym Alopex lagopus) ist eine Fuchsart, die in der nördlichen Polarregion beheimatet ist.",
+    "char_count": 5968,
+    "related": [
+      "arktis",
+      "lemminge",
+      "eisbaer",
+      "tarnung-biologie"
+    ]
+  },
+  {
+    "slug": "ringelrobbe",
+    "title": "Ringelrobbe",
+    "query_title": "Ringelrobbe",
+    "fullurl": "https://de.wikipedia.org/wiki/Ringelrobbe",
+    "category": "tierart",
+    "habitat": "Arktis",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "robbe",
+      "arktis"
+    ],
+    "summary": "Die Ringelrobbe (Pusa hispida, Syn.: Phoca hispida) ist die am häufigsten in der Arktis vorkommende Robbenart.",
+    "char_count": 3660,
+    "related": [
+      "arktis",
+      "eisbaer",
+      "polarfuchs",
+      "raeuber-beute-beziehung"
+    ]
+  },
+  {
+    "slug": "walross",
+    "title": "Walross",
+    "query_title": "Walross",
+    "fullurl": "https://de.wikipedia.org/wiki/Walross",
+    "category": "tierart",
+    "habitat": "Arktis",
+    "status": "Gefährdet (VU)",
+    "tags": [
+      "tierart",
+      "robbe",
+      "arktis"
+    ],
+    "summary": "Das Walross (Odobenus rosmarus; frühere Synonyme: Trichechus rosmarus und Rosmarus arcticus) ist eine Robbenart, die in den kalten Meeren der Nordhalbkugel vorkommt.",
+    "char_count": 5950,
+    "related": [
+      "arktis",
+      "eisbaer",
+      "polarfuchs",
+      "ringelrobbe"
+    ]
+  },
+  {
+    "slug": "narwal",
+    "title": "Narwal",
+    "query_title": "Narwal",
+    "fullurl": "https://de.wikipedia.org/wiki/Narwal",
+    "category": "tierart",
+    "habitat": "Arktis",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "wal",
+      "arktis"
+    ],
+    "summary": "Der Narwal (Monodon monoceros) ist eine Art der Zahnwale (Odontoceti).",
+    "char_count": 5356,
+    "related": [
+      "arktis",
+      "weisswal",
+      "eisbaer",
+      "polarfuchs"
+    ]
+  },
+  {
+    "slug": "schneeeule",
+    "title": "Schneeeule",
+    "query_title": "Schneeeule",
+    "fullurl": "https://de.wikipedia.org/wiki/Schneeeule",
+    "category": "tierart",
+    "habitat": "Arktis",
+    "status": "Gefährdet (VU)",
+    "tags": [
+      "tierart",
+      "vogel",
+      "arktis"
+    ],
+    "summary": "Die Schneeeule (Bubo scandiacus, Syn.: Bubo scandiaca, Nyctea scandiaca, auch Schnee-Eule) ist eine Vogel-Art aus der Familie der Eigentlichen Eulen (Strigidae), die zu den charakteristischen Vögeln der arktischen Tundra zählt.",
+    "char_count": 6066,
+    "related": [
+      "arktis",
+      "lemminge",
+      "vogelzug",
+      "tarnung-biologie",
+      "artensterben"
+    ]
+  },
+  {
+    "slug": "ren",
+    "title": "Ren",
+    "query_title": "Ren",
+    "fullurl": "https://de.wikipedia.org/wiki/Ren",
+    "category": "tierart",
+    "habitat": "Arktis",
+    "status": "Gefährdet (VU)",
+    "tags": [
+      "tierart",
+      "hirsch",
+      "arktis"
+    ],
+    "summary": "Das Ren [reːn], [rɛn] oder Rentier [ˈreːnˌtiːɐ], [ˈrɛnˌtiːɐ] (Rangifer tarandus) ist eine Säugetierart aus der Familie der Hirsche (Cervidae).",
+    "char_count": 6025,
+    "related": [
+      "arktis",
+      "tarnung-biologie",
+      "eisbaer",
+      "polarfuchs"
+    ]
+  },
+  {
+    "slug": "moschusochse",
+    "title": "Moschusochse",
+    "query_title": "Moschusochse",
+    "fullurl": "https://de.wikipedia.org/wiki/Moschusochse",
+    "category": "tierart",
+    "habitat": "Arktis",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "huftier",
+      "arktis"
+    ],
+    "summary": "Der Moschusochse (Ovibos moschatus), auch als Bisamochse oder Schafsochse bezeichnet, ist ein Paarhufer aus der Unterfamilie der Antilopinae; innerhalb derer gehört er in die Verwandtschaftsgruppe der Ziegenartigen (Caprini).",
+    "char_count": 3950,
+    "related": [
+      "arktis",
+      "artensterben",
+      "eisbaer",
+      "polarfuchs"
+    ]
+  },
+  {
+    "slug": "weisswal",
+    "title": "Weißwal",
+    "query_title": "Weißwal",
+    "fullurl": "https://de.wikipedia.org/wiki/Wei%C3%9Fwal",
+    "category": "tierart",
+    "habitat": "Arktis",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "wal",
+      "arktis"
+    ],
+    "summary": "Der Weißwal (Delphinapterus leucas) oder die Beluga (russisch белуха belucha, von белый bely „weiß“) ist eine Art der Gründelwale, die in arktischen und subarktischen Gewässern lebt.",
+    "char_count": 5934,
+    "related": [
+      "arktis",
+      "eisbaer",
+      "polarfuchs",
+      "ringelrobbe"
+    ]
+  },
+  {
+    "slug": "lemminge",
+    "title": "Echte Lemminge",
+    "query_title": "Echte Lemminge",
+    "fullurl": "https://de.wikipedia.org/wiki/Echte_Lemminge",
+    "category": "tierart",
+    "habitat": "Arktis",
+    "status": "Artengruppe / Gattung (variiert je nach Art)",
+    "tags": [
+      "tierart",
+      "nagetier",
+      "arktis"
+    ],
+    "summary": "Die Echten Lemminge (Lemmus) sind eine Gattung aus der Tribus der Lemmini.",
+    "char_count": 2526,
+    "related": [
+      "arktis",
+      "polarfuchs",
+      "schneeeule",
+      "nahrungskette"
+    ]
+  },
+  {
+    "slug": "jaguar",
+    "title": "Jaguar",
+    "query_title": "Jaguar",
+    "fullurl": "https://de.wikipedia.org/wiki/Jaguar",
+    "category": "tierart",
+    "habitat": "Tropischer Regenwald",
+    "status": "Potenziell gefährdet (NT)",
+    "tags": [
+      "tierart",
+      "raubkatze",
+      "regenwald"
+    ],
+    "summary": "Der Jaguar (Panthera onca) ist eine Art aus der Familie der Katzen, die in der Neuen Welt verbreitet ist.",
+    "char_count": 6245,
+    "related": [
+      "tropischer-regenwald",
+      "tuepfelhyaene",
+      "faultiere",
+      "baumsteigerfroesche"
+    ]
+  },
+  {
+    "slug": "faultiere",
+    "title": "Faultiere",
+    "query_title": "Faultiere",
+    "fullurl": "https://de.wikipedia.org/wiki/Faultiere",
+    "category": "tierart",
+    "habitat": "Tropischer Regenwald",
+    "status": "Artengruppe / Gattung (variiert je nach Art)",
+    "tags": [
+      "tierart",
+      "saeugetier",
+      "regenwald"
+    ],
+    "summary": "Die Faultiere (Folivora, auch Tardigrada oder Phyllophaga) bilden eine Unterordnung der zahnarmen Säugetiere (Pilosa) und sind mit den Ameisenbären und den Gürteltieren verwandt (Nebengelenktiere).",
+    "char_count": 3238,
+    "related": [
+      "tropischer-regenwald",
+      "jaguar",
+      "baumsteigerfroesche",
+      "harpyie"
+    ]
+  },
+  {
+    "slug": "baumsteigerfroesche",
+    "title": "Baumsteigerfrösche",
+    "query_title": "Baumsteigerfrösche",
+    "fullurl": "https://de.wikipedia.org/wiki/Baumsteigerfr%C3%B6sche",
+    "category": "tierart",
+    "habitat": "Tropischer Regenwald",
+    "status": "Artengruppe / Gattung (variiert je nach Art)",
+    "tags": [
+      "tierart",
+      "amphibie",
+      "regenwald"
+    ],
+    "summary": "Die Baumsteigerfrösche (Dendrobatidae), auch Pfeilgiftfrösche oder Farbfrösche genannt, sind eine Familie der Froschlurche (Anura).",
+    "char_count": 4572,
+    "related": [
+      "tropischer-regenwald",
+      "mimikry",
+      "biodiversitaet"
+    ]
+  },
+  {
+    "slug": "harpyie",
+    "title": "Harpyie (Vogel)",
+    "query_title": "Harpyie (Vogel)",
+    "fullurl": "https://de.wikipedia.org/wiki/Harpyie_(Vogel)",
+    "category": "tierart",
+    "habitat": "Tropischer Regenwald",
+    "status": "Gefährdet (VU)",
+    "tags": [
+      "tierart",
+      "greifvogel",
+      "regenwald"
+    ],
+    "summary": "Die Harpyie (Harpia harpyja) (Aussprache [haʁˈpʰyːjə]) ist eine sehr große, kräftig gebaute Greifvogelart.",
+    "char_count": 5892,
+    "related": [
+      "tropischer-regenwald",
+      "faultiere",
+      "jaguar",
+      "baumsteigerfroesche"
+    ]
+  },
+  {
+    "slug": "blattschneiderameisen",
+    "title": "Blattschneiderameise",
+    "query_title": "Blattschneiderameisen",
+    "fullurl": "https://de.wikipedia.org/wiki/Blattschneiderameise",
+    "category": "tierart",
+    "habitat": "Tropischer Regenwald",
+    "status": "Artengruppe / Gattung (variiert je nach Art)",
+    "tags": [
+      "tierart",
+      "insekt",
+      "regenwald"
+    ],
+    "summary": "Als Blattschneiderameisen bezeichnet man verschiedene Ameisenarten, die mit ihren Mundwerkzeugen Pflanzenblätter in kleine Stückchen zerteilen, die sie in ihren Bau transportieren.",
+    "char_count": 5966,
+    "related": [
+      "tropischer-regenwald",
+      "symbiose",
+      "oekosystem"
+    ]
+  },
+  {
+    "slug": "riesentukan",
+    "title": "Riesentukan",
+    "query_title": "Riesentukan",
+    "fullurl": "https://de.wikipedia.org/wiki/Riesentukan",
+    "category": "tierart",
+    "habitat": "Tropischer Regenwald",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "vogel",
+      "regenwald"
+    ],
+    "summary": "Der Riesentukan (Ramphastos toco) ist eine Vogelart aus der Familie der Tukane (Ramphastidae) und der Ordnung der Spechtvögel (Piciformes).",
+    "char_count": 5113,
+    "related": [
+      "tropischer-regenwald",
+      "jaguar",
+      "faultiere",
+      "baumsteigerfroesche"
+    ]
+  },
+  {
+    "slug": "grosse-anakonda",
+    "title": "Große Anakonda",
+    "query_title": "Große Anakonda",
+    "fullurl": "https://de.wikipedia.org/wiki/Gro%C3%9Fe_Anakonda",
+    "category": "tierart",
+    "habitat": "Tropischer Regenwald",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "schlange",
+      "regenwald"
+    ],
+    "summary": "Die Große Anakonda (Eunectes murinus) ist eine Schlangenart aus der Familie der Boas (Boidae) und wird dort in die Unterfamilie der Boaschlangen (Boinae) gestellt.",
+    "char_count": 6078,
+    "related": [
+      "tropischer-regenwald",
+      "jaguar",
+      "raeuber-beute-beziehung"
+    ]
+  },
+  {
+    "slug": "orang-utans",
+    "title": "Orang-Utans",
+    "query_title": "Orang-Utans",
+    "fullurl": "https://de.wikipedia.org/wiki/Orang-Utans",
+    "category": "tierart",
+    "habitat": "Tropischer Regenwald",
+    "status": "Artengruppe / Gattung (variiert je nach Art)",
+    "tags": [
+      "tierart",
+      "primat",
+      "regenwald"
+    ],
+    "summary": "Die Orang-Utans (Pongo) sind eine Primatengattung aus der Familie der Menschenaffen (Hominidae).",
+    "char_count": 4423,
+    "related": [
+      "tropischer-regenwald",
+      "jaguar",
+      "faultiere",
+      "baumsteigerfroesche"
+    ]
+  },
+  {
+    "slug": "kapuzineraffen",
+    "title": "Kapuzineraffen",
+    "query_title": "Kapuzineraffen",
+    "fullurl": "https://de.wikipedia.org/wiki/Kapuzineraffen",
+    "category": "tierart",
+    "habitat": "Tropischer Regenwald",
+    "status": "Artengruppe / Gattung (variiert je nach Art)",
+    "tags": [
+      "tierart",
+      "primat",
+      "regenwald"
+    ],
+    "summary": "Die Kapuzineraffen (Cebinae) sind eine Primatengruppe aus der Gruppe der Neuweltaffen.",
+    "char_count": 5960,
+    "related": [
+      "tropischer-regenwald",
+      "jaguar",
+      "faultiere",
+      "baumsteigerfroesche"
+    ]
+  },
+  {
+    "slug": "morphofalter",
+    "title": "Blauer Morphofalter",
+    "query_title": "Himmelsfalter",
+    "fullurl": "https://de.wikipedia.org/wiki/Blauer_Morphofalter",
+    "category": "tierart",
+    "habitat": "Tropischer Regenwald",
+    "status": "Artengruppe / Gattung (variiert je nach Art)",
+    "tags": [
+      "tierart",
+      "schmetterling",
+      "regenwald"
+    ],
+    "summary": "Der Blaue Morphofalter (Morpho peleides) oder Himmelsfalter ist ein Schmetterling aus der Familie der Edelfalter (Nymphalidae).",
+    "char_count": 1941,
+    "related": [
+      "tropischer-regenwald",
+      "jaguar",
+      "faultiere",
+      "baumsteigerfroesche"
+    ]
+  },
+  {
+    "slug": "anemonenfische",
+    "title": "Anemonenfische",
+    "query_title": "Anemonenfische",
+    "fullurl": "https://de.wikipedia.org/wiki/Anemonenfische",
+    "category": "tierart",
+    "habitat": "Korallenriff",
+    "status": "Artengruppe / Gattung (variiert je nach Art)",
+    "tags": [
+      "tierart",
+      "fisch",
+      "korallenriff"
+    ],
+    "summary": "Die Anemonenfische (Amphiprion) – nach den beiden bekanntesten Arten häufig auch Clownfische genannt – sind eine in den Korallenriffen des tropischen Indopazifik vorkommende Gattung der Riffbarsche (Pomacentridae), die in enger Symbiose mit Seeanemonen lebt.",
+    "char_count": 4048,
+    "related": [
+      "korallenriff",
+      "seeanemonen",
+      "symbiose",
+      "steinkorallen"
+    ]
+  },
+  {
+    "slug": "seeanemonen",
+    "title": "Seeanemonen",
+    "query_title": "Seeanemonen",
+    "fullurl": "https://de.wikipedia.org/wiki/Seeanemonen",
+    "category": "tierart",
+    "habitat": "Korallenriff",
+    "status": "Artengruppe / Gattung (variiert je nach Art)",
+    "tags": [
+      "tierart",
+      "nesseltier",
+      "korallenriff"
+    ],
+    "summary": "Seeanemonen (Actiniaria), auch Seerosen, Seenelken oder Aktinien genannt, sind eine arten- und gattungsreiche Ordnung der Hexacorallia innerhalb der Blumentiere (Anthozoa).",
+    "char_count": 4326,
+    "related": [
+      "korallenriff",
+      "anemonenfische",
+      "symbiose",
+      "steinkorallen"
+    ]
+  },
+  {
+    "slug": "gruene-meeresschildkroete",
+    "title": "Grüne Meeresschildkröte",
+    "query_title": "Grüne Meeresschildkröte",
+    "fullurl": "https://de.wikipedia.org/wiki/Gr%C3%BCne_Meeresschildkr%C3%B6te",
+    "category": "tierart",
+    "habitat": "Korallenriff",
+    "status": "Stark gefährdet (EN)",
+    "tags": [
+      "tierart",
+      "reptil",
+      "korallenriff"
+    ],
+    "summary": "Die Grüne Meeresschildkröte (Chelonia mydas) ist ein Vertreter der Familie der Meeresschildkröten.",
+    "char_count": 5057,
+    "related": [
+      "korallenriff",
+      "anemonenfische",
+      "seeanemonen",
+      "schwarzspitzen-riffhai"
+    ]
+  },
+  {
+    "slug": "schwarzspitzen-riffhai",
+    "title": "Schwarzspitzen-Riffhai",
+    "query_title": "Schwarzspitzen-Riffhai",
+    "fullurl": "https://de.wikipedia.org/wiki/Schwarzspitzen-Riffhai",
+    "category": "tierart",
+    "habitat": "Korallenriff",
+    "status": "Gefährdet (VU)",
+    "tags": [
+      "tierart",
+      "hai",
+      "korallenriff"
+    ],
+    "summary": "Der Schwarzspitzen-Riffhai (Carcharhinus melanopterus) ist ein Hai aus der Familie der Requiem- oder Grauhaie.",
+    "char_count": 5909,
+    "related": [
+      "korallenriff",
+      "artensterben",
+      "anemonenfische",
+      "seeanemonen"
+    ]
+  },
+  {
+    "slug": "riesenmanta",
+    "title": "Riesenmanta",
+    "query_title": "Riesenmanta",
+    "fullurl": "https://de.wikipedia.org/wiki/Riesenmanta",
+    "category": "tierart",
+    "habitat": "Korallenriff",
+    "status": "Stark gefährdet (EN)",
+    "tags": [
+      "tierart",
+      "rochen",
+      "korallenriff"
+    ],
+    "summary": "Der Riesenmanta (Mobula birostris, Syn.: Manta birostris) ist eine Rochenart aus der Familie der Teufelsrochen.",
+    "char_count": 5899,
+    "related": [
+      "korallenriff",
+      "schwarzspitzen-riffhai",
+      "papageifische",
+      "oekosystem",
+      "artensterben"
+    ]
+  },
+  {
+    "slug": "kraken",
+    "title": "Kraken",
+    "query_title": "Kraken",
+    "fullurl": "https://de.wikipedia.org/wiki/Kraken",
+    "category": "tierart",
+    "habitat": "Korallenriff",
+    "status": "Artengruppe / Gattung (variiert je nach Art)",
+    "tags": [
+      "tierart",
+      "kopffuesser",
+      "korallenriff"
+    ],
+    "summary": "Die Kraken (Ordnung Octopoda) sind eine Teilgruppe der Achtarmigen Tintenfische (Vampyropoda) innerhalb der Tintenfische (Coleoidea).",
+    "char_count": 6356,
+    "related": [
+      "korallenriff",
+      "anemonenfische",
+      "seeanemonen",
+      "gruene-meeresschildkroete"
+    ]
+  },
+  {
+    "slug": "steinkorallen",
+    "title": "Steinkorallen",
+    "query_title": "Steinkorallen",
+    "fullurl": "https://de.wikipedia.org/wiki/Steinkorallen",
+    "category": "tierart",
+    "habitat": "Korallenriff",
+    "status": "Artengruppe / Gattung (variiert je nach Art)",
+    "tags": [
+      "tierart",
+      "koralle",
+      "korallenriff"
+    ],
+    "summary": "Steinkorallen (Scleractinia, früher Madreporaria) sind Tiere, die den Hauptanteil an der Entstehung der Korallenriffe haben, der artenreichsten marinen Lebensräume auf der Erde.",
+    "char_count": 2673,
+    "related": [
+      "korallenriff",
+      "korallenbleiche",
+      "symbiose",
+      "dornenkronenseestern",
+      "seeanemonen"
+    ]
+  },
+  {
+    "slug": "papageifische",
+    "title": "Papageifische",
+    "query_title": "Papageifische",
+    "fullurl": "https://de.wikipedia.org/wiki/Papageifische",
+    "category": "tierart",
+    "habitat": "Korallenriff",
+    "status": "Artengruppe / Gattung (variiert je nach Art)",
+    "tags": [
+      "tierart",
+      "fisch",
+      "korallenriff"
+    ],
+    "summary": "Die Papageifische oder Seepapageien (Scarinae) sind eine Unterfamilie der Lippfische (Labridae) und gehören zu den Barschverwandten (Percomorpha).",
+    "char_count": 5324,
+    "related": [
+      "korallenriff",
+      "steinkorallen",
+      "schluesselart",
+      "oekosystem"
+    ]
+  },
+  {
+    "slug": "seepferdchen",
+    "title": "Seepferdchen",
+    "query_title": "Seepferdchen",
+    "fullurl": "https://de.wikipedia.org/wiki/Seepferdchen",
+    "category": "tierart",
+    "habitat": "Korallenriff",
+    "status": "Artengruppe / Gattung (variiert je nach Art)",
+    "tags": [
+      "tierart",
+      "fisch",
+      "korallenriff"
+    ],
+    "summary": "Seepferdchen (Hippocampus) sind Knochenfische, deren Gestalt und Lebensweise deutlich von der typischer Fische abweicht.",
+    "char_count": 5859,
+    "related": [
+      "korallenriff",
+      "anemonenfische",
+      "seeanemonen",
+      "gruene-meeresschildkroete"
+    ]
+  },
+  {
+    "slug": "dornenkronenseestern",
+    "title": "Dornenkronenseestern",
+    "query_title": "Dornenkronenseestern",
+    "fullurl": "https://de.wikipedia.org/wiki/Dornenkronenseestern",
+    "category": "tierart",
+    "habitat": "Korallenriff",
+    "status": "Artengruppe / Gattung (variiert je nach Art)",
+    "tags": [
+      "tierart",
+      "stachelhaeuter",
+      "korallenriff"
+    ],
+    "summary": "Der Dornenkronenseestern (Acanthaster planci) ist ein oft rotgefärbter Seestern, der sich von Steinkorallen ernährt (corallivor).",
+    "char_count": 3073,
+    "related": [
+      "korallenriff",
+      "steinkorallen",
+      "korallenbleiche",
+      "raeuber-beute-beziehung"
+    ]
+  },
+  {
+    "slug": "alpensteinbock",
+    "title": "Alpensteinbock",
+    "query_title": "Alpensteinbock",
+    "fullurl": "https://de.wikipedia.org/wiki/Alpensteinbock",
+    "category": "tierart",
+    "habitat": "Alpen",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "huftier",
+      "alpen"
+    ],
+    "summary": "Der Alpensteinbock (Capra ibex) ist eine in den Alpen wieder verbreitete Art von Steinböcken aus der Gattung der Ziegen.",
+    "char_count": 4202,
+    "related": [
+      "alpen",
+      "gaemse",
+      "bartgeier",
+      "rote-liste-gefaehrdeter-arten"
+    ]
+  },
+  {
+    "slug": "alpenmurmeltier",
+    "title": "Alpenmurmeltier",
+    "query_title": "Alpenmurmeltier",
+    "fullurl": "https://de.wikipedia.org/wiki/Alpenmurmeltier",
+    "category": "tierart",
+    "habitat": "Alpen",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "nagetier",
+      "alpen"
+    ],
+    "summary": "Das Alpenmurmeltier (Marmota marmota), süddeutsch und österreichisch auch Mankei oder Murmel, in der Schweiz auch Mungg oder Murmunda, ist ein besonders in den Alpen verbreitetes Nagetier.",
+    "char_count": 6203,
+    "related": [
+      "alpen",
+      "winterschlaf",
+      "steinadler",
+      "nahrungskette"
+    ]
+  },
+  {
+    "slug": "steinadler",
+    "title": "Steinadler",
+    "query_title": "Steinadler",
+    "fullurl": "https://de.wikipedia.org/wiki/Steinadler",
+    "category": "tierart",
+    "habitat": "Alpen",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "greifvogel",
+      "alpen"
+    ],
+    "summary": "Der Steinadler (Aquila chrysaetos) ist eine große Greifvogelart innerhalb der Familie der Habichtartigen (Accipitridae).",
+    "char_count": 5296,
+    "related": [
+      "alpen",
+      "alpenmurmeltier",
+      "gaemse",
+      "schneehase",
+      "nahrungskette"
+    ]
+  },
+  {
+    "slug": "gaemse",
+    "title": "Gämse",
+    "query_title": "Gämse",
+    "fullurl": "https://de.wikipedia.org/wiki/G%C3%A4mse",
+    "category": "tierart",
+    "habitat": "Alpen",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "huftier",
+      "alpen"
+    ],
+    "summary": "Die (Alpen-)Gämse (Rupicapra rupicapra), vor der Rechtschreibreform Gemse geschrieben und in der Jägersprache mit Gams oder Gamswild bezeichnet, ist eine in Europa und Kleinasien beheimatete Art der Ziegenartigen.",
+    "char_count": 6281,
+    "related": [
+      "alpen",
+      "alpensteinbock",
+      "alpenmurmeltier",
+      "steinadler"
+    ]
+  },
+  {
+    "slug": "bartgeier",
+    "title": "Bartgeier",
+    "query_title": "Bartgeier",
+    "fullurl": "https://de.wikipedia.org/wiki/Bartgeier",
+    "category": "tierart",
+    "habitat": "Alpen",
+    "status": "Potenziell gefährdet (NT)",
+    "tags": [
+      "tierart",
+      "greifvogel",
+      "alpen"
+    ],
+    "summary": "Der Bartgeier (Gypaetus barbatus), veraltet auch Lämmergeier genannt, ist ein Greifvogel aus der Familie der Habichtartigen (Accipitridae).",
+    "char_count": 4988,
+    "related": [
+      "alpen",
+      "alpensteinbock",
+      "gaemse",
+      "artensterben",
+      "steinadler"
+    ]
+  },
+  {
+    "slug": "schneehase",
+    "title": "Schneehase",
+    "query_title": "Schneehase",
+    "fullurl": "https://de.wikipedia.org/wiki/Schneehase",
+    "category": "tierart",
+    "habitat": "Alpen",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "hasenart",
+      "alpen"
+    ],
+    "summary": "Der Schneehase (Lepus timidus) ist eine zur Familie der Hasen (Leporidae) gehörige Art.",
+    "char_count": 6108,
+    "related": [
+      "alpen",
+      "tarnung-biologie",
+      "steinadler",
+      "eurasischer-luchs",
+      "alpenschneehuhn",
+      "klimawandel"
+    ]
+  },
+  {
+    "slug": "alpensalamander",
+    "title": "Alpensalamander",
+    "query_title": "Alpensalamander",
+    "fullurl": "https://de.wikipedia.org/wiki/Alpensalamander",
+    "category": "tierart",
+    "habitat": "Alpen",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "amphibie",
+      "alpen"
+    ],
+    "summary": "Der Alpensalamander (Salamandra atra) ist eine schwarz gefärbte, landlebende Art der Schwanzlurche.",
+    "char_count": 2746,
+    "related": [
+      "alpen",
+      "alpensteinbock",
+      "alpenmurmeltier",
+      "steinadler"
+    ]
+  },
+  {
+    "slug": "eurasischer-luchs",
+    "title": "Eurasischer Luchs",
+    "query_title": "Eurasischer Luchs",
+    "fullurl": "https://de.wikipedia.org/wiki/Eurasischer_Luchs",
+    "category": "tierart",
+    "habitat": "Alpen",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "raubkatze",
+      "alpen"
+    ],
+    "summary": "Der Eurasische Luchs oder Nordluchs (Lynx lynx) ist eine in Eurasien verbreitete Art der Luchse.",
+    "char_count": 5177,
+    "related": [
+      "alpen",
+      "alpensteinbock",
+      "alpenmurmeltier",
+      "steinadler"
+    ]
+  },
+  {
+    "slug": "alpenschneehuhn",
+    "title": "Alpenschneehuhn",
+    "query_title": "Alpenschneehuhn",
+    "fullurl": "https://de.wikipedia.org/wiki/Alpenschneehuhn",
+    "category": "tierart",
+    "habitat": "Alpen",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "vogel",
+      "alpen"
+    ],
+    "summary": "Das Alpenschneehuhn (Lagopus muta) ist eine Vogelart aus der Familie der Fasanenartigen (Phasianidae).",
+    "char_count": 5269,
+    "related": [
+      "alpen",
+      "arktis",
+      "tarnung-biologie"
+    ]
+  },
+  {
+    "slug": "afrikanischer-elefant",
+    "title": "Afrikanischer Elefant",
+    "query_title": "Afrikanischer Elefant",
+    "fullurl": "https://de.wikipedia.org/wiki/Afrikanischer_Elefant",
+    "category": "tierart",
+    "habitat": "Savanne",
+    "status": "Stark gefährdet (EN)",
+    "tags": [
+      "tierart",
+      "saeugetier",
+      "savanne"
+    ],
+    "summary": "Der Afrikanische Elefant (Loxodonta africana), auch Afrikanischer Savannenelefant, Afrikanischer Steppenelefant oder Afrikanischer Buschelefant, ist eine Säugetierart aus der Familie der Elefanten.",
+    "char_count": 3950,
+    "related": [
+      "savanne",
+      "schluesselart",
+      "loewe",
+      "biodiversitaet"
+    ]
+  },
+  {
+    "slug": "loewe",
+    "title": "Löwe",
+    "query_title": "Löwe",
+    "fullurl": "https://de.wikipedia.org/wiki/L%C3%B6we",
+    "category": "tierart",
+    "habitat": "Savanne",
+    "status": "Gefährdet (VU)",
+    "tags": [
+      "tierart",
+      "raubkatze",
+      "savanne"
+    ],
+    "summary": "Der Löwe (Panthera leo) ist neben dem Tiger eine der beiden größten Arten aus der Familie der Katzen.",
+    "char_count": 5598,
+    "related": [
+      "savanne",
+      "steppenzebra",
+      "streifengnu",
+      "tuepfelhyaene",
+      "raeuber-beute-beziehung"
+    ]
+  },
+  {
+    "slug": "gepard",
+    "title": "Gepard",
+    "query_title": "Gepard",
+    "fullurl": "https://de.wikipedia.org/wiki/Gepard",
+    "category": "tierart",
+    "habitat": "Savanne",
+    "status": "Gefährdet (VU)",
+    "tags": [
+      "tierart",
+      "raubkatze",
+      "savanne"
+    ],
+    "summary": "Der Gepard [ˈgeːpart/geˈpart] (Acinonyx jubatus) ist ein hauptsächlich in Afrika verbreitetes Raubtier, das zur Familie der Katzen gehört.",
+    "char_count": 5024,
+    "related": [
+      "savanne",
+      "loewe",
+      "tarnung-biologie",
+      "rote-liste-gefaehrdeter-arten"
+    ]
+  },
+  {
+    "slug": "giraffen",
+    "title": "Giraffen",
+    "query_title": "Giraffen",
+    "fullurl": "https://de.wikipedia.org/wiki/Giraffen",
+    "category": "tierart",
+    "habitat": "Savanne",
+    "status": "Artengruppe / Gattung (variiert je nach Art)",
+    "tags": [
+      "tierart",
+      "huftier",
+      "savanne"
+    ],
+    "summary": "Die Giraffen (Giraffa), bundesdeutsches und Schweizer Hochdeutsch: [ɡiˈrafə] , österreichisches Hochdeutsch: [ʒiˈrafɛ] (von arabisch جرافة ǧurāfa, vgl.",
+    "char_count": 4537,
+    "related": [
+      "savanne",
+      "afrikanischer-elefant",
+      "loewe",
+      "gepard"
+    ]
+  },
+  {
+    "slug": "steppenzebra",
+    "title": "Steppenzebra",
+    "query_title": "Steppenzebra",
+    "fullurl": "https://de.wikipedia.org/wiki/Steppenzebra",
+    "category": "tierart",
+    "habitat": "Savanne",
+    "status": "Potenziell gefährdet (NT)",
+    "tags": [
+      "tierart",
+      "huftier",
+      "savanne"
+    ],
+    "summary": "Das Steppenzebra (Equus quagga) oder Pferdezebra ist ein Zebra aus der Gattung der Pferde (Equus) innerhalb der Familie der Pferde (Equidae).",
+    "char_count": 5557,
+    "related": [
+      "savanne",
+      "streifengnu",
+      "loewe",
+      "tarnung-biologie"
+    ]
+  },
+  {
+    "slug": "streifengnu",
+    "title": "Streifengnu",
+    "query_title": "Streifengnu",
+    "fullurl": "https://de.wikipedia.org/wiki/Streifengnu",
+    "category": "tierart",
+    "habitat": "Savanne",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "huftier",
+      "savanne"
+    ],
+    "summary": "Das Streifengnu (Connochaetes taurinus) ist eine Antilope aus der Gattung der Gnus, die als Grasfresser in offenen Steppen oder Baumsavannen Afrikas zu Hause ist.",
+    "char_count": 2161,
+    "related": [
+      "savanne",
+      "afrikanischer-elefant",
+      "loewe",
+      "gepard"
+    ]
+  },
+  {
+    "slug": "tuepfelhyaene",
+    "title": "Tüpfelhyäne",
+    "query_title": "Tüpfelhyäne",
+    "fullurl": "https://de.wikipedia.org/wiki/T%C3%BCpfelhy%C3%A4ne",
+    "category": "tierart",
+    "habitat": "Savanne",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "raubtier",
+      "savanne"
+    ],
+    "summary": "Die Tüpfelhyäne oder Fleckenhyäne (Crocuta crocuta) ist eine Raubtierart aus der Familie der Hyänen (Hyaenidae).",
+    "char_count": 2910,
+    "related": [
+      "savanne",
+      "afrikanischer-elefant",
+      "loewe",
+      "gepard"
+    ]
+  },
+  {
+    "slug": "erdmaennchen",
+    "title": "Erdmännchen",
+    "query_title": "Erdmännchen",
+    "fullurl": "https://de.wikipedia.org/wiki/Erdm%C3%A4nnchen",
+    "category": "tierart",
+    "habitat": "Savanne",
+    "status": "Nicht gefährdet (LC)",
+    "tags": [
+      "tierart",
+      "raubtier",
+      "savanne"
+    ],
+    "summary": "Das Erdmännchen (Suricata suricatta), auch Surikate oder veraltet Scharrtier genannt, ist eine Säugetierart aus der Familie der Mangusten (Herpestidae).",
+    "char_count": 3027,
+    "related": [
+      "savanne",
+      "afrikanischer-elefant",
+      "loewe",
+      "gepard"
+    ]
+  },
+  {
+    "slug": "termiten",
+    "title": "Termiten",
+    "query_title": "Termiten",
+    "fullurl": "https://de.wikipedia.org/wiki/Termiten",
+    "category": "tierart",
+    "habitat": "Savanne",
+    "status": "Artengruppe / Gattung (variiert je nach Art)",
+    "tags": [
+      "tierart",
+      "insekt",
+      "savanne"
+    ],
+    "summary": "Termiten (Termitoidae, Termitoidea oder Isoptera) sind eine staatenbildende, in warmen Erdregionen vorkommende Epifamilie der zu den Insekten gehörenden Schaben.",
+    "char_count": 2998,
+    "related": [
+      "savanne",
+      "afrikanischer-elefant",
+      "loewe",
+      "gepard"
+    ]
+  },
+  {
+    "slug": "symbiose",
+    "title": "Symbiose",
+    "query_title": "Symbiose",
+    "fullurl": "https://de.wikipedia.org/wiki/Symbiose",
+    "category": "konzept",
+    "habitat": "Übergreifend",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "konzept",
+      "interaktion",
+      "oekologie"
+    ],
+    "summary": "Symbiose (von altgriechisch σύν sýn, deutsch ‚zusammen‘ sowie altgriechisch βίος bíos, deutsch ‚Leben‘) bezeichnet die Vergesellschaftung von Individuen zweier unterschiedlicher Arten, die für beide Partner vorteilhaft ist.",
+    "char_count": 5746,
+    "related": [
+      "anemonenfische",
+      "seeanemonen",
+      "steinkorallen",
+      "blattschneiderameisen",
+      "oekosystem"
+    ]
+  },
+  {
+    "slug": "nahrungskette",
+    "title": "Nahrungskette",
+    "query_title": "Nahrungskette",
+    "fullurl": "https://de.wikipedia.org/wiki/Nahrungskette",
+    "category": "konzept",
+    "habitat": "Übergreifend",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "konzept",
+      "trophie",
+      "oekologie"
+    ],
+    "summary": "Eine Nahrungskette ist ein Modell für die linearen energetischen und stofflichen Beziehungen zwischen verschiedenen Arten von Lebewesen, wobei jede Art Nahrungsgrundlage einer anderen Art ist, ausgenommen die Art am Ende der Nahrungskette.",
+    "char_count": 5363,
+    "related": [
+      "raeuber-beute-beziehung",
+      "eisbaer",
+      "ringelrobbe",
+      "alpenmurmeltier",
+      "steinadler",
+      "oekosystem"
+    ]
+  },
+  {
+    "slug": "raeuber-beute-beziehung",
+    "title": "Räuber-Beute-Beziehung",
+    "query_title": "Räuber-Beute-Beziehung",
+    "fullurl": "https://de.wikipedia.org/wiki/R%C3%A4uber-Beute-Beziehung",
+    "category": "konzept",
+    "habitat": "Übergreifend",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "konzept",
+      "trophie",
+      "oekologie"
+    ],
+    "summary": "Als Räuber-Beute-Beziehung oder seltener Räuber-Beute-Verhältnis wird die dynamische Wechselwirkung zwischen einer Räuber- und einer Beutepopulation über längere Zeiträume beschrieben.",
+    "char_count": 4055,
+    "related": [
+      "nahrungskette",
+      "oekosystem",
+      "schluesselart",
+      "biodiversitaet"
+    ]
+  },
+  {
+    "slug": "tarnung-biologie",
+    "title": "Tarnung (Biologie)",
+    "query_title": "Tarnung (Biologie)",
+    "fullurl": "https://de.wikipedia.org/wiki/Tarnung_(Biologie)",
+    "category": "konzept",
+    "habitat": "Übergreifend",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "konzept",
+      "anpassung",
+      "oekologie"
+    ],
+    "summary": "Tarnung, in der Verhaltensbiologie auch als Krypsis (von altgriechisch κρύψις krýpsis, deutsch ‚das Verbergen, Sichverbergen‘) bezeichnet, ist bei Tieren der Vorgang oder Zustand, der darauf abzielt, irreführende Signale an ein anderes Lebewesen zu senden.",
+    "char_count": 2867,
+    "related": [
+      "mimikry",
+      "schneehase",
+      "polarfuchs",
+      "gepard"
+    ]
+  },
+  {
+    "slug": "mimikry",
+    "title": "Mimikry",
+    "query_title": "Mimikry",
+    "fullurl": "https://de.wikipedia.org/wiki/Mimikry",
+    "category": "konzept",
+    "habitat": "Übergreifend",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "konzept",
+      "anpassung",
+      "oekologie"
+    ],
+    "summary": "Die Mimikry bezeichnet in der Biologie eine Form der Nachahmung visueller, auditiver oder olfaktorischer Signale, die dazu führt, dass dem Nachahmer und Fälscher Vorteile durch die Täuschung des Signalempfängers entstehen.",
+    "char_count": 3684,
+    "related": [
+      "tarnung-biologie",
+      "morphofalter",
+      "baumsteigerfroesche"
+    ]
+  },
+  {
+    "slug": "invasive-art",
+    "title": "Biologische Invasion",
+    "query_title": "Invasive Art",
+    "fullurl": "https://de.wikipedia.org/wiki/Biologische_Invasion",
+    "category": "konzept",
+    "habitat": "Übergreifend",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "konzept",
+      "artenschutz",
+      "oekologie"
+    ],
+    "summary": "Als biologische Invasion bezeichnet man allgemein die durch Menschen verursachte Ausbreitung einer gebietsfremden Art in einem Gebiet, in dem sie ursprünglich nicht heimisch war.",
+    "char_count": 3516,
+    "related": [
+      "biodiversitaet",
+      "artensterben",
+      "oekosystem"
+    ]
+  },
+  {
+    "slug": "artensterben",
+    "title": "Aussterben",
+    "query_title": "Artensterben",
+    "fullurl": "https://de.wikipedia.org/wiki/Aussterben",
+    "category": "konzept",
+    "habitat": "Übergreifend",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "konzept",
+      "artenschutz",
+      "oekologie"
+    ],
+    "summary": "Aussterben (fachsprachlich auch Extinktion) bezeichnet das Ende einer evolutionären Stammlinie infolge des Tods aller Nachkommen.",
+    "char_count": 2744,
+    "related": [
+      "rote-liste-gefaehrdeter-arten",
+      "biodiversitaet",
+      "klimawandel",
+      "invasive-art"
+    ]
+  },
+  {
+    "slug": "biodiversitaet",
+    "title": "Biodiversität",
+    "query_title": "Biodiversität",
+    "fullurl": "https://de.wikipedia.org/wiki/Biodiversit%C3%A4t",
+    "category": "konzept",
+    "habitat": "Übergreifend",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "konzept",
+      "vielfalt",
+      "oekologie"
+    ],
+    "summary": "Biodiversität oder biologische Vielfalt ist ein Konzept der Biowissenschaften für die Vielfalt und Variabilität des Lebens in einem bestimmten Landschaftsraum oder in einem geographisch begrenzten Gebiet (beispielsweise Rasterzelle oder Land).",
+    "char_count": 5447,
+    "related": [
+      "oekosystem",
+      "tropischer-regenwald",
+      "korallenriff",
+      "artensterben"
+    ]
+  },
+  {
+    "slug": "klimawandel",
+    "title": "Klimawandel",
+    "query_title": "Klimawandel",
+    "fullurl": "https://de.wikipedia.org/wiki/Klimawandel",
+    "category": "konzept",
+    "habitat": "Übergreifend",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "konzept",
+      "klima",
+      "oekologie"
+    ],
+    "summary": "Klimawandel, auch Klimaveränderung, Klimaänderung oder Klimawechsel, ist eine weltweit auftretende Veränderung des Klimas auf der Erde oder erdähnlichen Planeten oder Monden, die eine Atmosphäre besitzen.",
+    "char_count": 3929,
+    "related": [
+      "arktis",
+      "eisbaer",
+      "korallenbleiche",
+      "alpen",
+      "artensterben"
+    ]
+  },
+  {
+    "slug": "korallenbleiche",
+    "title": "Korallenbleiche",
+    "query_title": "Korallenbleiche",
+    "fullurl": "https://de.wikipedia.org/wiki/Korallenbleiche",
+    "category": "konzept",
+    "habitat": "Korallenriff",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "konzept",
+      "korallenriff",
+      "klima"
+    ],
+    "summary": "Mit Korallenbleiche wird das Ausbleichen von Steinkorallen-Stöcken bezeichnet, das zum anschließenden Absterben der Korallen führen kann.",
+    "char_count": 6357,
+    "related": [
+      "korallenriff",
+      "steinkorallen",
+      "klimawandel",
+      "symbiose",
+      "biodiversitaet"
+    ]
+  },
+  {
+    "slug": "winterschlaf",
+    "title": "Winterschlaf",
+    "query_title": "Winterschlaf",
+    "fullurl": "https://de.wikipedia.org/wiki/Winterschlaf",
+    "category": "konzept",
+    "habitat": "Alpen",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "konzept",
+      "anpassung",
+      "winter"
+    ],
+    "summary": "Als Winterschlaf oder Hibernation bezeichnet man einen saisonalen mehrtägigen Torpor in manchen Säugetieren und einer Vogelart, der durch eine Herabsetzung der Stoffwechselaktivität und Körpertemperatur definiert ist.",
+    "char_count": 6233,
+    "related": [
+      "alpen",
+      "alpenmurmeltier",
+      "klimawandel"
+    ]
+  },
+  {
+    "slug": "vogelzug",
+    "title": "Vogelzug",
+    "query_title": "Vogelzug",
+    "fullurl": "https://de.wikipedia.org/wiki/Vogelzug",
+    "category": "konzept",
+    "habitat": "Übergreifend",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "konzept",
+      "migration",
+      "voegel"
+    ],
+    "summary": "Als Vogelzug bezeichnet man den alljährlichen Flug der Zugvögel von ihren Brutgebieten zu ihren Winterquartieren und wieder zurück.",
+    "char_count": 4583,
+    "related": [
+      "schneeeule",
+      "klimawandel",
+      "oekosystem"
+    ]
+  },
+  {
+    "slug": "schluesselart",
+    "title": "Schlüsselart",
+    "query_title": "Schlüsselart",
+    "fullurl": "https://de.wikipedia.org/wiki/Schl%C3%BCsselart",
+    "category": "konzept",
+    "habitat": "Übergreifend",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "konzept",
+      "oekosystem",
+      "trophie"
+    ],
+    "summary": "Als Schlüsselart oder Schlüsselspezies (in Anlehnung an die engl.",
+    "char_count": 5882,
+    "related": [
+      "steinkorallen",
+      "afrikanischer-elefant",
+      "papageifische",
+      "raeuber-beute-beziehung",
+      "biodiversitaet",
+      "oekosystem"
+    ]
+  },
+  {
+    "slug": "oekosystem",
+    "title": "Ökosystem",
+    "query_title": "Ökosystem",
+    "fullurl": "https://de.wikipedia.org/wiki/%C3%96kosystem",
+    "category": "konzept",
+    "habitat": "Übergreifend",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "konzept",
+      "grundlage",
+      "oekologie"
+    ],
+    "summary": "Ökosystem (altgriechisch οἶκος oikós, deutsch ‚Haus‘ und σύστημα sýstema, deutsch ‚das Zusammengestellte, das Verbundene‘) ist ein Fachbegriff der ökologischen Wissenschaften.",
+    "char_count": 4891,
+    "related": [
+      "raeuber-beute-beziehung",
+      "biodiversitaet",
+      "schluesselart",
+      "symbiose",
+      "tropischer-regenwald"
+    ]
+  },
+  {
+    "slug": "rote-liste-gefaehrdeter-arten",
+    "title": "Rote Liste gefährdeter Arten",
+    "query_title": "Rote Liste gefährdeter Arten",
+    "fullurl": "https://de.wikipedia.org/wiki/Rote_Liste_gef%C3%A4hrdeter_Arten",
+    "category": "konzept",
+    "habitat": "Übergreifend",
+    "status": "Konzept / Lebensraum",
+    "tags": [
+      "konzept",
+      "artenschutz",
+      "iucn"
+    ],
+    "summary": "Die Rote Liste gefährdeter Arten, auch nur Rote Liste oder im Original Red Data Book genannt, ist die von der IUCN (International Union for Conservation of Nature and Natural Resources) veröffentlichte Liste weltweit vom",
+    "char_count": 3225,
+    "related": [
+      "artensterben",
+      "eisbaer",
+      "orang-utans",
+      "gepard"
+    ]
+  }
+]

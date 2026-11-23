@@ -1,0 +1,2219 @@
+{
+  "meta": {
+    "title": "Prompt-Werkstatt · virtual7 CCF Clustertag",
+    "subtitle": "Vom ungefilterten Chat zum strukturierten KI-System",
+    "presenter": "Nico Rimmele",
+    "cluster": "Customer Cluster Finance (CCF)",
+    "timeSlot": "11:00–12:00 Uhr",
+    "articleCount": 68,
+    "complianceNote": "100 % öffentliche Wikipedia-Artikel (Tierwelt & Ökosysteme) – keine internen oder personenbezogenen Daten."
+  },
+  "phases": [
+    {
+      "id": "demo",
+      "number": 1,
+      "timeRange": "11:00–11:10",
+      "durationMin": 10,
+      "title": "Live-Vorführung am Beamer",
+      "subtitle": "Stufe 1 vs. 2 vs. 3 & Live-Gimmick",
+      "beamerHeadline": "Live-Demo: Warum Kontext & Leitplanken alles verändern",
+      "trackACue": "Zurücklehnen & beobachten: Wo rät ein ungefilterter Chat? Wo greifen Guardrails?",
+      "trackBCue": "Achte darauf, wie derselbe Agent nur durch AGENTS.md, Skills und _index.md anders navigiert.",
+      "activeQuestionId": "q3",
+      "keyTakeaway": "Gleiches Modell, gleiche Dateien – völlig anderes Ergebnis durch Kontext-Design."
+    },
+    {
+      "id": "setup",
+      "number": 2,
+      "timeRange": "11:10–11:15",
+      "durationMin": 5,
+      "title": "Setup & Track-Wahl",
+      "subtitle": "Team finden, UI starten, Track A/B wählen",
+      "beamerHeadline": "Jetzt startet ihr: Wählt Track A (Browser) oder Track B (CLI/Agent)",
+      "trackACue": "Öffne diese Seite + deinen Browser-Chat (ChatGPT, Claude, Gemini). Nutze die 1-Klick-Kopierpakete.",
+      "trackBCue": "Öffne das Repo lokal (claude / codex / gemini / opencode) und starte in stufe-1-chaos/.",
+      "activeQuestionId": "q1",
+      "keyTakeaway": "Beide Tracks testen dieselben Paradigmen – wähle einfach dein bevorzugtes Werkzeug."
+    },
+    {
+      "id": "methoden-stufe1",
+      "number": 3,
+      "timeRange": "11:15–11:25",
+      "durationMin": 10,
+      "title": "Prompt-Methoden & Stufe 1 (Chaos)",
+      "subtitle": "4 Schreibweisen vergleichen + Fragen 1–3 im Chaos-Ordner",
+      "beamerHeadline": "Runde 1: Ungefilterter Chat & 4 Prompt-Methoden im Vergleich",
+      "trackACue": "Teste erst die 4 Methoden im Tab 'Prompt-Methoden', dann Fragen 1–3 mit dem schwachen Stufe-1-Prompt.",
+      "trackBCue": "Arbeite in stufe-1-chaos/: Stelle Fragen 1–3. Beobachte fehlende Quellen und Halluzinationen.",
+      "activeQuestionId": "q1",
+      "keyTakeaway": "Ein vager Roh-Prompt überlässt dem Modell das Raten – Struktur steuert sofort Ton, Format & Fokus."
+    },
+    {
+      "id": "stufe2",
+      "number": 4,
+      "timeRange": "11:25–11:37",
+      "durationMin": 12,
+      "title": "Stufe 2: System-Prompt, Skills & Guardrails",
+      "subtitle": "Priming, Quellenpflicht & Negativtest (Frage 3)",
+      "beamerHeadline": "Runde 2: Der Harness – Guardrails & Skills verändern die Antwort",
+      "trackACue": "Nutze im Browser das Stufe-2-Priming (AGENTS.md + quellen-recherche) und stelle erneut Fragen 1–3!",
+      "trackBCue": "Wechsle in stufe-2-skills-guardrails/: Beobachte, wie AGENTS.md + fakten-pruefer Frage 3 sauber ablehnen.",
+      "activeQuestionId": "q3",
+      "keyTakeaway": "Guardrails verhindern Erfindungen; Skills geben wiederholbare Arbeitsweisen vor."
+    },
+    {
+      "id": "stufe3",
+      "number": 5,
+      "timeRange": "11:37–11:48",
+      "durationMin": 11,
+      "title": "Stufe 3: Obsidian-Vault (Markdown-RAG)",
+      "subtitle": "_index.md, YAML-Frontmatter & [[Wikilinks]]",
+      "beamerHeadline": "Runde 3: Strukturiertes Wissen – Markdown-RAG über Index & Graph",
+      "trackACue": "Nutze _index.md + den Mini-Vault-Explorer hier in der App und teste die Querverbindungs-Frage 2.",
+      "trackBCue": "Wechsle in stufe-3-obsidian-vault/: Der Agent liest erst _index.md und springt gezielt über [[Wikilinks]].",
+      "activeQuestionId": "q2",
+      "keyTakeaway": "Kuratierte Struktur (Index + Links + Metadaten) schlägt pures Datei-Chaos bei vernetzten Fragen."
+    },
+    {
+      "id": "missionen",
+      "number": 6,
+      "timeRange": "11:48–11:55",
+      "durationMin": 7,
+      "title": "Wahl-Missionen & Live-Beamer-Gimmick",
+      "subtitle": "Fakten-Audit, Daten/Graph, Briefing oder MCP live testen",
+      "beamerHeadline": "Endspurt: Löst eine Wahl-Mission & schickt euer Highlight auf den Beamer!",
+      "trackACue": "Wähle eine der 4 Wahl-Missionen und klicke auf 'An Beamer senden', um euren Fund zu teilen.",
+      "trackBCue": "Teste Frage 4 (Zahl ändern / eigenen Skill) oder schicke per MCP-Tool send_to_beamer live an die Leinwand!",
+      "activeQuestionId": "q4",
+      "keyTakeaway": "Mit MCP und eigenen Skills wird aus einem Chat ein vernetztes Arbeitswerkzeug."
+    },
+    {
+      "id": "debrief",
+      "number": 7,
+      "timeRange": "11:55–12:00",
+      "durationMin": 5,
+      "title": "Debrief & Live-Leinwand",
+      "subtitle": "Ergebnisse prüfen & je 1 Learning teilen",
+      "beamerHeadline": "Debrief: Live-Ergebnisse vom Beamer-Feed & eure wichtigsten Aha-Momente",
+      "trackACue": "Schaut gemeinsam auf die Beamer-Auswertung eurer Fragen – welches Muster hat euch am meisten überrascht?",
+      "trackBCue": "Teilt 1 zentrales Take-away eurer Gruppe – danach geht es ab 13:00 weiter ins Nachmittagsprogramm!",
+      "activeQuestionId": "q2",
+      "keyTakeaway": "Kontext schlägt Magie. Leitplanken + sauberes Wissen machen KI im Alltag verlässlich."
+    }
+  ],
+  "promptComparisonTask": "Welche Auswirkungen hat der Klimawandel laut unseren Dokumenten auf Eisbären in der Arktis und auf Steinkorallen im Korallenriff?",
+  "promptMethods": [
+    {
+      "id": "zero-shot",
+      "name": "1 · Zero-Shot (Roh-Prompt)",
+      "badge": "Baseline",
+      "bestFor": "Schnelles Brainstorming ohne Qualitätsanspruch",
+      "strength": "Minimaler Aufwand (1 Satz)",
+      "risk": "Vermischt Dateien mit allgemeinem Internet-Wissen, nennt keine Quellen und wählt zufälliges Format.",
+      "components": [
+        "Nur Aufgabe"
+      ],
+      "prompt": "Erkläre, wie der Klimawandel Eisbären und Korallenriffe beeinflusst."
+    },
+    {
+      "id": "costar",
+      "name": "2 · CO-STAR",
+      "badge": "Kommunikation & Business",
+      "bestFor": "Briefings, Fachbereichs-Texte, Sales, PM & Team-Updates",
+      "strength": "Trennt Kontext, Ziel, Stil, Ton, Zielgruppe und Antwortformat glasklar.",
+      "risk": "Ohne explizite Quellenpflicht kann die KI Lücken höflich überspielen.",
+      "components": [
+        "Context",
+        "Objective",
+        "Style",
+        "Tone",
+        "Audience",
+        "Response"
+      ],
+      "prompt": "Context: Wir bereiten ein internes Cluster-Briefing auf Basis lokaler Wikipedia-Artikel (arktis.md, eisbaer.md, korallenbleiche.md, steinkorallen.md, klimawandel.md) vor.\nObjective: Erkläre die konkreten Folgen des Klimawandels für Eisbären in der Arktis und Steinkorallen im Korallenriff.\nStyle: Klar strukturiertes Management-Memo mit belegbaren Fakten.\nTone: Sachlich, präzise, ohne Alarmismus.\nAudience: Gemischtes Team aus Fachbereich, Datenanalyse und Projektleitung.\nResponse: Zwei kurze Abschnitte („Arktis & Eisbär“ / „Korallenriff & Steinkorallen“) mit je maximal 3 Bulletpoints plus expliziter Quellenangabe in Klammern. Erfinde keine Zahlen."
+    },
+    {
+      "id": "few-shot",
+      "name": "3 · Few-Shot (Beispiele)",
+      "badge": "Daten, BI & Struktur",
+      "bestFor": "Tabellen, JSON/CSV-Extraktion, Datenbank-Mapping & einheitliche Muster",
+      "strength": "Zwei konkrete Beispiele erzwingen exakt das gewünschte Ausgabe-Schema ohne langes Erklären.",
+      "risk": "Beispiele verbrauchen Tokens – bei fehlerhaften Beispielen kopiert die KI den Fehler.",
+      "components": [
+        "Instruktion",
+        "2 Input-Output-Beispiele",
+        "Zielaufgabe"
+      ],
+      "prompt": "Extrahiere aus den vorliegenden Dokumenten die Klimawandel-Auswirkungen exakt im Format der beiden Beispiele. Nutze nur Fakten aus den Dateien.\n\nBeispiel 1:\nLebensraum: Alpen | Betroffene Art: Alpenmurmeltier | Konkreter Befund: Auf höhere Gebirgslagen begrenzte Eiszeitrelikte | Quelle: alpenmurmeltier.md\n\nBeispiel 2:\nLebensraum: Arktis | Betroffene Art: Ringelrobbe | Konkreter Befund: Geburtshöhlen auf festem Eis; Junge werden Ende Juni/Anfang Juli beim Eisaufbruch selbstständig | Quelle: ringelrobbe.md\n\nAufgabe: Erstelle genau solche Zeilen für „Eisbär (Arktis)“ und „Steinkorallen (Korallenriff)“ inkl. konkreter Temperatur-, Jahres- oder Zeitraumangaben aus den Dateien."
+    },
+    {
+      "id": "risen-cot",
+      "name": "4 · RISEN + Chain-of-Thought",
+      "badge": "Analyse & Prüfung",
+      "bestFor": "Komplexe Analysen, Fakten-Audits, Architektur & nachprüfbare Herleitungen",
+      "strength": "Kombiniert feste Arbeits-Schritte (Steps), schrittweises Denken (CoT) und harte Grenzen (Narrowing).",
+      "risk": "Etwas längerer Prompt – lohnt sich immer dann, wenn Fehler teuer sind.",
+      "components": [
+        "Role",
+        "Instructions",
+        "Steps + CoT",
+        "End Goal",
+        "Narrowing"
+      ],
+      "prompt": "Role: Du bist ein streng quellenbasierter Recherche-Analyst.\nInstructions: Vergleiche die Klimawandel-Risiken für Eisbären in der Arktis und Steinkorallen im Korallenriff ausschließlich anhand der bereitgestellten Markdown-Dokumente.\nSteps:\n1. Denke Schritt für Schritt: Suche zuerst relevante Textstellen in arktis.md, eisbaer.md, steinkorallen.md und korallenbleiche.md.\n2. Prüfe jeden Zahlenwert (Jahreszahl, Temperatur, Zeitraum, Prozentwert) direkt am Text.\n3. Formuliere eine kompakte Vergleichstabelle.\nEnd Goal: Eine fehlerfreie, vollständig belegte Entscheidungsgrundlage.\nNarrowing: Kein allgemeines Vorwissen verwenden. Was nicht im Text steht, mit „[Nicht in Quelle]“ markieren. Jede Aussage mit Dateinamen belegen."
+    }
+  ],
+  "architectureLayers": [
+    {
+      "layer": "1 · User-Prompt",
+      "analogy": "Die konkrete Tagesaufgabe im Posteingang",
+      "persistence": "Gilt nur für genau diese eine Nachricht",
+      "authority": "Niedrig – vergisst Regeln bei langen Chats schnell",
+      "example": "„Fasse mir die Folgen für Steinkorallen aus diesen Dateien zusammen.“"
+    },
+    {
+      "layer": "2 · Priming (im Chat)",
+      "analogy": "Kurzes Briefing zu Gesprächsbeginn",
+      "persistence": "Gilt für den laufenden Chatverlauf",
+      "authority": "Mittel – richtet Ton, Glossar und Zielbild sauber aus",
+      "example": "Erste Chat-Nachricht mit Rolle, Kontext & Qualitätskriterien, bevor die eigentliche Frage folgt."
+    },
+    {
+      "layer": "3 · System-Prompt / AGENTS.md",
+      "analogy": "Die Stellenbeschreibung & Hausordnung",
+      "persistence": "Dauerhaft über alle Aufgaben im Projekt aktiv",
+      "authority": "Hoch – übersteuert lockere User-Prompts bei Konflikten",
+      "example": "Verbindliche Guardrails: Nur lokale Dateien nutzen, Dateinamen zitieren, Lücken offen melden."
+    },
+    {
+      "layer": "4 · Harness (Skills + Guardrails)",
+      "analogy": "Das Sicherheitsgeschirr & Standard-Playbook",
+      "persistence": "Wiederverwendbare Abläufe pro Aufgabentyp",
+      "authority": "Sehr hoch – erzwingt Recherche-Schritte & Gegenprüfung",
+      "example": "Skill `quellen-recherche` + Skill `fakten-pruefer` prüfen Antworten vor der Ausgabe."
+    },
+    {
+      "layer": "5 · Tools & MCP",
+      "analogy": "Werkzeuge, Datenbanken & Live-Schnittstellen",
+      "persistence": "Standardisiertes Protokoll (Model Context Protocol)",
+      "authority": "Direkte Aktion statt reinem Text-Raten",
+      "example": "`search_wildlife_vault`, `verify_claim_against_corpus`, `send_to_beamer`."
+    }
+  ],
+  "trackAPrimingTemplate": "SYSTEM-PRIMING FÜR DIESEN CHAT (bitte ab sofort für alle Antworten einhalten):\nDu bist ein präziser Recherche-Assistent für unsere hochgeladenen/eingefügten Markdown-Dokumente.\nVerbindliche Regeln:\n1. Nutze AUSSCHLIESSLICH die von mir bereitgestellten Texte – kein allgemeines Weltwissen zum Lückenfüllen.\n2. Nenne nach jeder faktischen Aussage den exakten Dateinamen in Klammern, z. B. (eisbaer.md).\n3. Wenn eine Information nicht in den Dokumenten steht, antworte exakt: „Diese Information ist in den vorliegenden Dokumenten nicht enthalten.“\n4. Antworte sachlich, kurz und strukturiert (max. 5 Bulletpoints oder kompakte Tabelle).\nBestätige kurz mit „Verstanden – bereit für deine Fragen“, bevor ich die Dokumente schicke.",
+  "testQuestions": [
+    {
+      "id": "q1",
+      "number": 1,
+      "type": "Detailfrage (1 Datei)",
+      "question": "Warum gefriert das Fell des Eisbären nicht, welche Hautfarbe hat ein ausgewachsener Eisbär darunter, und wie viele Zähne besitzt er?",
+      "targetDocs": [
+        "eisbaer.md"
+      ],
+      "whatToWatch": "Nennt die KI exakt den Squalen-freien Eisbärentalg, die schwarze Haut (bei Babys rosa), hohle transparente Haare und 42 Zähne – inkl. Quelle?",
+      "solutionSummary": "Laut `eisbaer.md`: Eine Schicht aus Eisbärentalg (ohne Squalen, hydrophob) lässt Wasser abperlen/verdunsten, bevor Eisnukleation entsteht. Darunter liegt schwarze Haut (bei Babys rosa) und eine 5–10 cm Fettschicht; der Eisbär besitzt 42 Zähne."
+    },
+    {
+      "id": "q2",
+      "number": 2,
+      "type": "Querverbindungs-Frage (4+ Dateien)",
+      "question": "Vergleiche die Symbiose zwischen Anemonenfischen und Seeanemonen mit der Symbiose zwischen Steinkorallen und Zooxanthellen: Wie schützen sich Anemonenfische vor Nesselzellen, welcher Symbiose-Typ liegt jeweils räumlich vor, und was passiert bei starker Erwärmung im Korallenriff?",
+      "targetDocs": [
+        "anemonenfische.md",
+        "seeanemonen.md",
+        "symbiose.md",
+        "steinkorallen.md",
+        "korallenbleiche.md"
+      ],
+      "whatToWatch": "Findet die KI alle verknüpften Dateien? Besonders in Stufe 3 helfen `_index.md` + `[[Wikilinks]]`, Ektosymbiose vs. Endosymbiose sauber zu trennen.",
+      "solutionSummary": "`anemonenfische.md`: Schleimhaut mit geringem Anteil an Sialinsäuren schützt vor Nesselzellen. `symbiose.md`: Clownfisch & Seeanemone = Ektosymbiose (körperlich getrennt), Zooxanthellen in Steinkorallen = Endosymbiose (in Zellen). `steinkorallen.md` + `korallenbleiche.md`: Ideal 20–29 °C; bei Wärmestress (z. B. 29 °C) Photoinhibition/oxidativer Stress -> Abstoßung der Zooxanthellen (Korallenbleiche); ohne Rückkehr binnen ca. acht Wochen sterben Korallen ab."
+    },
+    {
+      "id": "q3",
+      "number": 3,
+      "type": "Fangfrage / Negativtest (NICHT im Korpus!)",
+      "question": "Wie hoch ist der aktuelle Bestand an Schneeleoparden im Schweizerischen Nationalpark und welche jährlichen Tourismus-Eintrittspreise in Euro werden dort zum Artenschutz erhoben?",
+      "targetDocs": [],
+      "whatToWatch": "DER Härtetest: Rät/spekuliert die KI in Stufe 1? Oder antwortet sie in Stufe 2 & 3 sauber: „Diese Information ist in den vorliegenden Dokumenten nicht enthalten.“?",
+      "solutionSummary": "Weder „Schneeleopard“, noch „Schweizerischer Nationalpark“, noch „Eintrittspreis“ kommen in einer einzigen der 68 Dateien vor (0 Treffer). Korrekte Antwort in Stufe 2 & 3: klare Ablehnung ohne Spekulation."
+    },
+    {
+      "id": "q4",
+      "number": 4,
+      "type": "Steuerungs- & Manipulations-Aufgabe",
+      "question": "Ändere in einer lokalen Kopie (z. B. `stufe-2-skills-guardrails/docs/eisbaer.md`) kurz „42 Zähne“ auf „38 Zähne“ ODER ergänze in `AGENTS.md` eine neue Formatpflicht (z. B. 3-spaltige Risiko-Tabelle) und prüfe, ob die KI strikt deinen Daten/Regeln statt ihrem Vorwissen folgt.",
+      "targetDocs": [
+        "eisbaer.md",
+        "AGENTS.md"
+      ],
+      "whatToWatch": "Beweist den Unterschied zwischen Modell-Gedächtnis und lokalem Kontext/Harness. (Danach Zahl im Repo bitte wieder auf `42` zurückstellen!)",
+      "solutionSummary": "Mit aktivem Guardrail übernimmt die KI „38 Zähne (docs/eisbaer.md)“ ohne stillschweigend aus dem Training zu korrigieren – so wird Kontext-Priorisierung überprüfbar."
+    }
+  ],
+  "stages": [
+    {
+      "id": "stufe-1",
+      "folder": "stufe-1-chaos",
+      "title": "Stufe 1 · Chaos (Ungefilterter Chat)",
+      "badge": "Baseline",
+      "summary": "Minimale Anweisung ohne Quellenpflicht, ohne Guardrails und ohne Struktur im Ordner docs/.",
+      "agentsMd": "# Projekt-Anweisung\n\nHilf dem Nutzer bei Fragen zu den Dateien in diesem Ordner.",
+      "skills": [],
+      "trackBPrompt": "Ich bin im Ordner stufe-1-chaos/. Beantworte folgende Frage anhand der Dateien in docs/:\n\n[Frage 1, 2 oder 3 hier einfügen]"
+    },
+    {
+      "id": "stufe-2",
+      "folder": "stufe-2-skills-guardrails",
+      "title": "Stufe 2 · Skills & Guardrails (Harness)",
+      "badge": "Kontrolle",
+      "summary": "Klare Leitplanken in AGENTS.md + zwei wiederverwendbare Skills (quellen-recherche & fakten-pruefer).",
+      "agentsMd": "# Projekt-Anweisung: Wissens-Assistent (Tierwelt & Ökosysteme)\n\n## Rolle\nDu bist ein präziser Recherche-Assistent für die Markdown-Dokumente im Ordner `docs/`.\n\n## Verbindliche Guardrails\n1. **Nur lokale Quellen:** Nutze ausschließlich die Dateien in `docs/` als Wissensbasis. Nutze kein allgemeines Vorwissen, um Lücken zu füllen.\n2. **Quellenpflicht:** Nenne nach jeder faktischen Aussage den exakten Dateinamen in Klammern, z. B. `(docs/eisbaer.md)`.\n3. **Keine Halluzinationen:** Wenn eine Information nicht in `docs/` steht, antworte klar: „Diese Information ist in den vorliegenden Dokumenten nicht enthalten.“\n4. **Format:** Antworte sachlich, kurz und strukturiert (max. 5 Bulletpoints oder kompakte Tabelle).\n\n## Skills\nNutze bei Bedarf die Skills unter `.agents/skills/`:\n- `quellen-recherche`: Für gezielte Suche über mehrere Dateien.\n- `fakten-pruefer`: Zum Prüfen einer Antwort gegen die Originaldateien.",
+      "skills": [
+        {
+          "name": "quellen-recherche",
+          "content": "---\nname: quellen-recherche\ndescription: Durchsucht die Markdown-Dateien in docs/ systematisch nach Fakten, verknüpft mehrere Dateien und gibt zu jeder Aussage die exakte Quelldatei an.\n---\n\n# Skill: Quellen-Recherche\n\n## Vorgehen\n1. Durchsuche zuerst Dateinamen und Überschriften in `docs/` nach relevanten Stichworten.\n2. Lies alle gefundenen Kandidaten-Dateien gezielt aus.\n3. Trenne klar zwischen belegten Fakten aus `docs/` und fehlenden Informationen.\n4. Gib am Ende jeder Aussage den exakten Dateinamen an.\n5. Erfinde keine Übergänge, Zahlen oder Fakten, die nicht im Text stehen."
+        },
+        {
+          "name": "fakten-pruefer",
+          "content": "---\nname: fakten-pruefer\ndescription: Prüft eine bestehende Antwort kritisch gegen die Markdown-Dateien in docs/, deckt unbelegte Behauptungen auf und markiert Lücken.\n---\n\n# Skill: Fakten-Prüfer\n\n## Vorgehen\n1. Zerlege die zu prüfende Antwort in einzelne faktische Aussagen.\n2. Suche zu jeder Aussage den exakten Beleg in `docs/`.\n3. Markiere jede Aussage mit:\n   - **Belegt** (+ Dateiname)\n   - **Widersprüchlich** (+ betroffene Dateinamen)\n   - **Nicht belegt** (nicht in den Quelldateien gefunden)"
+        }
+      ],
+      "trackBPrompt": "Ich bin im Ordner stufe-2-skills-guardrails/. Nutze den Skill quellen-recherche und alle Guardrails aus AGENTS.md für folgende Frage:\n\n[Frage 1, 2 oder 3 hier einfügen]"
+    },
+    {
+      "id": "stufe-3",
+      "folder": "stufe-3-obsidian-vault",
+      "title": "Stufe 3 · Obsidian-Vault (Markdown-RAG)",
+      "badge": "Wissens-Graph",
+      "summary": "3-Zonen-Architektur (raw/, wiki/, _index.md) mit YAML-Frontmatter, [[Wikilinks]] und Synthese-Skills.",
+      "agentsMd": "# Projekt-Anweisung: Obsidian-Vault (Markdown-RAG)\n\n## Architektur (3 Zonen)\n- `raw/`: Unveränderte Quelldateien (nur lesend, nie ändern).\n- `wiki/`: Kuratierte, verlinkte Wissensartikel mit YAML-Frontmatter, Tags und `[[Wikilinks]]`.\n- `_index.md`: Zentrale Map of Content (MOC) als Einstiegspunkt.\n\n## Verbindlicher Such-Workflow\n1. **Immer zuerst `_index.md` lesen**, um die relevanten Themenbereiche und Dateien zu identifizieren (nicht blind alle Dateien durchsuchen).\n2. Folge gezielt den `[[Wikilinks]]` und YAML-Frontmatter-Feldern (`habitat`, `category`, `tags`) in `wiki/`.\n3. Ziehe `raw/` nur heran, wenn Detailinformationen in `wiki/` fehlen oder geprüft werden müssen.\n\n## Verbindliche Guardrails\n- Antworte ausschließlich auf Basis von `wiki/` und `raw/`.\n- Zitiere immer die exakten Artikel-Links (`[[Artikelname]]`) bzw. Dateipfade.\n- Wenn eine Information fehlt, sage es offen – erfinde nichts.\n- Markiere mögliche Widersprüche zwischen Dateien explizit.",
+      "indexMd": "# _index — Wissens-Vault: Tierwelt & Ökosysteme (Map of Content)\n\nZentrale Einstiegskarte für den Obsidian-Vault (`stufe-3-obsidian-vault`).\nNavigiere über die Kategorien, folge `[[Wikilinks]]` in `wiki/` und nutze `raw/` nur für Detailabgleiche.\n\n- **Gesamtbestand:** 68 Artikel (5 Lebensräume, 48 Tierarten, 15 ökologische Konzepte)\n- **Such-Regel:** Immer zuerst hier starten, passende `[[Wikilinks]]` auswählen und Frontmatter (`category`, `habitat`, `status`, `tags`) nutzen.\n\n## 1. Lebensräume (`wiki/lebensraeume/`)\n\n- [[arktis|Arktis]] — Die Arktis, auch Nordpolargebiet und Nordpolgebiet, bezeichnet die Region um den Nordpol und damit eines der beiden Polargebiete.\n- [[tropischer-regenwald|Tropischer Regenwald]] — Tropischer Regenwald ist der Oberbegriff für die immerfeuchten Wälder der tropischen Klimazone.\n- [[korallenriff|Korallenriff]] — Ein Korallenriff (auch „Regenwald der Meere“ wegen der sehr großen Artenvielfalt) ist eine von hermatypischen (riffbildenden) Nesseltieren gebildete Riffstruktur im Meer, die groß genug wird, um einen bedeutenden physika\n- [[alpen|Alpen]] — Die Alpen sind das höchste Hochgebirge in Europa.\n- [[savanne|Savanne]] — Als Savanne (über spanisch sabana aus einer karibischen Sprache entlehnt) wird im Allgemeinen ein tropischer oder subtropischer Vegetationstyp bezeichnet, der aus einer geschlossenen Krautschicht und einer eher offenen G\n\n## 2. Tierarten nach Lebensraum (`wiki/tierarten/`)\n\n### Lebensraum: [[arktis|Arktis]]\n\n- [[eisbaer|Eisbär]] *(Gefährdet (VU))* — Der Eisbär (Ursus maritimus), auch Polarbär genannt, ist eine Raubtierart aus der Familie der Bären (Ursidae).\n- [[polarfuchs|Polarfuchs]] *(Nicht gefährdet (LC))* — Der Polarfuchs, Weißfuchs, Schneefuchs oder Eisfuchs (Vulpes lagopus, Synonym Alopex lagopus) ist eine Fuchsart, die in der nördlichen Polarregion beheimatet ist.\n- [[ringelrobbe|Ringelrobbe]] *(Nicht gefährdet (LC))* — Die Ringelrobbe (Pusa hispida, Syn.: Phoca hispida) ist die am häufigsten in der Arktis vorkommende Robbenart.\n- [[walross|Walross]] *(Gefährdet (VU))* — Das Walross (Odobenus rosmarus; frühere Synonyme: Trichechus rosmarus und Rosmarus arcticus) ist eine Robbenart, die in den kalten Meeren der Nordhalbkugel vorkommt.\n- [[narwal|Narwal]] *(Nicht gefährdet (LC))* — Der Narwal (Monodon monoceros) ist eine Art der Zahnwale (Odontoceti).\n- [[schneeeule|Schneeeule]] *(Gefährdet (VU))* — Die Schneeeule (Bubo scandiacus, Syn.: Bubo scandiaca, Nyctea scandiaca, auch Schnee-Eule) ist eine Vogel-Art aus der Familie der Eigentlichen Eulen (Strigidae), die zu den charakteristischen Vögeln der arktischen Tundra zählt.\n- [[ren|Ren]] *(Gefährdet (VU))* — Das Ren [reːn], [rɛn] oder Rentier [ˈreːnˌtiːɐ], [ˈrɛnˌtiːɐ] (Rangifer tarandus) ist eine Säugetierart aus der Familie der Hirsche (Cervidae).\n- [[moschusochse|Moschusochse]] *(Nicht gefährdet (LC))* — Der Moschusochse (Ovibos moschatus), auch als Bisamochse oder Schafsochse bezeichnet, ist ein Paarhufer aus der Unterfamilie der Antilopinae; innerhalb derer gehört er in die Verwandtschaftsgruppe der Ziegenartigen (Caprini).\n- [[weisswal|Weißwal]] *(Nicht gefährdet (LC))* — Der Weißwal (Delphinapterus leucas) oder die Beluga (russisch белуха belucha, von белый bely „weiß“) ist eine Art der Gründelwale, die in arktischen und subarktischen Gewässern lebt.\n- [[lemminge|Echte Lemminge]] *(Artengruppe / Gattung (variiert je nach Art))* — Die Echten Lemminge (Lemmus) sind eine Gattung aus der Tribus der Lemmini.\n\n### Lebensraum: [[tropischer-regenwald|Tropischer Regenwald]]\n\n- [[jaguar|Jaguar]] *(Potenziell gefährdet (NT))* — Der Jaguar (Panthera onca) ist eine Art aus der Familie der Katzen, die in der Neuen Welt verbreitet ist.\n- [[faultiere|Faultiere]] *(Artengruppe / Gattung (variiert je nach Art))* — Die Faultiere (Folivora, auch Tardigrada oder Phyllophaga) bilden eine Unterordnung der zahnarmen Säugetiere (Pilosa) und sind mit den Ameisenbären und den Gürteltieren verwandt (Nebengelenktiere).\n- [[baumsteigerfroesche|Baumsteigerfrösche]] *(Artengruppe / Gattung (variiert je nach Art))* — Die Baumsteigerfrösche (Dendrobatidae), auch Pfeilgiftfrösche oder Farbfrösche genannt, sind eine Familie der Froschlurche (Anura).\n- [[harpyie|Harpyie (Vogel)]] *(Gefährdet (VU))* — Die Harpyie (Harpia harpyja) (Aussprache [haʁˈpʰyːjə]) ist eine sehr große, kräftig gebaute Greifvogelart.\n- [[blattschneiderameisen|Blattschneiderameise]] *(Artengruppe / Gattung (variiert je nach Art))* — Als Blattschneiderameisen bezeichnet man verschiedene Ameisenarten, die mit ihren Mundwerkzeugen Pflanzenblätter in kleine Stückchen zerteilen, die sie in ihren Bau transportieren.\n- [[riesentukan|Riesentukan]] *(Nicht gefährdet (LC))* — Der Riesentukan (Ramphastos toco) ist eine Vogelart aus der Familie der Tukane (Ramphastidae) und der Ordnung der Spechtvögel (Piciformes).\n- [[grosse-anakonda|Große Anakonda]] *(Nicht gefährdet (LC))* — Die Große Anakonda (Eunectes murinus) ist eine Schlangenart aus der Familie der Boas (Boidae) und wird dort in die Unterfamilie der Boaschlangen (Boinae) gestellt.\n- [[orang-utans|Orang-Utans]] *(Artengruppe / Gattung (variiert je nach Art))* — Die Orang-Utans (Pongo) sind eine Primatengattung aus der Familie der Menschenaffen (Hominidae).\n- [[kapuzineraffen|Kapuzineraffen]] *(Artengruppe / Gattung (variiert je nach Art))* — Die Kapuzineraffen (Cebinae) sind eine Primatengruppe aus der Gruppe der Neuweltaffen.\n- [[morphofalter|Blauer Morphofalter]] *(Artengruppe / Gattung (variiert je nach Art))* — Der Blaue Morphofalter (Morpho peleides) oder Himmelsfalter ist ein Schmetterling aus der Familie der Edelfalter (Nymphalidae).\n\n### Lebensraum: [[korallenriff|Korallenriff]]\n\n- [[anemonenfische|Anemonenfische]] *(Artengruppe / Gattung (variiert je nach Art))* — Die Anemonenfische (Amphiprion) – nach den beiden bekanntesten Arten häufig auch Clownfische genannt – sind eine in den Korallenriffen des tropischen Indopazifik vorkommende Gattung der Riffbarsche (Pomacentridae), die in enger Symbiose mit Seeanemonen lebt.\n- [[seeanemonen|Seeanemonen]] *(Artengruppe / Gattung (variiert je nach Art))* — Seeanemonen (Actiniaria), auch Seerosen, Seenelken oder Aktinien genannt, sind eine arten- und gattungsreiche Ordnung der Hexacorallia innerhalb der Blumentiere (Anthozoa).\n- [[gruene-meeresschildkroete|Grüne Meeresschildkröte]] *(Stark gefährdet (EN))* — Die Grüne Meeresschildkröte (Chelonia mydas) ist ein Vertreter der Familie der Meeresschildkröten.\n- [[schwarzspitzen-riffhai|Schwarzspitzen-Riffhai]] *(Gefährdet (VU))* — Der Schwarzspitzen-Riffhai (Carcharhinus melanopterus) ist ein Hai aus der Familie der Requiem- oder Grauhaie.\n- [[riesenmanta|Riesenmanta]] *(Stark gefährdet (EN))* — Der Riesenmanta (Mobula birostris, Syn.: Manta birostris) ist eine Rochenart aus der Familie der Teufelsrochen.\n- [[kraken|Kraken]] *(Artengruppe / Gattung (variiert je nach Art))* — Die Kraken (Ordnung Octopoda) sind eine Teilgruppe der Achtarmigen Tintenfische (Vampyropoda) innerhalb der Tintenfische (Coleoidea).\n- [[steinkorallen|Steinkorallen]] *(Artengruppe / Gattung (variiert je nach Art))* — Steinkorallen (Scleractinia, früher Madreporaria) sind Tiere, die den Hauptanteil an der Entstehung der Korallenriffe haben, der artenreichsten marinen Lebensräume auf der Erde.\n- [[papageifische|Papageifische]] *(Artengruppe / Gattung (variiert je nach Art))* — Die Papageifische oder Seepapageien (Scarinae) sind eine Unterfamilie der Lippfische (Labridae) und gehören zu den Barschverwandten (Percomorpha).\n- [[seepferdchen|Seepferdchen]] *(Artengruppe / Gattung (variiert je nach Art))* — Seepferdchen (Hippocampus) sind Knochenfische, deren Gestalt und Lebensweise deutlich von der typischer Fische abweicht.\n- [[dornenkronenseestern|Dornenkronenseestern]] *(Artengruppe / Gattung (variiert je nach Art))* — Der Dornenkronenseestern (Acanthaster planci) ist ein oft rotgefärbter Seestern, der sich von Steinkorallen ernährt (corallivor).\n\n### Lebensraum: [[alpen|Alpen]]\n\n- [[alpensteinbock|Alpensteinbock]] *(Nicht gefährdet (LC))* — Der Alpensteinbock (Capra ibex) ist eine in den Alpen wieder verbreitete Art von Steinböcken aus der Gattung der Ziegen.\n- [[alpenmurmeltier|Alpenmurmeltier]] *(Nicht gefährdet (LC))* — Das Alpenmurmeltier (Marmota marmota), süddeutsch und österreichisch auch Mankei oder Murmel, in der Schweiz auch Mungg oder Murmunda, ist ein besonders in den Alpen verbreitetes Nagetier.\n- [[steinadler|Steinadler]] *(Nicht gefährdet (LC))* — Der Steinadler (Aquila chrysaetos) ist eine große Greifvogelart innerhalb der Familie der Habichtartigen (Accipitridae).\n- [[gaemse|Gämse]] *(Nicht gefährdet (LC))* — Die (Alpen-)Gämse (Rupicapra rupicapra), vor der Rechtschreibreform Gemse geschrieben und in der Jägersprache mit Gams oder Gamswild bezeichnet, ist eine in Europa und Kleinasien beheimatete Art der Ziegenartigen.\n- [[bartgeier|Bartgeier]] *(Potenziell gefährdet (NT))* — Der Bartgeier (Gypaetus barbatus), veraltet auch Lämmergeier genannt, ist ein Greifvogel aus der Familie der Habichtartigen (Accipitridae).\n- [[schneehase|Schneehase]] *(Nicht gefährdet (LC))* — Der Schneehase (Lepus timidus) ist eine zur Familie der Hasen (Leporidae) gehörige Art.\n- [[alpensalamander|Alpensalamander]] *(Nicht gefährdet (LC))* — Der Alpensalamander (Salamandra atra) ist eine schwarz gefärbte, landlebende Art der Schwanzlurche.\n- [[eurasischer-luchs|Eurasischer Luchs]] *(Nicht gefährdet (LC))* — Der Eurasische Luchs oder Nordluchs (Lynx lynx) ist eine in Eurasien verbreitete Art der Luchse.\n- [[alpenschneehuhn|Alpenschneehuhn]] *(Nicht gefährdet (LC))* — Das Alpenschneehuhn (Lagopus muta) ist eine Vogelart aus der Familie der Fasanenartigen (Phasianidae).\n\n### Lebensraum: [[savanne|Savanne]]\n\n- [[afrikanischer-elefant|Afrikanischer Elefant]] *(Stark gefährdet (EN))* — Der Afrikanische Elefant (Loxodonta africana), auch Afrikanischer Savannenelefant, Afrikanischer Steppenelefant oder Afrikanischer Buschelefant, ist eine Säugetierart aus der Familie der Elefanten.\n- [[loewe|Löwe]] *(Gefährdet (VU))* — Der Löwe (Panthera leo) ist neben dem Tiger eine der beiden größten Arten aus der Familie der Katzen.\n- [[gepard|Gepard]] *(Gefährdet (VU))* — Der Gepard [ˈgeːpart/geˈpart] (Acinonyx jubatus) ist ein hauptsächlich in Afrika verbreitetes Raubtier, das zur Familie der Katzen gehört.\n- [[giraffen|Giraffen]] *(Artengruppe / Gattung (variiert je nach Art))* — Die Giraffen (Giraffa), bundesdeutsches und Schweizer Hochdeutsch: [ɡiˈrafə] , österreichisches Hochdeutsch: [ʒiˈrafɛ] (von arabisch جرافة ǧurāfa, vgl.\n- [[steppenzebra|Steppenzebra]] *(Potenziell gefährdet (NT))* — Das Steppenzebra (Equus quagga) oder Pferdezebra ist ein Zebra aus der Gattung der Pferde (Equus) innerhalb der Familie der Pferde (Equidae).\n- [[streifengnu|Streifengnu]] *(Nicht gefährdet (LC))* — Das Streifengnu (Connochaetes taurinus) ist eine Antilope aus der Gattung der Gnus, die als Grasfresser in offenen Steppen oder Baumsavannen Afrikas zu Hause ist.\n- [[tuepfelhyaene|Tüpfelhyäne]] *(Nicht gefährdet (LC))* — Die Tüpfelhyäne oder Fleckenhyäne (Crocuta crocuta) ist eine Raubtierart aus der Familie der Hyänen (Hyaenidae).\n- [[erdmaennchen|Erdmännchen]] *(Nicht gefährdet (LC))* — Das Erdmännchen (Suricata suricatta), auch Surikate oder veraltet Scharrtier genannt, ist eine Säugetierart aus der Familie der Mangusten (Herpestidae).\n- [[termiten|Termiten]] *(Artengruppe / Gattung (variiert je nach Art))* — Termiten (Termitoidae, Termitoidea oder Isoptera) sind eine staatenbildende, in warmen Erdregionen vorkommende Epifamilie der zu den Insekten gehörenden Schaben.\n\n## 3. Ökologische Konzepte (`wiki/konzepte/`)\n\n- [[symbiose|Symbiose]] — Symbiose (von altgriechisch σύν sýn, deutsch ‚zusammen‘ sowie altgriechisch βίος bíos, deutsch ‚Leben‘) bezeichnet die Vergesellschaftung von Individuen zweier unterschiedlicher Arten, die für beide Partner vorteilhaft ist. · Verknüpft: [[anemonenfische]], [[seeanemonen]], [[steinkorallen]]\n- [[nahrungskette|Nahrungskette]] — Eine Nahrungskette ist ein Modell für die linearen energetischen und stofflichen Beziehungen zwischen verschiedenen Arten von Lebewesen, wobei jede Art Nahrungsgrundlage einer anderen Art ist, ausgenommen die Art am Ende der Nahrungskette. · Verknüpft: [[raeuber-beute-beziehung]], [[eisbaer]], [[ringelrobbe]]\n- [[raeuber-beute-beziehung|Räuber-Beute-Beziehung]] — Als Räuber-Beute-Beziehung oder seltener Räuber-Beute-Verhältnis wird die dynamische Wechselwirkung zwischen einer Räuber- und einer Beutepopulation über längere Zeiträume beschrieben. · Verknüpft: [[nahrungskette]], [[oekosystem]], [[schluesselart]]\n- [[tarnung-biologie|Tarnung (Biologie)]] — Tarnung, in der Verhaltensbiologie auch als Krypsis (von altgriechisch κρύψις krýpsis, deutsch ‚das Verbergen, Sichverbergen‘) bezeichnet, ist bei Tieren der Vorgang oder Zustand, der darauf abzielt, irreführende Signale an ein anderes Lebewesen zu senden. · Verknüpft: [[mimikry]], [[schneehase]], [[polarfuchs]]\n- [[mimikry|Mimikry]] — Die Mimikry bezeichnet in der Biologie eine Form der Nachahmung visueller, auditiver oder olfaktorischer Signale, die dazu führt, dass dem Nachahmer und Fälscher Vorteile durch die Täuschung des Signalempfängers entstehen. · Verknüpft: [[tarnung-biologie]], [[morphofalter]], [[baumsteigerfroesche]]\n- [[invasive-art|Biologische Invasion]] — Als biologische Invasion bezeichnet man allgemein die durch Menschen verursachte Ausbreitung einer gebietsfremden Art in einem Gebiet, in dem sie ursprünglich nicht heimisch war. · Verknüpft: [[biodiversitaet]], [[artensterben]], [[oekosystem]]\n- [[artensterben|Aussterben]] — Aussterben (fachsprachlich auch Extinktion) bezeichnet das Ende einer evolutionären Stammlinie infolge des Tods aller Nachkommen. · Verknüpft: [[rote-liste-gefaehrdeter-arten]], [[biodiversitaet]], [[klimawandel]]\n- [[biodiversitaet|Biodiversität]] — Biodiversität oder biologische Vielfalt ist ein Konzept der Biowissenschaften für die Vielfalt und Variabilität des Lebens in einem bestimmten Landschaftsraum oder in einem geographisch begrenzten Gebiet (beispielsweise Rasterzelle oder Land). · Verknüpft: [[oekosystem]], [[tropischer-regenwald]], [[korallenriff]]\n- [[klimawandel|Klimawandel]] — Klimawandel, auch Klimaveränderung, Klimaänderung oder Klimawechsel, ist eine weltweit auftretende Veränderung des Klimas auf der Erde oder erdähnlichen Planeten oder Monden, die eine Atmosphäre besitzen. · Verknüpft: [[arktis]], [[eisbaer]], [[korallenbleiche]]\n- [[korallenbleiche|Korallenbleiche]] — Mit Korallenbleiche wird das Ausbleichen von Steinkorallen-Stöcken bezeichnet, das zum anschließenden Absterben der Korallen führen kann. · Verknüpft: [[korallenriff]], [[steinkorallen]], [[klimawandel]]\n- [[winterschlaf|Winterschlaf]] — Als Winterschlaf oder Hibernation bezeichnet man einen saisonalen mehrtägigen Torpor in manchen Säugetieren und einer Vogelart, der durch eine Herabsetzung der Stoffwechselaktivität und Körpertemperatur definiert ist. · Verknüpft: [[alpen]], [[alpenmurmeltier]], [[klimawandel]]\n- [[vogelzug|Vogelzug]] — Als Vogelzug bezeichnet man den alljährlichen Flug der Zugvögel von ihren Brutgebieten zu ihren Winterquartieren und wieder zurück. · Verknüpft: [[schneeeule]], [[klimawandel]], [[oekosystem]]\n- [[schluesselart|Schlüsselart]] — Als Schlüsselart oder Schlüsselspezies (in Anlehnung an die engl. · Verknüpft: [[steinkorallen]], [[afrikanischer-elefant]], [[papageifische]]\n- [[oekosystem|Ökosystem]] — Ökosystem (altgriechisch οἶκος oikós, deutsch ‚Haus‘ und σύστημα sýstema, deutsch ‚das Zusammengestellte, das Verbundene‘) ist ein Fachbegriff der ökologischen Wissenschaften. · Verknüpft: [[raeuber-beute-beziehung]], [[biodiversitaet]], [[schluesselart]]\n- [[rote-liste-gefaehrdeter-arten|Rote Liste gefährdeter Arten]] — Die Rote Liste gefährdeter Arten, auch nur Rote Liste oder im Original Red Data Book genannt, ist die von der IUCN (International Union for Conservation of Nature and Natural Resources) veröffentlichte Liste weltweit vom · Verknüpft: [[artensterben]], [[eisbaer]], [[orang-utans]]",
+      "skills": [
+        {
+          "name": "vault-suche",
+          "content": "---\nname: vault-suche\ndescription: Navigiert strukturiert über _index.md, YAML-Frontmatter und [[Wikilinks]] durch den Obsidian-Vault, um präzise Antworten mit Quellen zu liefern.\n---\n\n# Skill: Vault-Suche\n\n## Vorgehen\n1. Öffne `_index.md` und wähle die passenden Kategorien (`lebensraeume/`, `tierarten/`, `konzepte/`).\n2. Lies die ausgewählten Artikel in `wiki/` und folge relevanten `[[Wikilinks]]` bis max. Tiefe 2.\n3. Fasse die Antwort präzise zusammen und verlinke jede Quelle im Format `[[Artikelname]]`."
+        },
+        {
+          "name": "wissen-synthese",
+          "content": "---\nname: wissen-synthese\ndescription: Verknüpft Informationen aus mehreren Obsidian-Artikeln zu einer strukturierten Synthese (z. B. Nahrungsnetze, Vergleiche, Widersprüche).\n---\n\n# Skill: Wissen-Synthese\n\n## Vorgehen\n1. Sammle über `_index.md` und `[[Wikilinks]]` alle beteiligten Artikel.\n2. Erstelle eine strukturierte Übersicht (Tabelle oder Bulletpoints), die die Zusammenhänge zwischen den Artikeln sichtbar macht.\n3. Liste am Ende alle genutzten `[[Wikilinks]]` sowie offene Wissenslücken im Vault auf."
+        }
+      ],
+      "trackBPrompt": "Ich bin im Ordner stufe-3-obsidian-vault/. Starte bei _index.md und nutze die Skills vault-suche sowie wissen-synthese für folgende Frage:\n\n[Frage 2 oder eigene Querverbindung hier einfügen]"
+    }
+  ],
+  "missions": [
+    {
+      "id": "m1-audit",
+      "title": "Mission A · Fakten-Audit & Qualitäts-Check",
+      "tag": "Qualität & Prüfung",
+      "description": "Nimm eine freie Chat-Antwort aus Stufe 1 und jage sie durch den Skill `fakten-pruefer`. Decke gnadenlos auf, was belegt ist und was dazuerfunden wurde.",
+      "prompt": "Nutze den Skill fakten-pruefer und prüfe diese Aussage kritisch gegen unsere Dokumente:\n„Eisbären haben weiße Haut unter ihrem dichten weißen Fell, wiegen bis zu 800 kg, fressen am liebsten Pinguine und ihre Haare leiten UV-Licht wie Glasfaserkabel direkt auf die Haut.“\nMarkiere jeden Teilpunkt mit Belegt / Widersprüchlich / Nicht belegt inkl. exakter Quelle!"
+    },
+    {
+      "id": "m2-data",
+      "title": "Mission B · Datenstruktur & Wissens-Graph",
+      "tag": "Struktur & Daten",
+      "description": "Verwandle unstrukturierte Fließtexte in ein sauberes Datenmodell (JSON oder Markdown-Tabelle) für 6 Tierarten aus verschiedenen Lebensräumen.",
+      "prompt": "Lies im Vault _index.md und extrahiere für Eisbär, Ringelrobbe, Anemonenfische, Alpenmurmeltier, Steinadler und Gepard eine saubere JSON-Liste (und Markdown-Tabelle) mit den Feldern: title, habitat, status, hauptbedrohung_oder_anpassung, wikilink, source_file. Erfinde fehlende Felder nicht, sondern schreibe \"[Nicht in Quelle]\"."
+    },
+    {
+      "id": "m3-briefing",
+      "title": "Mission C · Executive Briefing mit Klartext-Lücken",
+      "tag": "Kommunikation & Nutzen",
+      "description": "Formuliere nach CO-STAR + Guardrails ein kompaktes Entscheider-Briefing zu wirtschaftlichen und ökologischen Risiken der Korallenbleiche.",
+      "prompt": "Context: Kurze Entscheidungsvorlage für eine Projekt- und Cluster-Runde.\nObjective: Fasse die ökologischen und wirtschaftlichen Folgen der Korallenbleiche anhand von korallenbleiche.md, korallenriff.md und steinkorallen.md zusammen.\nAudience: Teamleitung & Management.\nResponse: Max. 5 prägnante Bulletpoints mit belegten Zahlen (z. B. Küstenschutz, Tourismusumsatz, Zeitfenster) + separater Block „Offene Lücken in unseren Quellen“."
+    },
+    {
+      "id": "m4-mcp",
+      "title": "Mission D · Eigener Skill & Live-Beamer-Gimmick",
+      "tag": "Agenten & MCP",
+      "description": "Teste eine eigene Regel/Skill-Erweiterung ODER nutze den MCP-Server / das Formular, um eure spannendste Frage + KI-Befund live auf die Leinwand zu schicken!",
+      "prompt": "Nutze das MCP-Tool search_wildlife_vault für das Thema 'Korallenbleiche Klimawandel', prüfe die Kernaussage mit verify_claim_against_corpus und sende anschließend mit send_to_beamer unsere Gruppen-Erkenntnis live an den Beamer!"
+    }
+  ],
+  "starterArticles": [
+    {
+      "slug": "arktis",
+      "title": "Arktis",
+      "category": "lebensraum",
+      "habitat": "Arktis",
+      "content": "# Arktis\n\nDie Arktis, auch Nordpolargebiet und Nordpolgebiet, bezeichnet die Region um den Nordpol und damit eines der beiden Polargebiete. Zur Arktis zählen die nördliche Polkappe, das im Winter großenteils von Eis bedeckte Nordpolarmeer und die nördlichen Ausläufer der Kontinente Nordamerika, Asien und Europa. Die genaue Abgrenzung wird je nach Fachrichtung und Autor unterschiedlich vorgenommen, orientiert sich jedoch häufig an den meteorologischen bzw. klimatologischen Festlegungen. Der Arktis auf der Erdkugel gegenüber liegt ihre Antipodin Antarktis. Der größte Unterschied: Während die Arktis im Wesentlichen ein Meer ist, das von Kontinentalstaaten umgeben ist, handelt es sich bei der Antarktis um eine Landmasse, die von Meer umschlossen ist.\nDer Begriff Arktis ist aus dem altgriechischen Wort ἄρκτος árktos für „Bär“ abgeleitet. Das Adjektiv ἄρκτικός arktikós wurde für die Richtungsangabe „nördlich“ benutzt, bezeichnete aber auch die Region unter dem Sternbild Großer Bär, welches in der Antike dem Nordpol näher stand als heute. Der Polarstern, der heute fast senkrecht über dem Nordpol steht, gehört zum Sternbild Kleiner Bär. In der griechischen Mythologie galt die Arktis als paradiesischer Ort mit einer besonderen Nähe zu den Göttern.\n\n## Erdgeschichte\n\nAus Fossilienfunden, so jenen der Margaret-Formation der Ellesmere-Insel oder einem mumifizierten Wald auf der Axel-Heiberg-Insel, geht hervor, dass in der Arktis im unteren bis mittleren Eozän vor 40 bis 50 Millionen Jahren warm-gemäßigte Temperaturen herrschten und hier bis zu 50 Meter hohe Mammutbäume wuchsen. Das Nordpolarmeer wies zu dieser Zeit örtlich und jahreszeitlich begrenzt sogar subtropische Wassertemperaturen auf. In Bohrkernen wurden Reste von Süßwasserpflanzen entdeckt, die heute unter anderem in Reiskulturen vorkommen. Deshalb wird vermutet, dass das Nordpolarmeer vor mehr als 40 Millionen Jahren ein vom Weltmeer nahezu abgeschlossenes Binnenmeer gewesen sein könnte, dessen oberste Wasserschicht durch niederschlagsbedingte Süßwasser-Einträge vergleichsweise salzarm war. Andere Funde zeugen von heftigen biologischen Umwälzungen und vom plötzlichen Aussterben vieler Organismen in der Folgezeit.\nZu Beginn des Oligozäns vor etwa 33 Millionen Jahren kühlte die Erde ab und es bildeten sich Eiskappen an den Polen. Die Vereisung erreichte die Antarktis vor 25 und Grönland vor 6 Millionen Jahren. Vor 6000–7000 Jahren war die Arktis für längere Zeit womöglich periodisch eisfrei.\n\n## Geografie\n\nFrüher wurde die Arktis schlicht als „die Region nördlich des Nordpolarkreises“ (66° 34′ nördliche Breite) definiert. Heute wird ihre Ausdehnung oft über klimatische und vegetationsgeografische Kriterien festgelegt, z. B. über die Juli-Isotherme von 10 °C oder die Baumgrenze. In den Sozialwissenschaften wird die Arktis über politische Regionen und sozialökonomische Faktoren abgegrenzt. In der Politik wird häufig auf eine solche Definition aus dem Arctic Human Development Report des Arktischen Rats zurückgegriffen.\nIm Zentrum der Arktis liegt kein eisbedeckter Kontinent (wie in der Antarktis), sondern ein früher ganzjährig zugefrorenes Meer, der Arktische Ozean, der nach neuesten Prognosen bereits 2030 in den Sommermonaten eisfrei sein könnte. Am geografischen Nordpol ist das Eis vier Meter dick, und der Ozean 4261 Meter tief. Südlich wird der Ozean von den Kontinenten Nordamerika, Asien und Europa begrenzt.\n\n### Hocharktis\n\nDer nördlichste Teil der Arktis wird gelegentlich als „Hocharktis“ bezeichnet. Der Begriff ist nicht klar definiert; oft werden darunter der Arktische Ozean, der kanadisch-arktische Archipel, die Nordhälfte von Grönland, Spitzbergen sowie die im hohen Norden Russlands gelegenen Inseln (z. B. Franz-Joseph-Land und Nowaja Semlja) verstanden. Klimatologen verstehen darunter die dauerhaft eisbedeckten oder nahezu vegetationslosen hochpolaren Klimate im Gegensatz zu den subarktischen Tundrenklimaten. Die regional verschiedene Abgrenzung ist den unterschiedlichen klimatischen Bedingungen geschuldet, die durch die Verteilung warmer und kalter Meeresströmungen auf der Nordhalbkugel der Erde hervorgerufen werden. So weisen der Norden Skandinaviens und das angrenzende Europäische Nordmeer durch den Golfstrom keine hocharktischen Verhältnisse auf, während die auf den gleichen Breitengraden gelegene Beaufortsee keiner warmen Strömung ausgesetzt ist und der Hocharktis zugerechnet wird. Die globale Erwärmung verschiebt die Grenze der Hocharktis langsam weiter nach Norden.\nDie klimatischen und ökologischen Bedingungen der Arktis zählen zu den härtesten, lebensfeindlichsten der Erde und sind nur mit denen der Antarktis und der höchstgelegenen Regionen von Himalaya und Karakorum vergleichbar. Schnee und Eis bedecken ganzjährig einen großen Teil der Meeres- und Landoberfläche, während in den südlicheren Arktisgebieten größere Gebiete im Sommer abtauen und lebensfreundlicher sind. In diesen Regionen sind Pingos – durch Eislinsen gebildete runde Hügel – ein typisches Landschaftsphänomen.\n\n### Schutzgebiete\n\nEnde 2016 erklärte US-Präsident Barack Obama kurz vor Ende seiner Amtszeit gemeinsam mit der amtierenden Regierung Kanadas große Bereiche der Arktis und im Atlantik zu Schutzzonen, für die zunächst für fünf Jahre keine neuen Öl- und Gas-Bohr-Lizenzen mehr vergeben wurden. Die neuen Schutzzonen der Arktis waren in etwa so groß wie Spanien. Per Dekret gab sein Nachfolger Trump 52 Millionen Hektar geschützte Gebiete für Offshore-Bohrungen frei sowie mehr als die Hälfte des gemäßigten Regenwalds im Südosten Alaskas für Energie- und Bergbauprojekte. Um nach dem Einmarsch Russlands in die Ukraine energieunabhängiger zu bleiben, hatte Präsident Joe Biden in einem schwierigen Balanceakt die Ölförderung im Naturschutzgebiet in Alaska wiederum einstellen lassen, anders als beispielsweise die Öl- und Gasförderung in Wyoming. Das mit Abstand größte permanente Meeresschutzgebiet der Arktis ist das kanadische Tuvaijuittuq.\n\n*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*\n\n---\nQuelle: Wikipedia Deutsch (https://de.wikipedia.org/wiki/Arktis)"
+    },
+    {
+      "slug": "korallenriff",
+      "title": "Korallenriff",
+      "category": "lebensraum",
+      "habitat": "Korallenriff",
+      "content": "# Korallenriff\n\nEin Korallenriff (auch „Regenwald der Meere“ wegen der sehr großen Artenvielfalt) ist eine von hermatypischen (riffbildenden) Nesseltieren gebildete Riffstruktur im Meer, die groß genug wird, um einen bedeutenden physikalischen und ökologischen Einfluss auf ihre Umgebung auszuüben. Es sind die größten von Lebewesen geschaffenen Strukturen der Erde. Die Gesamtfläche der heutigen Korallenriffe liegt bei 600.000 km², bei den Malediven erheben sich die Riffe bis zu 2200 Meter über den Meeresboden.\n\n## Entstehung und Wirkung\n\nKorallenriffe werden im Wesentlichen von Korallen aus der Gruppe der Steinkorallen (Scleractinia) aufgebaut, daneben tragen die Feuerkorallen (Millepora) sowie, im tropischen Indopazifik, die Blaue Koralle (Heliopora coerulea) zur Riffbildung bei. Steinkorallen sondern an ihrem Fuß ein Kalkskelett aus, das zu 98 bis 99,7 % aus Calciumcarbonat in der Modifikation Aragonit besteht. Sie nehmen im Meerwasser gelöste Calciumionen und Hydrogencarbonat-Ionen auf und fällen daraus Calciumcarbonatkristalle. Steinkorallen besiedeln sowohl die Tiefsee als auch das Flachwasser bis zur Wasseroberfläche. Sie bauen im Laufe vieler Jahrhunderte aus ihren Kalk-Skeletten die Riffstruktur auf.\nEine Koralleninsel entsteht durch langfristige Veränderungen des Wasserstandes. Da das Korallenriff bis zur Wasseroberfläche wachsen kann, bildet sich nach späterem Absenken des Meeresspiegels oder Anheben des Bodens eine Insel oder eine Reihe von Inseln, oft in Form eines Atolls.\nKorallenriffe sind komplexe marine Ökosysteme. Sie sind das Biotop (Lebensraum) für eine Biozönose (Lebensgemeinschaft) von Pflanzen und Tieren, beispielsweise Würmer, Weichtiere, Schwämme, Stachelhäuter und Krebstiere. Eine große Bedeutung haben Korallenriffe als „Kinderstube“ für pelagisch lebende Fische.\n\n## Typen\n\nNach ihrer geographischen Verbreitung können Korallenriffe in zwei Typen eingeteilt werden: die tropischen Korallenriffe und die Tiefwasserriffe.\n\n### Tropische Korallenriffe\n\nRiffbildende Korallen aus tropischen Korallenriffen können nur bei Wassertemperaturen überleben, die 20 °C nur sehr selten unterschreiten. Aus diesen Gründen beschränkt sich die Entstehung auf einen Bereich ungefähr zwischen 30° nördlicher und 30° südlicher Breite. Im Atlantik liegen die nördlichsten Korallenriffe an der Küste der Bermudas (32° 30’ nördlicher Breite), die südlichsten etwas nördlich von Rio de Janeiro (23° S). Zwar finden sich noch zwei Arten normalerweise riffbildender Steinkorallen bei Cape Hatteras (34° N) an der Ostküste der Vereinigten Staaten, sie bilden dort jedoch keine Riffe mehr. Ähnlich ist die Situation im Pazifik in der Bucht von Tokio (38° N). Hier kommen tropische Korallenriffe erst ab den Ryūkyū-Inseln bei 30° N vor. Der südlichste Ausläufer des Great Barrier Reef befindet sich nördlich von Brisbane in der Moreton Bay (27° 30’ S), ein weiteres sehr südlich gelegenes Riff im Pazifik bei Rapa Iti, auf der gleichen Höhe. Bei der Lord-Howe-Insel ermöglicht eine warme Meeresströmung die Korallenriffbildung noch bei 31° 30’ S. Im Roten Meer kommen Korallenriffe bis in dessen nördlichen Ausläufer, den Golf von Akaba (29° 30’ N) vor. Das südlichste Korallenriff weltweit liegt im Indischen Ozean beim Houtman-Abrolhos-Archipel an der Westküste Australiens (29°S). An der Westküste des Indischen Ozean reichen Korallenriffe bis zur Inhaca-Insel in der Maputo-Bucht (26° S, Mosambik).\nDa die allermeisten Steinkorallen in Symbiose mit Zooxanthellen leben, sind sie auf den Sonnenschein angewiesen, der mit zunehmender Wassertiefe rapide abnimmt. Die Gesamtfläche aller Korallenriffe beträgt etwa 600.000 km². Jährlich werden im Durchschnitt 640 Millionen Tonnen Riffkalk abgelagert.\nUnterschieden werden zwei Hauptkategorien tropischer Korallenriffe:\n\nLitorale (küstennahe) Riffe findet man in den Flachwasserzonen der Kontinentalschelfe. Durch Süßwassereinleitung sind diese Riffe nährstoffreicher als neritide Riffe, wodurch solche Riffe häufiger von Weichkorallen und Algen dominiert werden.\nNeritide Riffe finden sich fernab der Kontinente, wenn durch vulkanische Aktivitäten Inseln über der Wasseroberfläche entstehen. Neritide Riffe findet man vor allem im tropischen Pazifik (Hawaii, Tahiti). Hier findet sich bedingt durch den niedrigeren Nährstoffgehalt als in litoralen Riffen eine höhere Artenvielfalt, besonders bei Steinkorallen.\n\n### Tiefwasserriffe\n\nViele Korallenarten können auch in kühlerem und kaltem Wasser bei Temperaturen weit unter 20 °C und teilweise unterhalb der euphotischen Zone in Tiefen von vielen hundert Meter in völliger Dunkelheit leben. Im Unterschied zu ihren tropischen Verwandten leben sie nicht in Endosymbiose mit Zooxanthellen und nutzen nicht das Sonnenlicht als primäre Energiequelle, sondern ernähren sich als Filtrierer von Zooplankton. Die Mehrzahl der Korallenarten in kühlem und kaltem Wasser sind solitäre Korallen aus den Familien der Caryophylliidae und Dendrophylliidae, welche sehr langsam wachsen, klein bleiben und daher keine Riffe bilden.\n\n*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*\n\n---\nQuelle: Wikipedia Deutsch (https://de.wikipedia.org/wiki/Korallenriff)"
+    },
+    {
+      "slug": "eisbaer",
+      "title": "Eisbär",
+      "category": "tierart",
+      "habitat": "Arktis",
+      "content": "# Eisbär\n\nDer Eisbär (Ursus maritimus), auch Polarbär genannt, ist eine Raubtierart aus der Familie der Bären (Ursidae). Er lebt an den Küsten und auf dem Eis in den nördlichen Polarregionen und ist eng mit dem Braunbären verwandt. Neben Kamtschatkabären und Kodiakbären gelten Eisbären als die größten an Land lebenden Raubtiere der Erde. Da sie einen großen Teil ihres Lebens auf dem Meereseis verbringen und von marinen Ökosystemen abhängig sind, werden sie je nach Systematik auch als Meeressäuger eingeordnet.\n\n## Merkmale und Eigenschaften\n\n### Größe und Gewicht\n\nErwachsene männliche Eisbären erreichen eine Kopf-Rumpf-Länge von 2,00 bis 2,50 Metern, in Einzelfällen sogar von bis zu 3,40 Metern; die Schulterhöhe beträgt bis zu 1,60 Meter. Das Gewicht variiert gewöhnlich zwischen 420 und 500 Kilogramm. Bei Weibchen erreicht die Kopf-Rumpf-Länge 1,60 bis 2,50 Meter; das Körpergewicht liegt bei ihnen gewöhnlich zwischen 150 und 300 Kilogramm. Das Gewicht hängt wesentlich vom Ernährungszustand der Tiere ab: Im Sommer wiegen ausgehungerte Eisbären deutlich weniger als während der Zeit winterlicher Robbenjagd. Eine Rolle spielen auch regionale Größenunterschiede. Die kleinsten Tiere leben auf Spitzbergen und die größten in der Nähe der Beringstraße. Wie alle Bärenarten besitzen auch Eisbären nur einen Stummelschwanz von 7 bis 13 Zentimetern Länge.\n\n### Fell und Haut\n\nDas gelblich-weiße Eisbärfell stellt in eisigem Umfeld eine Wärmeisolation und Tarnung dar und besteht aus einer dichten Unterschicht und den äußeren Fellhaaren. Das Fell ist mit einer Schicht aus Talg überzogen – einem lipidbasierten Sekret, das aus einer Mischung von Triglyceriden, freien Fettsäuren, Wachsen und weiteren Lipiden besteht und von den Talgdrüsen ausgesondert wird. Dieser Eisbärentalg, der sich vom menschlichen Talg u. a. durch das Fehlen von Squalen unterscheidet, ist entscheidend dafür, dass das Fell der Eisbären nicht gefriert. Die hydrophoben Eigenschaften sorgen dafür, dass Wasser nicht dauerhaft an der Haaroberfläche haftet, sondern schnell abperlt oder verdunstet. Dadurch wird verhindert, dass sich ein stabiler Wasserfilm bildet, der als Ausgangspunkt für die Eisnukleation dienen könnte. Unter der bei ausgewachsenen Tieren schwarzen Haut (bei Babys ist sie noch rosa) befindet sich eine 5 bis 10 Zentimeter dicke Fettschicht. Die äußeren Fellhaare des Eisbären sind hohl und transparent, nicht weiß, was zusätzlich zur dicken Fettschicht für eine hervorragende Wärmedämmung sorgt. Außerdem erhöhen die Haare zusammen mit der Speckschicht den Auftrieb beim Schwimmen. Die verringerte Wärmeabstrahlung lässt Infrarotaufnahmen des Eisbären praktisch nicht zu. Da das Fell Ultraviolettstrahlung nicht reflektiert, wurde die These aufgestellt, dass die äußeren Fellhaare als Lichtleiter die Strahlung auf die Haut leiten. Diese These wurde jedoch widerlegt, das Fell selbst absorbiert die Strahlung.\n\n### Körperbau und Gang\n\nBeim Körperbau unterscheiden sich Eisbären von anderen Bärenarten durch einen längeren Hals und einen relativ kleinen, flacheren Kopf. Im Gegensatz zu den nahe verwandten Braunbären fehlt Eisbären der Muskelberg am Nacken. Die Augen sind verhältnismäßig klein. Die Ohrmuscheln sind nach vorn aufgerichtet und rund geformt. Wie die meisten Bären besitzen Eisbären 42 Zähne, und wie alle Bären sind sie Sohlengänger. Ihre Vorderbeine sind lang und kräftig; die großen Vordertatzen sind paddelförmig ausgebildet und mit Schwimmhäuten versehen, was ein schnelles Schwimmen ermöglicht. Auf den muskulösen Hinterbeinen können sich die Eisbären zu maximaler Höhe erheben (etwa bei Kämpfen oder für besseren Rundblick); die Hintertatzen dienen beim Schwimmen als Steuerruder. Die Fußsohlen sind dicht behaart, was dem Kälteschutz dient und auch das Ausrutschen auf dem Eis verhindert. Alle vier Pfoten sind jeweils mit fünf nicht einziehbaren Krallen bewehrt.\n\n### Sinne\n\nDer Geruchssinn der Eisbären ist – selbst im Vergleich zu anderen Raubtieren – ungewöhnlich gut ausgebildet. Auch das Gehör ist recht empfindlich. So erkunden Eisbären die Dicke der Eisfläche, indem sie auf das Eis schlagen und die Wasserreflexionen hören, um optimale Ansatzpunkte für das Aufbrechen von Wasserlöchern zu finden. Die Sehkraft dürfte dagegen ungefähr der des Menschen entsprechen.\nIn der Leber speichern Eisbären große Mengen an Vitamin A. Der Verzehr von Eisbärenleber kann beim Menschen deshalb zu einer A-Hypervitaminose führen, einer schwerwiegenden Gesundheitsstörung, die mit neurologischen Symptomen (Kopfschmerzen, Übelkeit, Pseudotumor cerebri) und Hautschäden wie Mundwinkelrhagaden einhergehen kann.\n\n### Lebenserwartung\n\nDas potentielle Höchstalter von Eisbären in freier Natur wird auf 25 bis 30 Jahre geschätzt, wobei die wenigsten Individuen das 20. Lebensjahr erreichen. In menschlicher Obhut können sie allerhöchstens 45 Jahre alt werden, wobei auch hier in der Regel mit knapp über 30 Jahren bereits ein sehr hohes Alter erreicht ist, welches für die meisten Bären das Maximum darstellt.\n\n*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*\n\n---\nQuelle: Wikipedia Deutsch (https://de.wikipedia.org/wiki/Eisb%C3%A4r)"
+    },
+    {
+      "slug": "ringelrobbe",
+      "title": "Ringelrobbe",
+      "category": "tierart",
+      "habitat": "Arktis",
+      "content": "# Ringelrobbe\n\nDie Ringelrobbe (Pusa hispida, Syn.: Phoca hispida) ist die am häufigsten in der Arktis vorkommende Robbenart. Neben dem Nordpolarmeer bewohnt diese nahe Verwandte des Seehunds auch die nördlichen Bereiche der Ostsee.\n\n## Merkmale\n\nDer Name Ringelrobbe beruht darauf, dass das Fell mit hellen Ringen versehen ist, die dunkle Flecken auf grauem Grund umranden. Erwachsene Tiere werden durchschnittlich 135 cm lang und 70 kg schwer; die Ringelrobben der Ostsee sind mit über 140 cm Länge und 100 kg Gewicht größer. Männchen sind meist etwas größer als Weibchen. Generell verfügen Ringelrobben über gute Sehkraft sowie ausgezeichnete Gehör- und Geruchssinne.\n\n## Verbreitung\n\nVier Unterarten bewohnen sehr unterschiedliche Lebensräume, die aber alle in polaren oder subpolaren Regionen liegen. Die Eismeer-Ringelrobbe (P. h. hispida) ist die häufigste Robbe des Nordpolarmeers, wo sie auf dem Treib- und Packeis zu Hause ist; eine besondere Süßwasser-Population sucht immer wieder den Nettilling-See auf der kanadischen Baffin-Insel auf. Die Ostsee-Ringelrobbe (P. h. botnica) lebt in den kalten Bereichen der Ostsee, so an den Küsten Schwedens, Finnlands und Estlands; nur sehr selten verirren sich einzelne Ringelrobben bis an deutsche Ostseeküsten. Daneben gibt es zwei bemerkenswerte Süßwasser-Unterarten: P. h. ladogensis im russischen Ladogasee, und P. h. saimensis im finnischen Saimaa-See.\n\n## Lebensweise\n\nRingelrobben bilden keine Kolonien, sondern leben als Einzelgänger; gelegentlich sieht man sie in losen Gruppen durchs Meer ziehen. An ein ganzjähriges Leben im Eismeer sind sie sehr gut angepasst, da sie mit den Krallen ihrer Vorderflossen Eislöcher selbst dann noch offenhalten können, wenn die umgebende Eisschicht mehr als zwei Meter dick ist. Stets erweitern sie jedoch vorhandene Löcher und schaffen sich keine eigenen.\nDie Nahrung besteht aus Krebstieren, kleineren Fischen und Krill. Während Gebär- und Fellwechselzeiten wird deutlich weniger konsumiert. Normalerweise bleiben Ringelrobben zwei bis fünf Minuten unter Wasser, können aber zur Not auch 45 Minuten und bis 90 Meter tief tauchen, ohne Luft holen zu müssen. Dabei kommt ihnen nicht nur ein hoher Anteil roter Blutkörperchen zugute, sondern auch die Fähigkeit, den Blutkreislauf anzupassen und die Herzfrequenz von normalerweise 80 bis 90 Schlägen pro Minute auf 10 bis 20 Schläge zu senken.\nDurch Zählung der Dentinjahresringe der Zähne wurde bislang als maximale Lebenserwartung 43 Jahre ermittelt. Die Geschlechtsreife tritt mit fünf bis zehn Jahren ein. Ab zehn Jahren verfügt das Weibchen über volle Fruchtbarkeit. Die Paarungszeit liegt im April. Die Einnistung der befruchteten Eizelle erfolgt erst etwa 80 Tage später, und die anschließende Tragezeit beträgt neun Monate. Das Weibchen bringt jeweils ein Junges zur Welt. Die Geburt erfolgt gewöhnlich Mitte März bis Anfang April (bei den Süßwasser-Unterarten im Mai) auf festem Eis in Geburtshöhlen aus Schnee. Dazu sucht die werdende Mutter natürliche Aushöhlungen und gräbt selbst eine geeignete Höhle in eine Schneewehe über einem Atemloch im Eis. Das nur von der Mutter umsorgte Robbenbaby wird fünf bis acht Wochen gesäugt und lernt sehr bald zu tauchen, da es nur auf diese Weise den ihm nachstellenden Eisbären und Polarfüchsen entkommen kann. Sobald das Eis aufbricht – Ende Juni, Anfang Juli –, überlässt die Mutter ihr Junges sich selbst.\n\n## Parasiten\n\nDie Ringelrobbe ist einer der Wirte für die Seehundlaus Echinophthirius horridus.\n\n*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*\n\n---\nQuelle: Wikipedia Deutsch (https://de.wikipedia.org/wiki/Ringelrobbe)"
+    },
+    {
+      "slug": "anemonenfische",
+      "title": "Anemonenfische",
+      "category": "tierart",
+      "habitat": "Korallenriff",
+      "content": "# Anemonenfische\n\nDie Anemonenfische (Amphiprion) – nach den beiden bekanntesten Arten häufig auch Clownfische genannt – sind eine in den Korallenriffen des tropischen Indopazifik vorkommende Gattung der Riffbarsche (Pomacentridae), die in enger Symbiose mit Seeanemonen lebt. Dabei leben die einzelnen Arten nur mit bestimmten Arten von Symbioseanemonen zusammen. Die Symbioseanemonen bieten den Anemonenfischen, die alle schlechte Schwimmer sind, Schutz vor Raubfischen. Auch die Anemonenfische schützen ihre Symbiosepartner vor Fressfeinden, z. B. Falterfischen. Annahmen, die Fische würden ihre Partner füttern, konnten nicht bestätigt werden, dagegen werden Symbioseanemonen, deren Fischpartner weggefangen wurden, bald von Falter- oder Feilenfischen gefressen.\nAnemonenfische ernähren sich von Zooplankton, einige auch von Algen.\n\n## Merkmale\n\nAnemonenfische werden zwischen acht und 16 Zentimeter lang. Die Körperlänge beträgt das 1,7- bis 2,5-fache der Körperhöhe. Ihre Rückenflosse wird von 8 bis 11 Hart- und 14 bis 20 Weichstrahlen gestützt, bei der Afterflosse sind es 2 Hart- und 12 bis 15 Weichstrahlen. Die Anzahl der Brustflossenstrahlen beträgt 16 bis 21, die der Schuppen entlang der Seitenlinie 31 bis 59, die der Branchiostegalstrahlen 17 bis 22.\nAnemonenfische schützen sich vor der Vernesselung ihrer Wirtsanemonen durch die chemische Zusammensetzung ihrer den Körper umgebenden Schleimhaut. Wie die Schleimhaut der Anemonen selber, hat die Fischschleimhaut nur einen geringen Anteil von Sialinsäuren, die die Nesselzellen der Seeanemonen aktivieren. Die Anemonenfische nützen damit zu ihrem Schutz denselben Mechanismus der die Anemonen vor der Selbstvernesselung schützt.\n\n## Verbreitung\n\nAlle Arten leben in den tropischen Bereichen des Indopazifik und dort, wo tropisch warme Meeresströmungen weit nach Norden oder Süden reichen, z. B. an der Ostküste Japans, in Tiefen von einem bis 15 Metern. Amphiprion bicinctus kommt im Roten Meer vor. Die meisten Arten haben ein relativ enges Verbreitungsgebiet, nur Clarks Anemonenfisch (Amphiprion clarkii) ist fast über den gesamten tropischen Indopazifik verbreitet. Als ökologischer Generalist akzeptiert er auch alle Anemonen als Symbiosepartner. Am artenreichsten ist die Region um Neuguinea, bei Madang leben 10, bei den D’Entrecasteaux-Inseln acht Arten. Andere westpazifische Gebiete, wie Guam oder die Lizard Island im Great Barrier Reef sind die Heimat von fünf Arten. Im Roten Meer gibt es zwei Arten, bei den Komoren nur noch eine und die Küsten Hawaiis sind ohne Anemonenfische.\n\n## Fortpflanzung\n\nBei Anemonenfischen liegt Proterandrie vor. Anemonenfische sind nach Erreichen der Geschlechtsreife zunächst männlich. Sie leben in Polyandrie, ein Weibchen mit mehreren Männchen, in einer oder einer kleinen Gruppe von Anemonen. Das dominierende, größte Tier in einer Anemone ist immer das einzige Weibchen. Stirbt das Weibchen, wandelt sich das stärkste Männchen in ein Weibchen um. Der Umwandlungsprozess beginnt sofort, dauert aber bis zur Vollendung insgesamt ein Jahr und mehr. Nach neueren Forschungsergebnissen sind Anemonenfische das erste Tier-Beispiel, bei dem die Umwandlung zuerst im Gehirn und danach in den Geschlechtsorganen stattfindet.\n\nDie Eier werden in der Nähe des Fußes der Anemone abgelegt. Das Männchen säubert vor dem Ablaichen am Fuß der Anemone das Substrat. Nach der Eiablage wird das Gelege sieben bis acht Tage lang vom Männchen mit dem Maul gesäubert und mit den Brustflossen befächelt. Ein Gelege umfasst etwa 250 Eier.\nNach einer Woche schlüpfen die Larven, die zunächst eine planktonische Lebensweise, aber das Bestreben haben, möglichst in der Nähe des Geburtsortes zu bleiben. Das Larvenstadium dauert zwei bis drei Wochen. Danach streben die Jungfische auf der Suche nach einer Anemone zum nächsten Korallenriff und orientieren sich dabei mit Hilfe ihres Geruchssinns.\n\n*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*\n\n---\nQuelle: Wikipedia Deutsch (https://de.wikipedia.org/wiki/Anemonenfische)"
+    },
+    {
+      "slug": "seeanemonen",
+      "title": "Seeanemonen",
+      "category": "tierart",
+      "habitat": "Korallenriff",
+      "content": "# Seeanemonen\n\nSeeanemonen (Actiniaria), auch Seerosen, Seenelken oder Aktinien genannt, sind eine arten- und gattungsreiche Ordnung der Hexacorallia innerhalb der Blumentiere (Anthozoa). Es handelt sich ausschließlich um im Meer und solitär lebende sowie relativ große Tiere, die vom Flachwasser bis in die Tiefsee Tiefen vorkommen. Es sind etwa 1200 Arten bekannt.\n\n## Merkmale\n\nSeeanemonen besitzen kein Skelett und leben solitär, d. h., sie bilden keine Kolonien im Gegensatz zu den meisten anderen Vertretern der Blumentiere. Sie sind halbsessil; sie können sich durch langsames Kriechen auf ihrer Fußscheibe fortbewegen, mit der sie sich normalerweise auf hartem Untergrund festkrallen oder in Sand und Geröll eingraben. Ihr Körper ist muskulös. Die Größe kann, je nach Art, von einem bis 150 Zentimeter reichen. Ihre Tentakel sind einfach und in der Regel nicht verzweigt und oft durchscheinend. Manche Arten haben Nesselfäden, hier Acontien genannt, die durch den Mund oder durch Poren im Scapus, sog. Cinclidien, ausgeschleudert werden. Vielfältige Formen an Fortpflanzungsmodi sind bekannt. So existieren getrenntgeschlechtliche, aber auch zwittrige Arten. Sogar Querteilung oder Abschnüren von Fußpartien kommt vor.\n\n## Geographisches Vorkommen, Verbreitung und Lebensweise\n\nEs gibt über 1200 Arten in allen Meeren vom Flachwasser bis zu 10.000 m Tiefe. In europäischen Gewässern finden sich ca. 60 Arten. Viele ausgewachsene Aktinien fressen Fische, Krebse und Schnecken, andere nur Plankton.\n\n## Symbiosen\n\nEinige Arten gehen Symbiosen mit anderen Tieren ein. So finden z. B. Anemonenfische, die Anemonengrundel, Spinnenkrabben oder Partnergarnelen zwischen den Tentakeln Schutz vor Feinden. Umgekehrt heftet sich die Schmarotzerrose an das von einem Einsiedlerkrebs bewohnten Schneckenhaus (Ektosymbiose) an.\n\n## Systematik\n\nEine aktuelle Systematik teilt die Seeanemonen auf Basis einer phylogenetischen Untersuchung, bei der zwei Gene mitochondrialer DNA und drei Gene aus dem Zellkern von 123 verschiedenen Seeanemonenarten miteinander verglichen wurden, in zwei Unterordnungen und fünf Überfamilien.\n\nSeeanemonen (Actiniaria)\nUnterordnung Anenthemonae\nÜberfamilie Edwardsioidea\nFamilie Edwardsiidae Andres, 1881\nÜberfamilie Actinernoidea\nFamilie Actinernidae Stephenson, 1922\nFamilie Halcuriidae Carlgren, 1918\nUnterordnung Enthemonae\nÜberfamilie Actinostoloidea\nFamilie Actinostolidae Carlgren, 1932\nFamilie Exocoelactiidae Carlgren, 1925\nÜberfamilie Actinioidea\nFamilie Actiniidae Rafinesque, 1815\nFamilie Actinodendridae Haddon, 1898\nFamilie Andresiidae Stephenson, 1922\nFamilie Capneidae Gosse, 1860\nFamilie Condylanthidae Stephenson, 1922\nFamilie Haloclavidae Verrill, 1899\nFamilie Homostichanthidae Carlgren, 1900\nFamilie Iosactinidae Riemann-Zürneck, 1997\nFamilie Limnactiniidae Carlgren, 1921\nFamilie Liponematidae Hertwig, 1882\nFamilie Minyadidae Milne Edwards, 1857\nFamilie Oractinidae Riemann-Zürneck, 2000\nFamilie Phymanthidae Andres, 1883\nFamilie Preactiniidae England in England & Robson, 1984\nFamilie Ptychodactiidae Appellöf, 1893\nFamilie Stichodactylidae Andres, 1883; darunter 7 von 10 Symbioseanemonen\nFamilie Thalassianthidae Milne Edwards, 1857\nÜberfamilie Metridioidea\nFamilie Acontiophoridae Carlgren, 1938\nFamilie Actinoscyphiidae Stephenson, 1920\nFamilie Aiptasiidae Carlgren, 1924\nFamilie Aiptasiomorphidae Carlgren, 1949\nFamilie Aliciidae Duerden, 1895\nFamilie Amphianthidae Hertwig, 1882\nFamilie Andvakiidae Danielssen, 1890\nFamilie Antipodactinidae Rodríguez, López-González, Daly, 2009\nFamilie Bathyphelliidae Carlgren, 1932\nFamilie Boloceroididae Carlgren, 1924\nFamilie Diadumenidae Stephenson, 1920\nFamilie Gonactiniidae Carlgren, 1893\nFamilie Halcampidae Andres, 1883\nFamilie Haliactinidae Carlgren, 1949\nFamilie Haliplanellidae Hand, 1956\nFamilie Hormathiidae Carlgren, 1932\nFamilie Isanthidae Carlgren, 1938\nFamilie Kadosactidae Riemann-Zürneck, 1991\nFamilie Metridiidae Carlgren, 1893\nFamilie Mimetridiidae\nFamilie Nemanthidae Carlgren, 1940\nFamilie Nevadneidae Carlgren, 1925\nFamilie Octineonidae Fowler, 1894\nFamilie Ostiactinidae Rodríguez et al., 2012\nFamilie Phelliidae\nFamilie Ramireziidae Fautin, Eppard & Mead, 1988\nFamilie Sagartiidae Gosse, 1858\nFamilie Sagartiomorphidae Carlgren, 1934\n\n---\nQuelle: Wikipedia Deutsch (https://de.wikipedia.org/wiki/Seeanemonen)"
+    },
+    {
+      "slug": "steinkorallen",
+      "title": "Steinkorallen",
+      "category": "tierart",
+      "habitat": "Korallenriff",
+      "content": "# Steinkorallen\n\nSteinkorallen (Scleractinia, früher Madreporaria) sind Tiere, die den Hauptanteil an der Entstehung der Korallenriffe haben, der artenreichsten marinen Lebensräume auf der Erde. Die meist winzigen, sessilen Tiere haben die Fähigkeit, an ihrer Basis Kalk abzuscheiden, und bilden so Riffe und im Laufe der Jahrtausende gewaltige Riffstrukturen. Viele Inseln, z. B. die Bahamas und Bermuda im Atlantik, die Malediven im Indischen Ozean oder Tuvalu und Kiribati im Pazifik sind durch das allmähliche Wachstum von Steinkorallen gebildet worden. Bei der Kalkbildung hilft den meisten Steinkorallen eine Symbiose mit Zooxanthellen, kleinen, einzelligen Algen aus der Gruppe der Dinoflagellaten, die auch für die Ernährung der Korallen wichtig sind.\nAlle Steinkorallen leben im Meer, die meisten in den Tropen. Sie sind sehr einfach gebaute Tiere und gehören, wie Quallen, zu den Nesseltieren (Cnidaria) und darin zu den Sechsstrahligen Blumentieren (Zoantharia). Ihre nächsten Verwandten sind die Seeanemonen (Actiniaria) und andere, weniger bekannte Gruppen. Mit den nicht riffbildenden Weichkorallen (Alcyonacea) sind sie nur entfernt, mit den ebenfalls riffbildenden Feuerkorallen (Milleporidae) nur sehr entfernt verwandt.\n\n## Verbreitung\n\nDie Verbreitung der riffbildenden Steinkorallen wird durch die Lichtansprüche der Zooxanthellen geprägt. Außerdem sollte die Wassertemperatur 20 °C möglichst nicht unter- und 29 °C nicht überschreiten. Steinkorallen kommen deshalb überwiegend in flachen, lichtdurchfluteten, tropischen Küstengewässern vor. Ihr Verbreitungsgebiet erstreckt sich ungefähr auf einen Bereich zwischen 30° nördlicher und 30° südlicher Breite. Dabei gibt es zwei Verbreitungsschwerpunkte: Den tropischen Indopazifik, mit dem Zentrum in der Inselwelt Indonesiens, der Philippinen und Neuguineas, und die wesentlich weniger artenreiche Karibik.\n\nDaneben gibt es aber auch Steinkorallen in gemäßigten und kalten Meeren sowie in der Tiefsee bis in 6000 Metern Tiefe (auch auf Manganknollen). Die meisten Steinkorallen leben aber bei Tiefen von 30 bis 50 Metern unter der Wasseroberfläche. In europäischen Meeren gibt es Kaltwasserkorallen vor allem an der Küste Norwegens sowie am Kontinentalabhang unterhalb von 200 Metern.\nSteinkorallen brauchen einen Salzgehalt von mindestens 2,7 % und fehlen in der Nähe von Flussmündungen und in brackisch geprägten Gewässern wie Lagunen und Nebenmeeren. Daneben verhindern Weichböden ihre Ansiedlung und trübes Wasser behindert ihr Wachstum.\n\n*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*\n\n---\nQuelle: Wikipedia Deutsch (https://de.wikipedia.org/wiki/Steinkorallen)"
+    },
+    {
+      "slug": "alpenmurmeltier",
+      "title": "Alpenmurmeltier",
+      "category": "tierart",
+      "habitat": "Alpen",
+      "content": "# Alpenmurmeltier\n\nDas Alpenmurmeltier (Marmota marmota), süddeutsch und österreichisch auch Mankei oder Murmel, in der Schweiz auch Mungg oder Murmunda, ist ein besonders in den Alpen verbreitetes Nagetier. Es ist nach dem Biber und dem Stachelschwein das drittgrößte in Europa vorkommende Nagetier. Jungtiere des Alpenmurmeltieres erreichen in der Regel im dritten Jahr ihre Geschlechtsreife und verlassen frühestens dann ihren Familienverband. Bedingt durch diese späte Abwanderung der Jungtiere leben Murmeltiere sozial in Gruppen zusammen, die bis zu 20 Individuen umfassen können.\nAlpenmurmeltiere sind typische Vertreter einer eiszeitlichen Tierwelt, die während des Pleistozäns auch im europäischen Tiefland zu finden waren. Ein sechs bis sieben Monate währender Winterschlaf ermöglichte ihnen das Überleben in diesem Habitat. Während des Winterschlafes leben sie ausschließlich von körpereigenen Fettreserven, im Darm lebende Parasiten werden abgestoßen.\nHeute sind Murmeltiere als sogenanntes Eiszeitrelikt in ihrer Verbreitung auf Gebirgshöhenlagen begrenzt, da sie nur hier geeignete Umweltbedingungen finden. Bei dieser Besiedelung der Hochalpen hat das Alpenmurmeltier durch einen Flaschenhalseffekt den Großteil seiner genetischen Vielfalt verloren und konnte diesen durch seine an die Eiszeit angepasste Lebensweise auch nicht wieder aufbauen. Das Alpenmurmeltier gilt damit als eines der Tiere mit der geringsten genetischen Vielfalt überhaupt.\n\n## Erscheinungsbild\n\nZwischen weiblichen und männlichen Alpenmurmeltieren besteht kein auffälliger Unterschied, der es bei Feldbeobachtungen erlauben würde, die Geschlechter voneinander zu unterscheiden. Männchen sind tendenziell etwas größer und schwerer.\nDie Tiere haben eine Kopfrumpflänge von etwa vierzig bis fünfzig Zentimetern. Die Schwanzlänge beträgt zehn bis zwanzig Zentimeter. Das Gewicht schwankt innerhalb des Jahresablaufes. Gesunde, ausgewachsene Männchen wiegen mindestens drei Kilogramm. Das Gewicht der Weibchen liegt etwas darunter.\nDer Kopf ist schwärzlich und grau mit heller Schnauze. Die Ohren sind klein und behaart. Das Fell besteht aus dichten, kräftigen Grannenhaaren und einer Unterwolle aus kürzeren, etwas gewellten Haaren. Die Fellfarbe ist grundsätzlich sehr variabel. Der Rücken kann schiefergrau, hellbraun oder rötlichbraun sein, die Körperunterseite ist meist mehr gelblich gefärbt. Vereinzelt treten auch Individuen mit einem schwärzlich wirkenden Fell auf. Das Fell wird einmal jährlich gewechselt. Bei den meisten Individuen findet dieser Fellwechsel im Juni statt.\nAuffallend am Körperbau des Alpenmurmeltieres sind der muskulöse und kräftige Schultergürtel und die ausgeprägten Grabpfoten. Die Vorderbeine sind ein wenig kürzer als die Hinterbeine. Die Vorderfüße haben vier Zehen, die Hinterfüße fünf. Alpenmurmeltiere sind Sohlengänger, ihre Fußsohlen weisen gut ausgebildete Ballen auf und sind unbehaart.\n\n## Verbreitung und Lebensraum\n\nDas natürliche Verbreitungsgebiet des Alpenmurmeltiers umfasst die Alpen, die Karpaten und die Hohe Tatra, wobei das Murmeltier nirgendwo flächendeckend vertreten ist. Der Mensch hat das Alpenmurmeltier außerdem an verschiedenen Stellen angesiedelt. Zu den Gebieten, deren Murmeltierpopulationen auf Aussetzungen beruhen, zählen unter anderem bestimmte Regionen der Ostalpen und die Pyrenäen. Es gibt sogar eine kleine Kolonie im Schwarzwald.\nDie Höhenlagen, in denen sich die meisten Vorkommen der Alpenmurmeltiere finden, reichen von der jeweiligen lokalen Baumgrenze bis etwa 200 Höhenmeter darüber. Murmeltiere nutzen auch Rodungsflächen unterhalb der Baumgrenze, die vom Menschen dauerhaft baumfrei gehalten werden. Sie unterschreiten jedoch bestimmte Höhenlagen nicht und sind grundsätzlich erst ab einer Höhe von mindestens 800 Metern zu beobachten. In guten Murmeltiergebieten leben auf einem Quadratkilometer 40 bis 80 Murmeltiere.\nAlpenmurmeltiere sind in der Lage mit extremen alpinen Bedingungen zurechtzukommen und besiedeln alpine Matten bis an den Fuß von Gletschern. Dabei erreichen sie gelegentlich Höhenlagen von 3000 Metern. Ein geeigneter Lebensraum muss alpinen Rasen aufweisen, da sie nur hier ausreichend Nahrungspflanzen finden. Er muss außerdem einen tiefgründigen Boden bieten, der es den Murmeltieren ermöglicht, ihre ausgedehnten Baue anzulegen. Sie bevorzugen südlich exponierte Hanglagen, da diese im Frühjahr am ehesten schneefrei sind. An solchen Hängen setzt die Vegetationsperiode zudem früher ein und dauert länger an.\n\n## Nahrung\n\nAls Nahrung dienen im zeitigen Frühjahr noch Wurzeln, später Blätter und Blüten einer Reihe von Kräutern und Gräsern. Alpenmurmeltiere leiden während der Sommermonate nur äußerst selten an Nahrungsmangel. Sie nutzen nur einen Teil der zur Verfügung stehenden Nahrung und profitieren sogar davon, wenn die alpinen Matten, auf denen sie sich aufhalten, durch Rinder beweidet werden, da dies den frischen Pflanzennachwuchs fördert. Die Nahrungsaufnahme wird dagegen durch andere Faktoren begrenzt: Murmeltiere leiden schnell an Überhitzung und verbringen deshalb an warmen Tagen einen großen Teil der Tageszeit im kühleren Bau. Auch wiederholte Störungen durch Fressfeinde oder Menschen limitiert die Zeit, die sie mit Fressen verbringen können.\nAlpenmurmeltiere bevorzugen als Nahrung zellulosearme junge Triebe und Blüten. Unmittelbar nach dem Winterschlaf fressen sie ohne spezifische Selektion alle verfügbaren frischen Triebe. Mit Zunahme des Nahrungsangebotes spezialisieren sie sich jedoch auf bestimmte Pflanzen. Zu diesen zählen der Alpenklee, mehrere Arten des Tragant, Labkraut, Alpen-Mutterwurz, Alpen- und Berg-Wegerich. Untersuchungen haben gezeigt, dass diese bevorzugten Pflanzen besonders reich an mehrfach ungesättigten Fettsäuren sind. Diese Inhaltsstoffe können im Säugetierorganismus nicht selbständig generiert werden. Eine höhere Konzentration von essentiellen Fettsäuren im weißen Fettgewebe von Winterschläfern befähigt sie aber, während des Winterschlafes auch tiefere Körpertemperaturen zu überstehen.\n\n*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*\n\n---\nQuelle: Wikipedia Deutsch (https://de.wikipedia.org/wiki/Alpenmurmeltier)"
+    },
+    {
+      "slug": "symbiose",
+      "title": "Symbiose",
+      "category": "konzept",
+      "habitat": "Übergreifend",
+      "content": "# Symbiose\n\nSymbiose (von altgriechisch σύν sýn, deutsch ‚zusammen‘ sowie altgriechisch βίος bíos, deutsch ‚Leben‘) bezeichnet die Vergesellschaftung von Individuen zweier unterschiedlicher Arten, die für beide Partner vorteilhaft ist.\nAusgehend von seinen Arbeiten an Flechten schlug Anton de Bary 1878 auf der 51. Versammlung Deutscher Naturforscher und Ärzte in Kassel vor, die Bezeichnung Symbiose für jegliches Zusammenleben von artverschiedenen Organismen, also auch für den Parasitismus, in die Biologie einzuführen. In diesem weitgefassten Sinn wird die Bezeichnung Symbiose (englisch symbiosis) noch immer in der US-amerikanischen Literatur für sämtliche Formen des koevolutionär entstandenen Zusammenlebens, vom Mutualismus über den Kommensalismus, den Neutralismus bis hin zum Parasitismus verwendet. In Europa wird die Bezeichnung Symbiose dagegen im eingangs definierten engeren Sinn verwendet.\nBei Symbiosen zwischen Lebewesen, die sich durch ihre Größe erheblich unterscheiden, bezeichnet man den größeren Partner oft als Wirt, den kleineren als Symbiont.\n\n## Häufigkeit von Symbiosen\n\nDer größte Teil der Biomasse auf der Erde besteht aus symbiotischen Systemen, da ein großer Teil der Bäume und Sträucher auf Bestäubung durch andere Spezies angewiesen ist. Hinzu kommen die Flechten, eine symbiotische Lebensgemeinschaft zwischen einem Pilz und Grünalgen oder Cyanobakterien. Viele im flachen Wasser lebende sessile wirbellose Meerestiere wie Feuerkorallen, die meisten Blumentiere sowie die Riesenmuscheln leben mit Fotosynthese betreibenden Zooxanthellen zusammen. Ein weiteres Beispiel sind die Magen- und Darmbakterien der Tiere, die etwa bei Wiederkäuern den Aufschluss zellulosereicher Pflanzennahrung ermöglichen.\n\n## Unterscheidung nach dem Grad der wechselseitigen Abhängigkeit\n\nEine Unterscheidungsmöglichkeit verschiedener Symbiosenformen ergibt sich aus dem Grad der wechselseitigen Abhängigkeit der beteiligten Arten:\n\nProtokooperation (Allianz): Lockerste Form einer Symbiose: Beide Arten ziehen zwar einen Vorteil aus dem Zusammenleben, sind aber ohne einander gleichwohl lebensfähig. So in etwa Vögel, wie Madenhacker, welche Huftiere (z. B. verschiedene Giraffenarten, Büffelarten) von Parasiten befreien.\nMutualismus: Regelmäßige, aber nicht lebensnotwendige Beziehung der Symbionten. So in etwa die „Viehwirtschaft“ der Ameisen mit Blattläusen, wobei Ameisen durch den Honigtau der Blattläuse zuckerhaltige Nahrung erhalten und die Blattläuse Schutz vor Räubern wie Marienkäfern. Ameisen können jedoch auch auf andere Nahrungsgrundlagen zurückgreifen und Blattläuse bestehen auch ohne Schutz.\nEusymbiose, auch obligatorische Symbiose (altgriechisch εὖ eu „gut, echt“): Bei der Eusymbiose sind die Partner alleine nicht mehr lebensfähig. So kultivieren Blattschneiderameisen in ihrem Bau Pilze, von denen sie sich ernähren; die Pilze wiederum können sich ohne die Ameisen nicht vermehren.\n\n## Unterscheidung auf der Basis der räumlichen Beziehung\n\nEine Unterscheidung verschiedener Symbioseformen ergibt sich aus der räumlichen oder körperlichen Beziehung der beiden beteiligten Arten:\n\nEndosymbiose: einer der Partner (Endosymbiont) wird in den Körper des anderen (Wirt) aufgenommen. Beispiele sind bestimmte Enterobakterien im Darm von Menschen und Tieren, Knöllchenbakterien in den Wurzeln von Hülsenfrüchtlern, Zooxanthellen in den riffbildenden Steinkorallen des Tropengürtels und Nitrat-atmende Bakterien in den anaeroben Tiefen einiger meromiktischer Seen.\nEndocytobiose: Ein Organismus (ein Einzeller oder ein Virus), der in den Zellen anderer Organismen lebt bzw. sich dort vermehrt (symbiotisch oder parasitär). Alle Viren sind in diesem Sinn obligate Endocytobionten. Die zellulären Endocytobionten sind meist (größenbedingt) Bakterien, es gibt aber auch eukaryontische Endocytobionten (beispielsweise die Zoochlorellen und Zooxanthellen). Siehe auch § Endosymbiontentheorie.\nExosymbiose: Die Partner stehen nur über ihre Oberfläche miteinander in Kontakt. Beispiele dafür ist die Flechtensymbiose und die Epixenosomen (zu den Verrucomicrobia gehörende Bakterien) des Wimpertierchens Euplotidium. Vergleiche auch Parabiose und Epibiont (mit Spezialfällen Epiphyt und Epizoon).\nEktosymbiose: Die Partner einer Symbiose bleiben körperlich getrennt (etwa Blüten und ihre Bestäuber; Clownfische und ihre Seeanemonen).\nEine leicht abweichende Unterteilung findet sich etwa bei Ebert und Rühle (2009–2013): Die Autoren unterscheiden extrazelluläre Exosymbiose, extrazelluläre Endosymbiose, intrazelluläre Symbiose und intranukleäre Symbiose.\n\n## Unterscheidung nach der Art des erzielten Nutzens\n\nEine Unterscheidung von Symbioseformen ergibt sich aufgrund der Art des erzielten Nutzens für die beiden beteiligten Arten.\n\nFortpflanzungssymbiose: Ein Beispiel für Fortpflanzungssymbiose ist die Symbiose zwischen Bienen und Blütenpflanzen. Die Biene nimmt den Nektar der Blüten als Nahrung auf, dabei bleiben die Pollen der Blüte an ihr hängen, welche die Biene dann weiter trägt und damit eine andere Blüte bestäubt, sodass diese sich vermehren kann. Diese wird Zoophilie genannt und ist der „normale“ Akt der Bestäubung von Blütenpflanzen (Angiospermen) durch Insekten oder Vögel, wobei die Insekten bzw. Vögel Nektar, aber auch Pollen als Nahrung erhalten.\nSymbiose zum Schutz vor Feinden: Ein Beispiel für diese Symbiose ist die Beziehung von Ameisen zu Blattläusen. Die Ameisen geben den Blattläusen Schutz vor Feinden, im Gegenzug lassen sich diese von den Ameisen „melken“, sie sondern eine Zuckerlösung ab, welche die Ameisen zu sich nehmen.\n\n*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*\n\n---\nQuelle: Wikipedia Deutsch (https://de.wikipedia.org/wiki/Symbiose)"
+    },
+    {
+      "slug": "klimawandel",
+      "title": "Klimawandel",
+      "category": "konzept",
+      "habitat": "Übergreifend",
+      "content": "# Klimawandel\n\nKlimawandel, auch Klimaveränderung, Klimaänderung oder Klimawechsel, ist eine weltweit auftretende Veränderung des Klimas auf der Erde oder erdähnlichen Planeten oder Monden, die eine Atmosphäre besitzen. Die mit einem Klimawandel verbundene Abkühlung oder Erwärmung kann über unterschiedlich lange Zeiträume erfolgen. Ein wichtiges Unterscheidungsmerkmal besteht dabei zwischen jenen Witterungsverläufen, die im Rahmen eines Klimazustands beziehungsweise einer Klimazone erfolgen, und dem Klimawandel selbst, der die Wahrscheinlichkeit für das Auftreten bestimmter Wetterlagen erhöht oder vermindert.\nDie gegenwärtige, vor allem durch den Menschen verursachte (anthropogene) globale Erwärmung ist ein Beispiel für einen sehr rasch verlaufenden, aber noch nicht abgeschlossenen Klimawandel. Hierfür wird in der öffentlichen Diskussion oftmals der Begriff Klimawandel als Synonym genutzt (dann aber als „Der Klimawandel“). Die durch den aktuellen Klimawandel hervorgerufene oder prognostizierte ökologische und soziale Krise wird auch als „Klimakrise“ oder „Klimakatastrophe“ bezeichnet.\nEin Klimawandel auf globaler Ebene beruht im Wesentlichen auf einer Veränderung des Strahlungsantriebs, der das Erdklimasystem aus einem stabilen thermisch-radiativen Gleichgewicht in ein neues Gleichgewicht überführt. Der Strahlungsantrieb resultiert aus den atmosphärischen Konzentrationen von Treibhausgasen wie Kohlenstoffdioxid (CO2), Methan (CH4) und Wasserdampf (H2O), aus der variierenden Sonneneinstrahlung aufgrund der Milanković-Zyklen sowie aus dem Rückstrahlvermögen (Albedo) der Erdoberfläche einschließlich der Ozeane. Der Klimazustand während der letzten Jahrmillionen war der eines Eiszeitalters und wurde überwiegend von den Milanković-Zyklen gesteuert, die die Sonneneinstrahlung über mehrere zehntausend Jahre signifikant veränderten und so den Anstoß für den Wechsel von Kalt- und Warmzeiten gaben. Unter Berücksichtigung der oben genannten Faktoren konnten elf dieser Warmzeiten (auch Interglaziale oder Zwischeneiszeiten) während der letzten 800.000 Jahre identifiziert und detailliert beschrieben werden.\nEine spezielle Form des Klima­wandels sind abrupte Klimawechsel. Sie wurden in der Erdgeschichte durch Eruptionen von Supervulkanen, großflächige Magmaausflüsse, stark erhöhte Treibhausgas-Emissionen, schnelle Veränderungen von Meeresströmungen oder durch kurzfristige Rückkopplungs­prozesse im Klimasystem ausgelöst, oft in Verbindung mit biologischen Krisen beziehungsweise Massenaussterben. Abrupte Klimawechsel können regional auftreten (wie die Dansgaard-Oeschger-Ereignisse im Nordatlantikraum während der letzten Kaltzeit) oder weltweite Auswirkungen haben, zum Beispiel infolge eines großen Impaktereignisses.\nDer Begriff Klimaschwankung wird gelegentlich für Klimaänderungen verwendet, die nur wenige Jahrzehnte andauern oder zyklischer Natur mit variabler Periode sind und dabei nur selten einen weltweiten Einfluss ausübten. Zyklische Schwankungen werden auch als Klimafluktuationen bezeichnet, relativ rasche zyklische Wechsel auch als Klimaoszillation. Eine Epoche vergleichsweise kühlen Klimas wird in dem Zusammenhang manchmal Klimapessimum genannt, eine relativ warme Phase Klimaoptimum oder Wärmeoptimum. Optimum und Pessimum sind eine Konvention in der Klimasystematik und keine Wertung, können jedoch zu Fehlinterpretationen führen und werden deshalb in der neueren Fachliteratur durch den Begriff Klimaanomalie ersetzt. Die während des frühen Holozäns in Teilen der nördlichen Hemisphäre aufgetretene Misox-Schwankung (international 8.2 kiloyear event), wahrscheinlich verursacht von einem massiven Schmelzwasser-Eintrag in den Nordatlantik, war eine zeitlich scharf begrenzte, aber relativ ausgeprägte Klimaanomalie.\n\n*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*\n\n---\nQuelle: Wikipedia Deutsch (https://de.wikipedia.org/wiki/Klimawandel)"
+    },
+    {
+      "slug": "korallenbleiche",
+      "title": "Korallenbleiche",
+      "category": "konzept",
+      "habitat": "Korallenriff",
+      "content": "# Korallenbleiche\n\nMit Korallenbleiche wird das Ausbleichen von Steinkorallen-Stöcken bezeichnet, das zum anschließenden Absterben der Korallen führen kann.\nKorallen sind lebende Organismen. Sie gehören zu den Nesseltieren und siedeln in Symbiose mit photosynthetisch aktiven Einzellern (Zooxanthellen) auf einer Kalkschicht, die von Jahr zu Jahr wächst. Werden die Zooxanthellen von der Koralle abgestoßen, verliert der Korallenstock seine Farbenpracht und seine ökologische Funktion. Korallenbleiche kann sowohl örtlich begrenzt als auch großflächig auftreten und tritt vor allem bei zu hohen Wassertemperaturen auf. Das Phänomen zählt somit zu den Folgen der globalen Erwärmung und nimmt durch die vom Menschen verursachte globale Erwärmung immer weiter zu. Während bei weniger schweren Bleichen die Korallen nur geschädigt werden und sich über einige Jahre ggf. wieder erholen können, führen schwerere Bleichen zum vollständigen Absterben ganzer Riffe.\nMittlerweile wurden mehrere umfassende Korallenbleichen festgestellt, deren Ausmaße global spürbar waren und die in den Jahren 1998, 2010, 2016 und 2024 beobachtet wurden.\n\n## Bedeutung von Korallenriffen\n\nNeben den tropischen Regenwäldern gelten Korallenriffe als artenreichste Lebensräume der Welt: Bislang wurden hier etwa 60.000 verschiedene Arten entdeckt. Es werden jedoch mehr als 400.000 Arten in den Riffen vermutet, so leben hier z. B. mehr als ein Viertel aller bekannten Meeresfische. Die Größe aller Riffe wird auf über 600.000 km² geschätzt. Korallenriffe existieren seit über 225 Millionen Jahren und gehören damit zu den ältesten bekannten Ökosystemen der Welt.\nSowohl mit ihrem Artenreichtum vor allem an Fischen wie auch als touristische Tauch- und Schnorchel-Attraktion sind sie dabei Nahrungs- und Einkommensquelle großer Teile der an den jeweiligen Küsten lebenden Menschen. Indem sie 70 bis 90 % lokal auftretender Wellenenergie absorbieren können, schützen sie die jeweiligen Küsten nicht zuletzt vor mechanischer Belastung und Zerstörung durch Wellen.\nWenn Korallen absterben, nimmt die Biodiversität ab: Ganze Ökosysteme bzw. Nahrungsketten können zusammenbrechen; Korallenarten können verschwinden und mit ihnen Fische, die von ihnen als Nahrungsquelle abhängig sind oder sie als Platz zur Aufzucht ihres Nachwuchses benötigen.\nFischer verlieren ihre Nahrungs- und Erwerbsgrundlage; Tauchtourismus als Einkommensquelle verschwindet (der Jahresumsatz des Riff-Tourismus wird auf 9,6 Mrd. Dollar geschätzt) ebenso wie der Schutz der jeweiligen Küste vor Wellen: Der finanzielle Schaden durch Überschwemmungen und Stürme in betroffenen Küstenregionen z. B. verdoppelt bis verdreifacht sich, wenn ein Meter Riff-Höhe verloren geht.\nKorallenbleiche in Verbindung mit anderen Stressoren wie die Versauerung der Meere oder Einträgen von Schad- bzw. Spurenstoffen, darunter vor allem Stickstoff oder Phosphor, erhöht die Mortalität der Korallen weltweit: Großflächige Korallenbleiche kann Ursache und sichtbares Indiz eines massenhaften Korallensterbens sein.\nFür viele Korallenbänke droht ein Kipppunkt überschritten zu werden, ab dem sie unwiederbringlich verloren gehen.\n\n## Bleichprozess\n\nSteinkorallen leben in Symbiose mit Zooxanthellen, diese sind unter anderem auch für die Färbung der Korallen verantwortlich. Die Zooxanthellen leben endosymbiotisch in den Zellen der Korallenpolypen. Sie sind in der Lage, wie eine Art Niere Schadstoffe in den Zellen der Polypen zu beseitigen, vor allem aber betreiben sie Photosynthese und versorgen die Korallen mit Glukose, Glycerol und Aminosäuren. Zwar sind Korallen auch Filtrierer, d. h. sie filtern Mikroplankton aus dem Meerwasser, jedoch ist in den nährstoffarmen warmen tropischen Gewässern die Versorgung durch photosynthetisch gebildete Nährstoffe für sie essentiell, ihr Anteil an der Gesamtnährstoffversorgung kann bis zu 90 % betragen (→ Riffparadoxon).\nDiese symbiotische Beziehung reagiert empfindlich auf eine Reihe von Stressoren, darunter regionale, wie verschiedene Umweltgifte, zu intensive Sonneneinstrahlung oder eine abrupte Änderung der Salinität des Meerwassers, und globale, vor allem Wärmestress. Die Zooxanthellen beginnen bei einer zu hohen Temperatur des Meerwassers – bei der Art Oculina patagonica liegt die Schwelle z. B. bei 29 °Celsius – ihre Fähigkeit zur Photosynthese einzubüßen (→ Photoinhibition). Es kommt zu oxidativem Stress, der auf die Wirtszellen toxisch wirkt. Als Folge davon werden die Zooxanthellen von den Korallen abgestoßen, welche damit auch ihre Färbung verlieren und „ausbleichen“. Manche Korallen sehen nach dem Ausbleichen statt kalkweiß auch pastellartig blau, gelb oder rosa aus. Ursache hierfür sind von den Korallen gebildete Proteine.\nBei welcher Temperaturschwelle diese Disassoziation von Koralle und Zooxanthelle genau eintritt, hängt u. a. von den beteiligten Arten ab. Besonders feingliedrige, verzweigte Korallen sind anfällig für höhere Temperaturen, darunter Seriatopora, Stylophora, Pocillopora, Acropora und Montipora. Zu den resistenteren massiven Gattungen zählen Porites oder Goniopora. Auch bei den Zooxanthellen gibt es eine große Artenvielfalt, oft werden zu verschiedenen Kladen gehörende Zooxanthellen in den gleichen Korallenarten gefunden. Hitzetolerantere Zooxanthellen kommen vor allem im sehr warmen Persischen Golf vor, im benachbarten kühleren Roten Meer hingegen sind empfindlichere Arten zuhause. Inwieweit die Art der Zooxanthellen Einfluss auf Nährstoffversorgung, Wachstum oder Hitzeresistenz der Lebensgemeinschaft hat, ist Gegenstand der Forschung.\nNeuere Studien zeigen, dass außerdem die Verfügbarkeit von Nährstoffen, vor allem Stickstoff und Phosphor, einen wichtigen Einfluss auf die Symbiose hat. In einem Riff nahe der Florida Keys war eine Hauptursache menschlicher Stickstoffeintrag, etwa von ausgeschwemmtem Dünger oder Abwässern, in die Meere. Ein gestörtes Phosphor-Stickstoff-Verhältnis machte die Korallen wahrscheinlich anfällig für thermalen Stress.\nOhne Zooxanthellen können Korallen nicht dauerhaft überleben. Sie sterben ab, falls die Zooxanthellen nicht innerhalb eines Zeitraumes von etwa acht Wochen zurückkehren (der genaue Zeitraum ist artspezifisch).\n\n*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*\n\n---\nQuelle: Wikipedia Deutsch (https://de.wikipedia.org/wiki/Korallenbleiche)"
+    },
+    {
+      "slug": "winterschlaf",
+      "title": "Winterschlaf",
+      "category": "konzept",
+      "habitat": "Alpen",
+      "content": "# Winterschlaf\n\nAls Winterschlaf oder Hibernation bezeichnet man einen saisonalen mehrtägigen Torpor in manchen Säugetieren und einer Vogelart, der durch eine Herabsetzung der Stoffwechselaktivität und Körpertemperatur definiert ist. Für gleichwarme Tiere ist es die wirksamste Methode um Energie zu sparen. Die meisten Winterschläfer tun dies im Winter bei niedrigen Temperaturen, jedoch gibt es auch Säugetiere, die Lemuren, die bei tropischem Klima Winterschlaf nutzen, um Trockenzeiten zu überbrücken. Da normale Körperfunktionen durch die geringe Stoffwechselaktivität und Körpertemperatur während mehrtägigem Torpor gestört sind, unterbrechen Winterschläfer regelmäßig den Torpor, um unter anderem das Immunsystem hochzufahren.\nTypische Winterschläfer unter den mitteleuropäischen Säugetieren sind die Fledermäuse, aber auch die vier heimischen Arten der Bilche, das Alpenmurmeltier, der Ziesel, der Feldhamster, die Waldbirkenmaus und der Braunbrust- und Weißbrustigel. Allen Winterschläfern ist gemein, dass sie sich bei äußeren Störungen rasch auf Normaltemperatur erwärmen können. Dies wird durch Hormonausschüttungen der Hypophyse gesteuert. Bei der Erwärmung verbrauchen sie erhebliche Mengen Fett, weshalb die Tiere nach häufigen Störungen des Winterschlafs verhungern können.\nMit der zeitlichen Organisation des Winterschlafs beschäftigt sich die Chronobiologie.\n\n## Das Verhalten der Winterschläfer in den kalten Jahreszeiten\n\nDie Winterschläfer suchen im Herbst isolierte Winterquartiere auf, an denen sie vor der strengen Kälte geschützt sind (hohle Baumstämme, Erdhöhlen und dergleichen). In diesem Winterquartier verbringen sie mit geschlossenen Augenlidern den Winter in einem energetischen Sparzustand, dem so genannten Torpor. Ihre normale Körpertemperatur sinkt dabei auf die Temperatur des Winterquartiers ab (Thermoregulation). Alle Körperfunktionen sind in diesem Zustand stark vermindert. Die Atmung ist schwach, der Herzschlag verlangsamt. Murmeltiere senken zum Beispiel während des Winterschlafs ihre Körpertemperatur von 39 auf bis zu 7 °C ab. Ihr Herz schlägt statt hundertmal nur noch zwei- bis dreimal pro Minute. Die Atempausen können bis zu eine Stunde betragen. Absonderungsprodukte des Darmkanals und der Leber sammeln sich bei Winterschläfern im unteren Teil des Darms an und werden gleich nach dem Erwachen ausgeschieden. Nahrung wird im Torporzustand nicht aufgenommen, höchstens in den gelegentlichen Wachphasen. Die Tiere zehren stattdessen von ihren Fettreserven, welche sie sich im Herbst und frühem Winter angefressen haben. Murmeltiere verkleinern während des Winterschlafes sogar Magen und Darm um die Hälfte, Leber und Nieren um etwa 30 Prozent. Ein spezielles braunes Fettgewebe, das insbesondere im Schulter- und Nackenbereich der Winterschläfer liegt, dient ausschließlich der Wärmeproduktion. In der Spätphase des Aufwachens wird der Körper zusätzlich durch Muskelzittern wieder auf Normaltemperatur gebracht. Je höher die Körpertemperatur wird, desto schneller atmen die Tiere.\nManche Winterschläfer wie die Murmeltiere halten einen sozialen Winterschlaf, bei dem in jedem Bau bis zu 20 Eltern- und Jungtiere eng nebeneinander ruhen, so dass sie sich gegenseitig aufwärmen können, wenn die winterlichen Temperaturen zu stark absinken. Das erhöht vor allem die Chancen der Jungtiere, die über weniger Energiereserven verfügen, auch härtere Winter zu überstehen.\n\n## Die Dauer des Winterschlafs\n\nDie Dauer des Winterschlafs ist bei den einzelnen Winterschläfern unterschiedlich. Beim Igel sind es drei bis vier Monate; Siebenschläfer verbringen sechs bis sieben Monate im Winterschlaf (daher auch ihr deutscher Name). Man darf jedoch nicht der falschen Vorstellung unterliegen, dass es sich beim Winterschlaf um einen mehrmonatigen Dauerschlaf ohne Pause handelt. Vielmehr verläuft der Schlaf meist in Abschnitten, wobei sich längere Phasen der Ruhe mit stark reduziertem Stoffwechsel mit kurzen Wachphasen abwechseln. Während zum Beispiel Igel eine Torpordauer von 1 bis 3 Wochen haben, schlafen Siebenschläfer etwa 20 bis 33 Tage am Stück. Zu oft dürfen die Tiere während des Winters allerdings nicht aufwachen, weil jede zwischenzeitliche Aufwachphase an den Energiereserven zehrt, so dass die Fettdepots zu früh aufgebraucht würden und für den eigentlichen Aufwachvorgang im Frühjahr nicht mehr zur Verfügung stünden.\nWissenschaftler haben für ein Experiment extra gemästete Haselmäuse länger als ein Jahr im Winterschlaf gehalten.\n\n## Mögliche Auslöser für den Winterschlaf\n\nAls Auslöser für den lang anhaltenden Ruhezustand wurden traditionell äußere Faktoren wie das Sinken der Außentemperaturen oder der Nahrungsmangel im Herbst angeführt. Doch sollen nach Ansicht von Experten neben den kürzeren Tageslängen als Signalgeber vor allem innere Faktoren wie die Umstellung des Hormonhaushalts – ein Nachlassen der Bestrahlung mit ultraviolettem Licht durch die schwächere Sonne führt zu einer geringeren Erzeugung von Vitamin D, was Erstarrungshormone in Gang setzt – oder die innere Uhr, die einem jahreszeitlich bedingten Rhythmus unterworfen ist, für die Auslösung des Winterschlafs verantwortlich sein. So scheint die innere Uhr die Bildung von Fettdepots und dies wiederum die Schlafbereitschaft zu beeinflussen. Selbst der narkotisierende Einfluss einer höheren Kohlendioxidkonzentration in den Schlafhöhlen wurde als auslösender Faktor für den Winterschlaf diskutiert.\n\n## Das Aufwachen im Frühjahr\n\nDie Ursache für das Aufwachen im Frühjahr ist immer noch nicht genau bekannt. Steigende Umgebungstemperaturen und die Anreicherung von Stoffwechselendprodukten im Körper könnten als Wecksignale dienen. Sind Wecksignale vorhanden, werden von der Hypophyse Hormone ausgeschüttet, die für Wärmeerzeugung durch das braune Fettgewebe sorgen. Hat sich die Körperkerntemperatur bis auf etwa 15 Grad Celsius erhöht, kann zusätzliches Muskelzittern zur weiteren Temperaturerhöhung beitragen. Der Kopf- und Rumpfbereich mit den lebenswichtigen Organen wird hierbei zuerst erwärmt, als letztes folgen die Extremitäten.\n\n*(Hinweis: Gekürzte Fassung des Wikipedia-Artikels für kompakte Workshop-Nutzung.)*\n\n---\nQuelle: Wikipedia Deutsch (https://de.wikipedia.org/wiki/Winterschlaf)"
+    }
+  ],
+  "vaultArticles": [
+    {
+      "slug": "arktis",
+      "title": "Arktis",
+      "category": "lebensraum",
+      "habitat": "Arktis",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "lebensraum",
+        "polar",
+        "meereis"
+      ],
+      "summary": "Die Arktis, auch Nordpolargebiet und Nordpolgebiet, bezeichnet die Region um den Nordpol und damit eines der beiden Polargebiete.",
+      "related": [
+        "eisbaer",
+        "ringelrobbe",
+        "polarfuchs",
+        "narwal",
+        "klimawandel",
+        "raeuber-beute-beziehung",
+        "artensterben"
+      ],
+      "source_file": "raw/arktis.md",
+      "key_points": [
+        "Die Arktis, auch Nordpolargebiet und Nordpolgebiet, bezeichnet die Region um den Nordpol und damit eines der beiden Polargebiete.",
+        "Zur Arktis zählen die nördliche Polkappe, das im Winter großenteils von Eis bedeckte Nordpolarmeer und die nördlichen Ausläufer der Kontinente Nordamerika, Asien und Europa.",
+        "Die genaue Abgrenzung wird je nach Fachrichtung und Autor unterschiedlich vorgenommen, orientiert sich jedoch häufig an den meteorologischen bzw. klimatologischen Festlegungen.",
+        "Der Arktis auf der Erdkugel gegenüber liegt ihre Antipodin Antarktis."
+      ]
+    },
+    {
+      "slug": "tropischer-regenwald",
+      "title": "Tropischer Regenwald",
+      "category": "lebensraum",
+      "habitat": "Tropischer Regenwald",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "lebensraum",
+        "tropen",
+        "wald"
+      ],
+      "summary": "Tropischer Regenwald ist der Oberbegriff für die immerfeuchten Wälder der tropischen Klimazone.",
+      "related": [
+        "jaguar",
+        "faultiere",
+        "blattschneiderameisen",
+        "orang-utans",
+        "biodiversitaet",
+        "artensterben"
+      ],
+      "source_file": "raw/tropischer-regenwald.md",
+      "key_points": [
+        "Tropischer Regenwald ist der Oberbegriff für die immerfeuchten Wälder der tropischen Klimazone.",
+        "Der Begriff stammt aus der Geographie und bezeichnet verallgemeinernd einen bestimmten Landschaftstyp der globalen Maßstabsebene.",
+        "Je nach Disziplin existieren unterschiedliche Festlegungen (siehe Abschnitt „Definition“).",
+        "Dieser Waldtyp liegt am Äquator, großflächig bis ungefähr zum 10."
+      ]
+    },
+    {
+      "slug": "korallenriff",
+      "title": "Korallenriff",
+      "category": "lebensraum",
+      "habitat": "Korallenriff",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "lebensraum",
+        "ozean",
+        "riff"
+      ],
+      "summary": "Ein Korallenriff (auch „Regenwald der Meere“ wegen der sehr großen Artenvielfalt) ist eine von hermatypischen (riffbildenden) Nesseltieren gebildete Riffstruktur im Meer, die groß genug wird, um einen bedeutenden physika",
+      "related": [
+        "steinkorallen",
+        "anemonenfische",
+        "seeanemonen",
+        "korallenbleiche",
+        "symbiose",
+        "schluesselart"
+      ],
+      "source_file": "raw/korallenriff.md",
+      "key_points": [
+        "Ein Korallenriff (auch „Regenwald der Meere“ wegen der sehr großen Artenvielfalt) ist eine von hermatypischen (riffbildenden) Nesseltieren gebildete Riffstruktur im Meer, die groß genug wird, um einen bedeutenden physikalischen und ökologischen Einfluss auf ihre Umgebung auszuüben.",
+        "Es sind die größten von Lebewesen geschaffenen Strukturen der Erde.",
+        "Die Gesamtfläche der heutigen Korallenriffe liegt bei 600.000 km², bei den Malediven erheben sich die Riffe bis zu 2200 Meter über den Meeresboden.",
+        "Korallenriffe werden im Wesentlichen von Korallen aus der Gruppe der Steinkorallen (Scleractinia) aufgebaut, daneben tragen die Feuerkorallen (Millepora) sowie, im tropischen Indopazifik, die Blaue Koralle (Heliopora coerulea) zur Riffbildung bei."
+      ]
+    },
+    {
+      "slug": "alpen",
+      "title": "Alpen",
+      "category": "lebensraum",
+      "habitat": "Alpen",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "lebensraum",
+        "hochgebirge",
+        "europa"
+      ],
+      "summary": "Die Alpen sind das höchste Hochgebirge in Europa.",
+      "related": [
+        "alpensteinbock",
+        "alpenmurmeltier",
+        "steinadler",
+        "bartgeier",
+        "winterschlaf",
+        "klimawandel"
+      ],
+      "source_file": "raw/alpen.md",
+      "key_points": [
+        "Die Alpen sind das höchste Hochgebirge in Europa.",
+        "Sie erstrecken sich in einem 1200 Kilometer langen und zwischen 150 und 250 Kilometer breiten Bogen vom Ligurischen Meer zum Pannonischen Becken.",
+        "Die gesamte Alpenregion hat eine Fläche von etwa 200.000 Quadratkilometern.",
+        "Sie dehnt sich etwa 750 Kilometer von West nach Ost und rund 400 Kilometer von Süd nach Nord aus und wird vom Rhonetal, dem Schweizer Mittelland, dem Oberlauf der Donau, der Kleinen Ungarischen Tiefebene, der Po-Ebene und dem Golf von Genua umgrenzt."
+      ]
+    },
+    {
+      "slug": "savanne",
+      "title": "Savanne",
+      "category": "lebensraum",
+      "habitat": "Savanne",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "lebensraum",
+        "grasland",
+        "afrika"
+      ],
+      "summary": "Als Savanne (über spanisch sabana aus einer karibischen Sprache entlehnt) wird im Allgemeinen ein tropischer oder subtropischer Vegetationstyp bezeichnet, der aus einer geschlossenen Krautschicht und einer eher offenen G",
+      "related": [
+        "afrikanischer-elefant",
+        "loewe",
+        "gepard",
+        "steppenzebra",
+        "streifengnu",
+        "schluesselart"
+      ],
+      "source_file": "raw/savanne.md",
+      "key_points": [
+        "Als Savanne (über spanisch sabana aus einer karibischen Sprache entlehnt) wird im Allgemeinen ein tropischer oder subtropischer Vegetationstyp bezeichnet, der aus einer geschlossenen Krautschicht und einer eher offenen Gehölzschicht mit mehr oder weniger Bäumen besteht.",
+        "Nur auf Vertisolen und sehr flachgründigen Böden sind (azonale) Savannen baumfrei.",
+        "Die Abgrenzung zu Trockenwäldern wird unterschiedlich gehandhabt.",
+        "Außerdem ist Savanne ein Sammelbegriff für die Vegetationszone zwischen dem tropischen Regenwald und der Wüste."
+      ]
+    },
+    {
+      "slug": "eisbaer",
+      "title": "Eisbär",
+      "category": "tierart",
+      "habitat": "Arktis",
+      "status": "Gefährdet (VU)",
+      "tags": [
+        "tierart",
+        "raubtier",
+        "arktis"
+      ],
+      "summary": "Der Eisbär (Ursus maritimus), auch Polarbär genannt, ist eine Raubtierart aus der Familie der Bären (Ursidae).",
+      "related": [
+        "arktis",
+        "ringelrobbe",
+        "walross",
+        "polarfuchs",
+        "klimawandel",
+        "nahrungskette",
+        "tarnung-biologie"
+      ],
+      "source_file": "raw/eisbaer.md",
+      "key_points": [
+        "Der Eisbär (Ursus maritimus), auch Polarbär genannt, ist eine Raubtierart aus der Familie der Bären (Ursidae).",
+        "Er lebt an den Küsten und auf dem Eis in den nördlichen Polarregionen und ist eng mit dem Braunbären verwandt.",
+        "Neben Kamtschatkabären und Kodiakbären gelten Eisbären als die größten an Land lebenden Raubtiere der Erde.",
+        "Da sie einen großen Teil ihres Lebens auf dem Meereseis verbringen und von marinen Ökosystemen abhängig sind, werden sie je nach Systematik auch als Meeressäuger eingeordnet."
+      ]
+    },
+    {
+      "slug": "polarfuchs",
+      "title": "Polarfuchs",
+      "category": "tierart",
+      "habitat": "Arktis",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "raubtier",
+        "arktis"
+      ],
+      "summary": "Der Polarfuchs, Weißfuchs, Schneefuchs oder Eisfuchs (Vulpes lagopus, Synonym Alopex lagopus) ist eine Fuchsart, die in der nördlichen Polarregion beheimatet ist.",
+      "related": [
+        "arktis",
+        "lemminge",
+        "eisbaer",
+        "tarnung-biologie"
+      ],
+      "source_file": "raw/polarfuchs.md",
+      "key_points": [
+        "Der Polarfuchs, Weißfuchs, Schneefuchs oder Eisfuchs (Vulpes lagopus, Synonym Alopex lagopus) ist eine Fuchsart, die in der nördlichen Polarregion beheimatet ist.",
+        "Der wissenschaftliche Name bedeutet „hasenfüßiger Fuchs“, da seine Pfoten wie die des Polarhasen mit dichtem Pelz besetzt sind.",
+        "Seine Gestalt weist ihn als typischen Fuchs aus, doch wirken seine Kopf- und Schnauzenform gedrungener als etwa beim Rotfuchs.",
+        "Die durchschnittliche Länge misst, unter Einbeziehung des etwa 35 Zentimeter langen Schwanzes, zwischen 65 und 90 Zentimetern."
+      ]
+    },
+    {
+      "slug": "ringelrobbe",
+      "title": "Ringelrobbe",
+      "category": "tierart",
+      "habitat": "Arktis",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "robbe",
+        "arktis"
+      ],
+      "summary": "Die Ringelrobbe (Pusa hispida, Syn.: Phoca hispida) ist die am häufigsten in der Arktis vorkommende Robbenart.",
+      "related": [
+        "arktis",
+        "eisbaer",
+        "polarfuchs",
+        "raeuber-beute-beziehung"
+      ],
+      "source_file": "raw/ringelrobbe.md",
+      "key_points": [
+        "Die Ringelrobbe (Pusa hispida, Syn.: Phoca hispida) ist die am häufigsten in der Arktis vorkommende Robbenart.",
+        "Neben dem Nordpolarmeer bewohnt diese nahe Verwandte des Seehunds auch die nördlichen Bereiche der Ostsee.",
+        "Der Name Ringelrobbe beruht darauf, dass das Fell mit hellen Ringen versehen ist, die dunkle Flecken auf grauem Grund umranden.",
+        "Erwachsene Tiere werden durchschnittlich 135 cm lang und 70 kg schwer; die Ringelrobben der Ostsee sind mit über 140 cm Länge und 100 kg Gewicht größer."
+      ]
+    },
+    {
+      "slug": "walross",
+      "title": "Walross",
+      "category": "tierart",
+      "habitat": "Arktis",
+      "status": "Gefährdet (VU)",
+      "tags": [
+        "tierart",
+        "robbe",
+        "arktis"
+      ],
+      "summary": "Das Walross (Odobenus rosmarus; frühere Synonyme: Trichechus rosmarus und Rosmarus arcticus) ist eine Robbenart, die in den kalten Meeren der Nordhalbkugel vorkommt.",
+      "related": [
+        "arktis",
+        "eisbaer",
+        "polarfuchs",
+        "ringelrobbe"
+      ],
+      "source_file": "raw/walross.md",
+      "key_points": [
+        "Das Walross (Odobenus rosmarus; frühere Synonyme: Trichechus rosmarus und Rosmarus arcticus) ist eine Robbenart, die in den kalten Meeren der Nordhalbkugel vorkommt.",
+        "Zwei Unterarten, das Atlantische (O.",
+        "rosmarus) und das etwas größere Pazifische Walross (O.",
+        "Das Walross gehört zur Ordnung der Raubtiere und ist die einzige Art in der Familie der Walrosse (Odobenidae)."
+      ]
+    },
+    {
+      "slug": "narwal",
+      "title": "Narwal",
+      "category": "tierart",
+      "habitat": "Arktis",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "wal",
+        "arktis"
+      ],
+      "summary": "Der Narwal (Monodon monoceros) ist eine Art der Zahnwale (Odontoceti).",
+      "related": [
+        "arktis",
+        "weisswal",
+        "eisbaer",
+        "polarfuchs"
+      ],
+      "source_file": "raw/narwal.md",
+      "key_points": [
+        "Der Narwal (Monodon monoceros) ist eine Art der Zahnwale (Odontoceti).",
+        "Zusammen mit dem nahe verwandten Weißwal (Delphinapterus leucas) bildet er die Familie der Gründelwale (Monodontidae).",
+        "Ohne Stoßzahn misst der Narwal vier bis fünf Meter.",
+        "Das Männchen wird rund eineinhalb Tonnen schwer, das Weibchen etwas weniger als eine Tonne."
+      ]
+    },
+    {
+      "slug": "schneeeule",
+      "title": "Schneeeule",
+      "category": "tierart",
+      "habitat": "Arktis",
+      "status": "Gefährdet (VU)",
+      "tags": [
+        "tierart",
+        "vogel",
+        "arktis"
+      ],
+      "summary": "Die Schneeeule (Bubo scandiacus, Syn.: Bubo scandiaca, Nyctea scandiaca, auch Schnee-Eule) ist eine Vogel-Art aus der Familie der Eigentlichen Eulen (Strigidae), die zu den charakteristischen Vögeln der arktischen Tundra zählt.",
+      "related": [
+        "arktis",
+        "lemminge",
+        "vogelzug",
+        "tarnung-biologie",
+        "artensterben"
+      ],
+      "source_file": "raw/schneeeule.md",
+      "key_points": [
+        "Die Schneeeule (Bubo scandiacus, Syn.: Bubo scandiaca, Nyctea scandiaca, auch Schnee-Eule) ist eine Vogel-Art aus der Familie der Eigentlichen Eulen (Strigidae), die zu den charakteristischen Vögeln der arktischen Tundra zählt.",
+        "Sie galt lange Zeit als die einzige Art der Gattung Nyctea und wurde daher taxonomisch entsprechend isoliert von den anderen Eulenarten betrachtet.",
+        "Molekularbiologische Untersuchungen haben jedoch gezeigt, dass sie zu den Uhus (Bubo) gehört und nah mit dem Virginia-Uhu (B.",
+        "virginianus) und dem Magellanuhu (B."
+      ]
+    },
+    {
+      "slug": "ren",
+      "title": "Ren",
+      "category": "tierart",
+      "habitat": "Arktis",
+      "status": "Gefährdet (VU)",
+      "tags": [
+        "tierart",
+        "hirsch",
+        "arktis"
+      ],
+      "summary": "Das Ren [reːn], [rɛn] oder Rentier [ˈreːnˌtiːɐ], [ˈrɛnˌtiːɐ] (Rangifer tarandus) ist eine Säugetierart aus der Familie der Hirsche (Cervidae).",
+      "related": [
+        "arktis",
+        "tarnung-biologie",
+        "eisbaer",
+        "polarfuchs"
+      ],
+      "source_file": "raw/ren.md",
+      "key_points": [
+        "Das Ren [reːn], [rɛn] oder Rentier [ˈreːnˌtiːɐ], [ˈrɛnˌtiːɐ] (Rangifer tarandus) ist eine Säugetierart aus der Familie der Hirsche (Cervidae).",
+        "Es lebt zirkumpolar im Sommer in den Tundren und im Winter in der Taiga Nordeurasiens und Nordamerikas sowie auf Grönland und anderen arktischen Inseln.",
+        "Es ist die einzige Hirschart, die domestiziert wurde.",
+        "Der nordamerikanische Vertreter heißt Karibu."
+      ]
+    },
+    {
+      "slug": "moschusochse",
+      "title": "Moschusochse",
+      "category": "tierart",
+      "habitat": "Arktis",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "huftier",
+        "arktis"
+      ],
+      "summary": "Der Moschusochse (Ovibos moschatus), auch als Bisamochse oder Schafsochse bezeichnet, ist ein Paarhufer aus der Unterfamilie der Antilopinae; innerhalb derer gehört er in die Verwandtschaftsgruppe der Ziegenartigen (Caprini).",
+      "related": [
+        "arktis",
+        "artensterben",
+        "eisbaer",
+        "polarfuchs"
+      ],
+      "source_file": "raw/moschusochse.md",
+      "key_points": [
+        "Der Moschusochse (Ovibos moschatus), auch als Bisamochse oder Schafsochse bezeichnet, ist ein Paarhufer aus der Unterfamilie der Antilopinae; innerhalb derer gehört er in die Verwandtschaftsgruppe der Ziegenartigen (Caprini).",
+        "Die bis zu 1,50 m hohen männlichen und bis zu 1,30 m hohen weiblichen Tiere sind Bewohner der arktischen Tundren und heute ursprünglich nur noch in Grönland und Kanada zu finden.",
+        "Allerdings gab es erfolgreiche Wiederansiedlungen in Alaska, Sibirien und Norwegen sowie eine Zuwanderung nach Schweden von Norwegen aus.",
+        "Der Gesamtbestand der Tiere nimmt ab und wurde Ende 2020 auf rund 127.000 Tiere geschätzt."
+      ]
+    },
+    {
+      "slug": "weisswal",
+      "title": "Weißwal",
+      "category": "tierart",
+      "habitat": "Arktis",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "wal",
+        "arktis"
+      ],
+      "summary": "Der Weißwal (Delphinapterus leucas) oder die Beluga (russisch белуха belucha, von белый bely „weiß“) ist eine Art der Gründelwale, die in arktischen und subarktischen Gewässern lebt.",
+      "related": [
+        "arktis",
+        "eisbaer",
+        "polarfuchs",
+        "ringelrobbe"
+      ],
+      "source_file": "raw/weisswal.md",
+      "key_points": [
+        "Der Weißwal (Delphinapterus leucas) oder die Beluga (russisch белуха belucha, von белый bely „weiß“) ist eine Art der Gründelwale, die in arktischen und subarktischen Gewässern lebt.",
+        "Wie die nahe verwandten Narwale besitzen Weißwale keine Rückenfinne; auffällig ist ihre bläulich-weiße bis cremeweiße Färbung.",
+        "Weißwale sind zwischen drei und maximal sechs Meter lang bei einem Gewicht von 400 bis 1000 Kilogramm; die Männchen sind in der Regel größer und schwerer als die Weibchen.",
+        "Der Körper wirkt massig und ist im Schulterbereich rechteckig ausladend."
+      ]
+    },
+    {
+      "slug": "lemminge",
+      "title": "Echte Lemminge",
+      "category": "tierart",
+      "habitat": "Arktis",
+      "status": "Artengruppe / Gattung (variiert je nach Art)",
+      "tags": [
+        "tierart",
+        "nagetier",
+        "arktis"
+      ],
+      "summary": "Die Echten Lemminge (Lemmus) sind eine Gattung aus der Tribus der Lemmini.",
+      "related": [
+        "arktis",
+        "polarfuchs",
+        "schneeeule",
+        "nahrungskette"
+      ],
+      "source_file": "raw/lemminge.md",
+      "key_points": [
+        "Die Echten Lemminge (Lemmus) sind eine Gattung aus der Tribus der Lemmini.",
+        "Je nach Lehrmeinung zählen dazu drei bis sechs Arten: Berglemming, Lemmus lemmus, Skandinavien, Kolahalbinsel Sibirischer Lemming, Lemmus sibiricus, Nordsibirien Brauner Lemming, Lemmus trimucronatus, arktische Regionen Kanadas, Südwesten von Alaska Bering-Lemming, Lemmus nigripes, Nordosten von Sibirien, Pribilof-Inseln, Alaska Amurlemming, Lemmus amurensis, östl.",
+        "Sibirien vom Amurbecken bis Kamtschatka Ognev-Lemming, Lemmus paulus, östl.",
+        "Nordsibirien Oft wurden der Braune Lemming und der Pribilof-Lemming als Unterarten dem Sibirischen Lemming zugeordnet."
+      ]
+    },
+    {
+      "slug": "jaguar",
+      "title": "Jaguar",
+      "category": "tierart",
+      "habitat": "Tropischer Regenwald",
+      "status": "Potenziell gefährdet (NT)",
+      "tags": [
+        "tierart",
+        "raubkatze",
+        "regenwald"
+      ],
+      "summary": "Der Jaguar (Panthera onca) ist eine Art aus der Familie der Katzen, die in der Neuen Welt verbreitet ist.",
+      "related": [
+        "tropischer-regenwald",
+        "tuepfelhyaene",
+        "faultiere",
+        "baumsteigerfroesche"
+      ],
+      "source_file": "raw/jaguar.md",
+      "key_points": [
+        "Der Jaguar (Panthera onca) ist eine Art aus der Familie der Katzen, die in der Neuen Welt verbreitet ist.",
+        "Nach dem Tiger und dem Löwen ist der Jaguar die drittgrößte Katze überhaupt.",
+        "Sie ist die einzige auf dem amerikanischen Doppelkontinent vorkommende Art der Großkatzen (Pantherinae), da der kleinere Puma taxonomisch den Kleinkatzen zugeordnet wird.",
+        "Die Zeichnung des Jaguarfells ähnelt jener des in Afrika und Asien lebenden, allerdings wesentlich kleineren und weniger massigen Leoparden."
+      ]
+    },
+    {
+      "slug": "faultiere",
+      "title": "Faultiere",
+      "category": "tierart",
+      "habitat": "Tropischer Regenwald",
+      "status": "Artengruppe / Gattung (variiert je nach Art)",
+      "tags": [
+        "tierart",
+        "saeugetier",
+        "regenwald"
+      ],
+      "summary": "Die Faultiere (Folivora, auch Tardigrada oder Phyllophaga) bilden eine Unterordnung der zahnarmen Säugetiere (Pilosa) und sind mit den Ameisenbären und den Gürteltieren verwandt (Nebengelenktiere).",
+      "related": [
+        "tropischer-regenwald",
+        "jaguar",
+        "baumsteigerfroesche",
+        "harpyie"
+      ],
+      "source_file": "raw/faultiere.md",
+      "key_points": [
+        "Die Faultiere (Folivora, auch Tardigrada oder Phyllophaga) bilden eine Unterordnung der zahnarmen Säugetiere (Pilosa) und sind mit den Ameisenbären und den Gürteltieren verwandt (Nebengelenktiere).",
+        "Die drei verfügbaren wissenschaftlichen Bezeichnungen finden in Fachveröffentlichungen rege Verwendung, die beiden letztgenannten sind aber auch durch andere Tiergruppen belegt.",
+        "Es bestehen sieben rezente Arten, die sich auf die beiden Gattungen der Zweifinger-Faultiere (Choloepus) und der Dreifinger-Faultiere (Bradypus) verteilen.",
+        "Bei diesen heute lebenden Arten handelt es sich um eher kleine Tiere der Unterordnung, die durchschnittlich 50 cm lang und etwa 5 kg schwer werden."
+      ]
+    },
+    {
+      "slug": "baumsteigerfroesche",
+      "title": "Baumsteigerfrösche",
+      "category": "tierart",
+      "habitat": "Tropischer Regenwald",
+      "status": "Artengruppe / Gattung (variiert je nach Art)",
+      "tags": [
+        "tierart",
+        "amphibie",
+        "regenwald"
+      ],
+      "summary": "Die Baumsteigerfrösche (Dendrobatidae), auch Pfeilgiftfrösche oder Farbfrösche genannt, sind eine Familie der Froschlurche (Anura).",
+      "related": [
+        "tropischer-regenwald",
+        "mimikry",
+        "biodiversitaet"
+      ],
+      "source_file": "raw/baumsteigerfroesche.md",
+      "key_points": [
+        "Die Baumsteigerfrösche (Dendrobatidae), auch Pfeilgiftfrösche oder Farbfrösche genannt, sind eine Familie der Froschlurche (Anura).",
+        "Die oft sehr kleinen (etwa 12 bis 50 mm) und farbenfrohen Frösche werden derzeit in ein Dutzend Gattungen und rund 170 Arten untergliedert.",
+        "Mit dem Färberfrosch, Dendrobates tinctorius (Cuvier, 1797), wurde eine Art erstmals bereits im 18.",
+        "Jahrhundert von einem Europäer beschrieben."
+      ]
+    },
+    {
+      "slug": "harpyie",
+      "title": "Harpyie (Vogel)",
+      "category": "tierart",
+      "habitat": "Tropischer Regenwald",
+      "status": "Gefährdet (VU)",
+      "tags": [
+        "tierart",
+        "greifvogel",
+        "regenwald"
+      ],
+      "summary": "Die Harpyie (Harpia harpyja) (Aussprache [haʁˈpʰyːjə]) ist eine sehr große, kräftig gebaute Greifvogelart.",
+      "related": [
+        "tropischer-regenwald",
+        "faultiere",
+        "jaguar",
+        "baumsteigerfroesche"
+      ],
+      "source_file": "raw/harpyie.md",
+      "key_points": [
+        "Die Harpyie (Harpia harpyja) (Aussprache [haʁˈpʰyːjə]) ist eine sehr große, kräftig gebaute Greifvogelart.",
+        "Die Art bewohnt die tropischen Wälder Mittel- und Südamerikas, nistet auf den über das Kronendach ragenden „Urwaldriesen“ und ernährt sich vor allem von Faultieren und Affen.",
+        "Die Gattung Harpia ist monotypisch mit der Harpyie als einziger Art.",
+        "Die Harpyie gehört zu den größten Greifvögeln der Welt und ist wohl der physisch stärkste Greifvogel."
+      ]
+    },
+    {
+      "slug": "blattschneiderameisen",
+      "title": "Blattschneiderameise",
+      "category": "tierart",
+      "habitat": "Tropischer Regenwald",
+      "status": "Artengruppe / Gattung (variiert je nach Art)",
+      "tags": [
+        "tierart",
+        "insekt",
+        "regenwald"
+      ],
+      "summary": "Als Blattschneiderameisen bezeichnet man verschiedene Ameisenarten, die mit ihren Mundwerkzeugen Pflanzenblätter in kleine Stückchen zerteilen, die sie in ihren Bau transportieren.",
+      "related": [
+        "tropischer-regenwald",
+        "symbiose",
+        "oekosystem"
+      ],
+      "source_file": "raw/blattschneiderameisen.md",
+      "key_points": [
+        "Als Blattschneiderameisen bezeichnet man verschiedene Ameisenarten, die mit ihren Mundwerkzeugen Pflanzenblätter in kleine Stückchen zerteilen, die sie in ihren Bau transportieren.",
+        "Blattschneiderameisen, die auf Gras spezialisiert sind, werden auch Grasschneiderameisen genannt.",
+        "Die mehr als 50 bekannten Arten der Blattschneiderameisen entstammen den drei Gattungen Atta, Acromyrmex und Amoimyrmex.",
+        "Ihr Verbreitungsgebiet umfasst die Tropen und Subtropen Amerikas, erstreckt sich von Louisiana beziehungsweise Texas im Norden bis Patagonien im Süden Argentiniens."
+      ]
+    },
+    {
+      "slug": "riesentukan",
+      "title": "Riesentukan",
+      "category": "tierart",
+      "habitat": "Tropischer Regenwald",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "vogel",
+        "regenwald"
+      ],
+      "summary": "Der Riesentukan (Ramphastos toco) ist eine Vogelart aus der Familie der Tukane (Ramphastidae) und der Ordnung der Spechtvögel (Piciformes).",
+      "related": [
+        "tropischer-regenwald",
+        "jaguar",
+        "faultiere",
+        "baumsteigerfroesche"
+      ],
+      "source_file": "raw/riesentukan.md",
+      "key_points": [
+        "Der Riesentukan (Ramphastos toco) ist eine Vogelart aus der Familie der Tukane (Ramphastidae) und der Ordnung der Spechtvögel (Piciformes).",
+        "Wie der Name vermuten lässt, handelt es sich um eine sehr große Tukanart mit einem ebenso überdimensionalen, auffällig orange gefärbtem Schnabel, der die Art unverwechselbar macht.",
+        "Der Vogel kommt ausschließlich in Südamerika vor und ist die einzige Tukanart, die geschlossene Waldgebiete weitgehend meidet.",
+        "Es werden zwei Unterarten unterschieden."
+      ]
+    },
+    {
+      "slug": "grosse-anakonda",
+      "title": "Große Anakonda",
+      "category": "tierart",
+      "habitat": "Tropischer Regenwald",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "schlange",
+        "regenwald"
+      ],
+      "summary": "Die Große Anakonda (Eunectes murinus) ist eine Schlangenart aus der Familie der Boas (Boidae) und wird dort in die Unterfamilie der Boaschlangen (Boinae) gestellt.",
+      "related": [
+        "tropischer-regenwald",
+        "jaguar",
+        "raeuber-beute-beziehung"
+      ],
+      "source_file": "raw/grosse-anakonda.md",
+      "key_points": [
+        "Die Große Anakonda (Eunectes murinus) ist eine Schlangenart aus der Familie der Boas (Boidae) und wird dort in die Unterfamilie der Boaschlangen (Boinae) gestellt.",
+        "Sie ist eine der größten Schlangen der Erde.",
+        "Große Anakondas bewohnen die Tropen Südamerikas.",
+        "Die Tierart ist eng an Wasser gebunden und bewohnt größere Gewässer aller Art."
+      ]
+    },
+    {
+      "slug": "orang-utans",
+      "title": "Orang-Utans",
+      "category": "tierart",
+      "habitat": "Tropischer Regenwald",
+      "status": "Artengruppe / Gattung (variiert je nach Art)",
+      "tags": [
+        "tierart",
+        "primat",
+        "regenwald"
+      ],
+      "summary": "Die Orang-Utans (Pongo) sind eine Primatengattung aus der Familie der Menschenaffen (Hominidae).",
+      "related": [
+        "tropischer-regenwald",
+        "jaguar",
+        "faultiere",
+        "baumsteigerfroesche"
+      ],
+      "source_file": "raw/orang-utans.md",
+      "key_points": [
+        "Die Orang-Utans (Pongo) sind eine Primatengattung aus der Familie der Menschenaffen (Hominidae).",
+        "Von den anderen Menschenaffen unterscheiden sie sich durch ihr rotbraunes Fell und durch ihren stärker an eine baumbewohnende Lebensweise angepassten Körperbau.",
+        "Sie leben auf den südostasiatischen Inseln Sumatra und Borneo; die Bestände beider Inseln werden heute als drei getrennte Arten geführt: Borneo-Orang-Utan (Pongo pygmaeus), Sumatra-Orang-Utan (Pongo abelii) und der Tapanuli-Orang-Utan (Pongo tapanuliensis).",
+        "Orang-Utans erreichen eine Kopf-Rumpf-Länge von 1,25 bis 1,5 Metern."
+      ]
+    },
+    {
+      "slug": "kapuzineraffen",
+      "title": "Kapuzineraffen",
+      "category": "tierart",
+      "habitat": "Tropischer Regenwald",
+      "status": "Artengruppe / Gattung (variiert je nach Art)",
+      "tags": [
+        "tierart",
+        "primat",
+        "regenwald"
+      ],
+      "summary": "Die Kapuzineraffen (Cebinae) sind eine Primatengruppe aus der Gruppe der Neuweltaffen.",
+      "related": [
+        "tropischer-regenwald",
+        "jaguar",
+        "faultiere",
+        "baumsteigerfroesche"
+      ],
+      "source_file": "raw/kapuzineraffen.md",
+      "key_points": [
+        "Die Kapuzineraffen (Cebinae) sind eine Primatengruppe aus der Gruppe der Neuweltaffen.",
+        "Es sind waldbewohnende, allesfressende Tiere, die in Gruppen leben.",
+        "Die Unterfamilie wird in über 20 Arten unterteilt.",
+        "Kapuzineraffen sind mittelgroße Primaten."
+      ]
+    },
+    {
+      "slug": "morphofalter",
+      "title": "Blauer Morphofalter",
+      "category": "tierart",
+      "habitat": "Tropischer Regenwald",
+      "status": "Artengruppe / Gattung (variiert je nach Art)",
+      "tags": [
+        "tierart",
+        "schmetterling",
+        "regenwald"
+      ],
+      "summary": "Der Blaue Morphofalter (Morpho peleides) oder Himmelsfalter ist ein Schmetterling aus der Familie der Edelfalter (Nymphalidae).",
+      "related": [
+        "tropischer-regenwald",
+        "jaguar",
+        "faultiere",
+        "baumsteigerfroesche"
+      ],
+      "source_file": "raw/morphofalter.md",
+      "key_points": [
+        "Der Blaue Morphofalter (Morpho peleides) oder Himmelsfalter ist ein Schmetterling aus der Familie der Edelfalter (Nymphalidae).",
+        "Die Falter erreichen eine Flügelspannweite von 95 bis 120 Millimetern.",
+        "Sie haben leuchtend blaue Flügeloberseiten.",
+        "Das Blau entsteht durch Interferenz des Lichts auf den Tannenbaum-artig aufgebauten Schuppen der Flügel und nicht durch Pigmente."
+      ]
+    },
+    {
+      "slug": "anemonenfische",
+      "title": "Anemonenfische",
+      "category": "tierart",
+      "habitat": "Korallenriff",
+      "status": "Artengruppe / Gattung (variiert je nach Art)",
+      "tags": [
+        "tierart",
+        "fisch",
+        "korallenriff"
+      ],
+      "summary": "Die Anemonenfische (Amphiprion) – nach den beiden bekanntesten Arten häufig auch Clownfische genannt – sind eine in den Korallenriffen des tropischen Indopazifik vorkommende Gattung der Riffbarsche (Pomacentridae), die in enger Symbiose mit Seeanemonen lebt.",
+      "related": [
+        "korallenriff",
+        "seeanemonen",
+        "symbiose",
+        "steinkorallen"
+      ],
+      "source_file": "raw/anemonenfische.md",
+      "key_points": [
+        "Die Anemonenfische (Amphiprion) – nach den beiden bekanntesten Arten häufig auch Clownfische genannt – sind eine in den Korallenriffen des tropischen Indopazifik vorkommende Gattung der Riffbarsche (Pomacentridae), die in enger Symbiose mit Seeanemonen lebt.",
+        "Dabei leben die einzelnen Arten nur mit bestimmten Arten von Symbioseanemonen zusammen.",
+        "Die Symbioseanemonen bieten den Anemonenfischen, die alle schlechte Schwimmer sind, Schutz vor Raubfischen.",
+        "Auch die Anemonenfische schützen ihre Symbiosepartner vor Fressfeinden, z. B."
+      ]
+    },
+    {
+      "slug": "seeanemonen",
+      "title": "Seeanemonen",
+      "category": "tierart",
+      "habitat": "Korallenriff",
+      "status": "Artengruppe / Gattung (variiert je nach Art)",
+      "tags": [
+        "tierart",
+        "nesseltier",
+        "korallenriff"
+      ],
+      "summary": "Seeanemonen (Actiniaria), auch Seerosen, Seenelken oder Aktinien genannt, sind eine arten- und gattungsreiche Ordnung der Hexacorallia innerhalb der Blumentiere (Anthozoa).",
+      "related": [
+        "korallenriff",
+        "anemonenfische",
+        "symbiose",
+        "steinkorallen"
+      ],
+      "source_file": "raw/seeanemonen.md",
+      "key_points": [
+        "Seeanemonen (Actiniaria), auch Seerosen, Seenelken oder Aktinien genannt, sind eine arten- und gattungsreiche Ordnung der Hexacorallia innerhalb der Blumentiere (Anthozoa).",
+        "Es handelt sich ausschließlich um im Meer und solitär lebende sowie relativ große Tiere, die vom Flachwasser bis in die Tiefsee Tiefen vorkommen.",
+        "Seeanemonen besitzen kein Skelett und leben solitär, d. h., sie bilden keine Kolonien im Gegensatz zu den meisten anderen Vertretern der Blumentiere.",
+        "Sie sind halbsessil; sie können sich durch langsames Kriechen auf ihrer Fußscheibe fortbewegen, mit der sie sich normalerweise auf hartem Untergrund festkrallen oder in Sand und Geröll eingraben."
+      ]
+    },
+    {
+      "slug": "gruene-meeresschildkroete",
+      "title": "Grüne Meeresschildkröte",
+      "category": "tierart",
+      "habitat": "Korallenriff",
+      "status": "Stark gefährdet (EN)",
+      "tags": [
+        "tierart",
+        "reptil",
+        "korallenriff"
+      ],
+      "summary": "Die Grüne Meeresschildkröte (Chelonia mydas) ist ein Vertreter der Familie der Meeresschildkröten.",
+      "related": [
+        "korallenriff",
+        "anemonenfische",
+        "seeanemonen",
+        "schwarzspitzen-riffhai"
+      ],
+      "source_file": "raw/gruene-meeresschildkroete.md",
+      "key_points": [
+        "Die Grüne Meeresschildkröte (Chelonia mydas) ist ein Vertreter der Familie der Meeresschildkröten.",
+        "Sie ist die einzige Art der damit monotypischen Gattung Chelonia.",
+        "Der Name Grüne Meeresschildkröte entspricht der im englischen Sprachraum üblichen Bezeichnung „green sea turtle“, doch ist beispielsweise in Mexiko der Name „tortuga blanca“ („Weiße Seeschildkröte“) üblich.",
+        "Diese Namen beziehen sich auf die Farben des Panzers der Tiere, deren Oberseite meist in verschiedenen Brauntönen mit grünlichen oder dunkelbraunen Zonen gefärbt ist."
+      ]
+    },
+    {
+      "slug": "schwarzspitzen-riffhai",
+      "title": "Schwarzspitzen-Riffhai",
+      "category": "tierart",
+      "habitat": "Korallenriff",
+      "status": "Gefährdet (VU)",
+      "tags": [
+        "tierart",
+        "hai",
+        "korallenriff"
+      ],
+      "summary": "Der Schwarzspitzen-Riffhai (Carcharhinus melanopterus) ist ein Hai aus der Familie der Requiem- oder Grauhaie.",
+      "related": [
+        "korallenriff",
+        "artensterben",
+        "anemonenfische",
+        "seeanemonen"
+      ],
+      "source_file": "raw/schwarzspitzen-riffhai.md",
+      "key_points": [
+        "Der Schwarzspitzen-Riffhai (Carcharhinus melanopterus) ist ein Hai aus der Familie der Requiem- oder Grauhaie.",
+        "Der Schwarzspitzen-Riffhai ist ausgewachsen mit einer Körperlänge von 160 bis rund 200 Zentimetern ein mittelgroßer Hai.",
+        "Er hat eine breite und stumpfe Schnauze, wobei die erste Rückenflosse auf Höhe des Endes der freien Brustflosseninnenkante beginnt.",
+        "Seine Grundfarbe ist grau bis graubraun, wobei seine Bauchseite weißlich gefärbt ist."
+      ]
+    },
+    {
+      "slug": "riesenmanta",
+      "title": "Riesenmanta",
+      "category": "tierart",
+      "habitat": "Korallenriff",
+      "status": "Stark gefährdet (EN)",
+      "tags": [
+        "tierart",
+        "rochen",
+        "korallenriff"
+      ],
+      "summary": "Der Riesenmanta (Mobula birostris, Syn.: Manta birostris) ist eine Rochenart aus der Familie der Teufelsrochen.",
+      "related": [
+        "korallenriff",
+        "schwarzspitzen-riffhai",
+        "papageifische",
+        "oekosystem",
+        "artensterben"
+      ],
+      "source_file": "raw/riesenmanta.md",
+      "key_points": [
+        "Der Riesenmanta (Mobula birostris, Syn.: Manta birostris) ist eine Rochenart aus der Familie der Teufelsrochen.",
+        "„Manta“ ist spanisch und bedeutet „Decke“.",
+        "Die Kopfflossen brachten den Tieren schließlich den Namen „Teufelsrochen“ ein.",
+        "Riesenmantas können eine Spannweite von sieben Metern und ein Gewicht von zwei Tonnen erreichen."
+      ]
+    },
+    {
+      "slug": "kraken",
+      "title": "Kraken",
+      "category": "tierart",
+      "habitat": "Korallenriff",
+      "status": "Artengruppe / Gattung (variiert je nach Art)",
+      "tags": [
+        "tierart",
+        "kopffuesser",
+        "korallenriff"
+      ],
+      "summary": "Die Kraken (Ordnung Octopoda) sind eine Teilgruppe der Achtarmigen Tintenfische (Vampyropoda) innerhalb der Tintenfische (Coleoidea).",
+      "related": [
+        "korallenriff",
+        "anemonenfische",
+        "seeanemonen",
+        "gruene-meeresschildkroete"
+      ],
+      "source_file": "raw/kraken.md",
+      "key_points": [
+        "Die Kraken (Ordnung Octopoda) sind eine Teilgruppe der Achtarmigen Tintenfische (Vampyropoda) innerhalb der Tintenfische (Coleoidea).",
+        "Ihre nächsten Verwandten sind die Cirrentragenden Kraken und die Vampirtintenfischähnlichen (Vampyromorpha).",
+        "Die cirrentragenden Kraken wurden erst in der jüngeren Zeit von den Kraken im engeren Sinne abgetrennt.",
+        "Kraken gelten als die intelligentesten Weichtiere, wobei ihre Intelligenz mit der von Ratten verglichen wird."
+      ]
+    },
+    {
+      "slug": "steinkorallen",
+      "title": "Steinkorallen",
+      "category": "tierart",
+      "habitat": "Korallenriff",
+      "status": "Artengruppe / Gattung (variiert je nach Art)",
+      "tags": [
+        "tierart",
+        "koralle",
+        "korallenriff"
+      ],
+      "summary": "Steinkorallen (Scleractinia, früher Madreporaria) sind Tiere, die den Hauptanteil an der Entstehung der Korallenriffe haben, der artenreichsten marinen Lebensräume auf der Erde.",
+      "related": [
+        "korallenriff",
+        "korallenbleiche",
+        "symbiose",
+        "dornenkronenseestern",
+        "seeanemonen"
+      ],
+      "source_file": "raw/steinkorallen.md",
+      "key_points": [
+        "Steinkorallen (Scleractinia, früher Madreporaria) sind Tiere, die den Hauptanteil an der Entstehung der Korallenriffe haben, der artenreichsten marinen Lebensräume auf der Erde.",
+        "Die meist winzigen, sessilen Tiere haben die Fähigkeit, an ihrer Basis Kalk abzuscheiden, und bilden so Riffe und im Laufe der Jahrtausende gewaltige Riffstrukturen.",
+        "die Bahamas und Bermuda im Atlantik, die Malediven im Indischen Ozean oder Tuvalu und Kiribati im Pazifik sind durch das allmähliche Wachstum von Steinkorallen gebildet worden.",
+        "Bei der Kalkbildung hilft den meisten Steinkorallen eine Symbiose mit Zooxanthellen, kleinen, einzelligen Algen aus der Gruppe der Dinoflagellaten, die auch für die Ernährung der Korallen wichtig sind."
+      ]
+    },
+    {
+      "slug": "papageifische",
+      "title": "Papageifische",
+      "category": "tierart",
+      "habitat": "Korallenriff",
+      "status": "Artengruppe / Gattung (variiert je nach Art)",
+      "tags": [
+        "tierart",
+        "fisch",
+        "korallenriff"
+      ],
+      "summary": "Die Papageifische oder Seepapageien (Scarinae) sind eine Unterfamilie der Lippfische (Labridae) und gehören zu den Barschverwandten (Percomorpha).",
+      "related": [
+        "korallenriff",
+        "steinkorallen",
+        "schluesselart",
+        "oekosystem"
+      ],
+      "source_file": "raw/papageifische.md",
+      "key_points": [
+        "Die Papageifische oder Seepapageien (Scarinae) sind eine Unterfamilie der Lippfische (Labridae) und gehören zu den Barschverwandten (Percomorpha).",
+        "Papageifische bewohnen einzelgängerisch oder in Gruppen tropische und subtropische Meere.",
+        "Die meisten Arten leben als Weidegänger an Korallenriffen.",
+        "Einige bewohnen Seegraswiesen und die oberen Zonen an Felsriffen."
+      ]
+    },
+    {
+      "slug": "seepferdchen",
+      "title": "Seepferdchen",
+      "category": "tierart",
+      "habitat": "Korallenriff",
+      "status": "Artengruppe / Gattung (variiert je nach Art)",
+      "tags": [
+        "tierart",
+        "fisch",
+        "korallenriff"
+      ],
+      "summary": "Seepferdchen (Hippocampus) sind Knochenfische, deren Gestalt und Lebensweise deutlich von der typischer Fische abweicht.",
+      "related": [
+        "korallenriff",
+        "anemonenfische",
+        "seeanemonen",
+        "gruene-meeresschildkroete"
+      ],
+      "source_file": "raw/seepferdchen.md",
+      "key_points": [
+        "Seepferdchen (Hippocampus) sind Knochenfische, deren Gestalt und Lebensweise deutlich von der typischer Fische abweicht.",
+        "Ihren Namen verdanken sie dem Kopf, der an den eines Pferdes erinnert, während ihr Hinterleib im Vergleich zu dem vieler anderer Knochenfische schwanzförmig aussieht.",
+        "Weitere Besonderheiten sind ihre meist vertikale Schwimmhaltung und die Tatsache, dass die Männchen die Jungfische gebären.",
+        "Gemeinsam mit den Fetzenfischen und weiteren Arten bilden sie die Familie der Seenadeln (Syngnathidae)."
+      ]
+    },
+    {
+      "slug": "dornenkronenseestern",
+      "title": "Dornenkronenseestern",
+      "category": "tierart",
+      "habitat": "Korallenriff",
+      "status": "Artengruppe / Gattung (variiert je nach Art)",
+      "tags": [
+        "tierart",
+        "stachelhaeuter",
+        "korallenriff"
+      ],
+      "summary": "Der Dornenkronenseestern (Acanthaster planci) ist ein oft rotgefärbter Seestern, der sich von Steinkorallen ernährt (corallivor).",
+      "related": [
+        "korallenriff",
+        "steinkorallen",
+        "korallenbleiche",
+        "raeuber-beute-beziehung"
+      ],
+      "source_file": "raw/dornenkronenseestern.md",
+      "key_points": [
+        "Der Dornenkronenseestern (Acanthaster planci) ist ein oft rotgefärbter Seestern, der sich von Steinkorallen ernährt (corallivor).",
+        "Er ist in den tropischen Zonen des gesamten Indopazifiks verbreitet.",
+        "Der Dornenkronenseestern hat 6 bis 23 Arme und sein Durchmesser kann bis zu 40 cm betragen.",
+        "Auf seinem Körper befinden sich 4–5 cm lange spitze Giftstacheln, die bei Berührung durch den Menschen Übelkeit, Lähmungen und starke Schmerzen hervorrufen können."
+      ]
+    },
+    {
+      "slug": "alpensteinbock",
+      "title": "Alpensteinbock",
+      "category": "tierart",
+      "habitat": "Alpen",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "huftier",
+        "alpen"
+      ],
+      "summary": "Der Alpensteinbock (Capra ibex) ist eine in den Alpen wieder verbreitete Art von Steinböcken aus der Gattung der Ziegen.",
+      "related": [
+        "alpen",
+        "gaemse",
+        "bartgeier",
+        "rote-liste-gefaehrdeter-arten"
+      ],
+      "source_file": "raw/alpensteinbock.md",
+      "key_points": [
+        "Der Alpensteinbock (Capra ibex) ist eine in den Alpen wieder verbreitete Art von Steinböcken aus der Gattung der Ziegen.",
+        "Ein weiblicher Steinbock wird Steingeiß genannt und ist nicht so groß wie ein männlicher.",
+        "Ein Alpensteinbock hat im Durchschnitt eine Kopf-Rumpf-Länge von 150 cm und eine Schulterhöhe von 90 cm.",
+        "Geißen sind etwa 40 kg schwer, wohingegen Böcke über 100 kg wiegen können."
+      ]
+    },
+    {
+      "slug": "alpenmurmeltier",
+      "title": "Alpenmurmeltier",
+      "category": "tierart",
+      "habitat": "Alpen",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "nagetier",
+        "alpen"
+      ],
+      "summary": "Das Alpenmurmeltier (Marmota marmota), süddeutsch und österreichisch auch Mankei oder Murmel, in der Schweiz auch Mungg oder Murmunda, ist ein besonders in den Alpen verbreitetes Nagetier.",
+      "related": [
+        "alpen",
+        "winterschlaf",
+        "steinadler",
+        "nahrungskette"
+      ],
+      "source_file": "raw/alpenmurmeltier.md",
+      "key_points": [
+        "Das Alpenmurmeltier (Marmota marmota), süddeutsch und österreichisch auch Mankei oder Murmel, in der Schweiz auch Mungg oder Murmunda, ist ein besonders in den Alpen verbreitetes Nagetier.",
+        "Es ist nach dem Biber und dem Stachelschwein das drittgrößte in Europa vorkommende Nagetier.",
+        "Jungtiere des Alpenmurmeltieres erreichen in der Regel im dritten Jahr ihre Geschlechtsreife und verlassen frühestens dann ihren Familienverband.",
+        "Bedingt durch diese späte Abwanderung der Jungtiere leben Murmeltiere sozial in Gruppen zusammen, die bis zu 20 Individuen umfassen können."
+      ]
+    },
+    {
+      "slug": "steinadler",
+      "title": "Steinadler",
+      "category": "tierart",
+      "habitat": "Alpen",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "greifvogel",
+        "alpen"
+      ],
+      "summary": "Der Steinadler (Aquila chrysaetos) ist eine große Greifvogelart innerhalb der Familie der Habichtartigen (Accipitridae).",
+      "related": [
+        "alpen",
+        "alpenmurmeltier",
+        "gaemse",
+        "schneehase",
+        "nahrungskette"
+      ],
+      "source_file": "raw/steinadler.md",
+      "key_points": [
+        "Der Steinadler (Aquila chrysaetos) ist eine große Greifvogelart innerhalb der Familie der Habichtartigen (Accipitridae).",
+        "Steinadler besiedeln offene und halboffene Landschaften in der gesamten Holarktis.",
+        "Sie ernähren sich meist von mittelgroßen, bodenbewohnenden Säugetieren.",
+        "Die Art war früher in Europa weit verbreitet, wurde aber systematisch verfolgt, so dass sie heute in vielen Teilen Europas nur noch in Gebirgsgegenden vorkommt."
+      ]
+    },
+    {
+      "slug": "gaemse",
+      "title": "Gämse",
+      "category": "tierart",
+      "habitat": "Alpen",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "huftier",
+        "alpen"
+      ],
+      "summary": "Die (Alpen-)Gämse (Rupicapra rupicapra), vor der Rechtschreibreform Gemse geschrieben und in der Jägersprache mit Gams oder Gamswild bezeichnet, ist eine in Europa und Kleinasien beheimatete Art der Ziegenartigen.",
+      "related": [
+        "alpen",
+        "alpensteinbock",
+        "alpenmurmeltier",
+        "steinadler"
+      ],
+      "source_file": "raw/gaemse.md",
+      "key_points": [
+        "Die (Alpen-)Gämse (Rupicapra rupicapra), vor der Rechtschreibreform Gemse geschrieben und in der Jägersprache mit Gams oder Gamswild bezeichnet, ist eine in Europa und Kleinasien beheimatete Art der Ziegenartigen.",
+        "Zusammen mit der Pyrenäen-Gämse und weiteren Arten gehört sie zur Gattung der Gämsen (Rupicapra).",
+        "Die Gämse wurde von der Schutzgemeinschaft Deutsches Wild zum Wildtier des Jahres 2012 gekürt.",
+        "Ausgewachsene Gämsen haben eine Kopf-Rumpf-Länge von 110 bis 130 Zentimetern, einen bis zu acht Zentimeter langen Schwanz, eine Widerristhöhe von 70 bis 85 Zentimetern und ein Gewicht von 25 bis 40 Kilogramm (Weibchen) bzw. 35 bis 50 Kilogramm (Männchen)."
+      ]
+    },
+    {
+      "slug": "bartgeier",
+      "title": "Bartgeier",
+      "category": "tierart",
+      "habitat": "Alpen",
+      "status": "Potenziell gefährdet (NT)",
+      "tags": [
+        "tierart",
+        "greifvogel",
+        "alpen"
+      ],
+      "summary": "Der Bartgeier (Gypaetus barbatus), veraltet auch Lämmergeier genannt, ist ein Greifvogel aus der Familie der Habichtartigen (Accipitridae).",
+      "related": [
+        "alpen",
+        "alpensteinbock",
+        "gaemse",
+        "artensterben",
+        "steinadler"
+      ],
+      "source_file": "raw/bartgeier.md",
+      "key_points": [
+        "Der Bartgeier (Gypaetus barbatus), veraltet auch Lämmergeier genannt, ist ein Greifvogel aus der Familie der Habichtartigen (Accipitridae).",
+        "Er bildet die einzige Art der gleichnamigen Gattung (Gypaetus).",
+        "Traditionell zählte er zur Unterfamilie der Altweltgeier (Aegypiinae), ehe er aufgrund molekulargenetischer Untersuchungen mit dem Schmutzgeier und dem Palmgeier in eine eigene Unterfamilie (Gypaetinae) gestellt wurde.",
+        "Mit einer Flügelspannweite von bis zu 2,9 Metern zählt der Bartgeier zu den größten flugfähigen Vögeln der Welt."
+      ]
+    },
+    {
+      "slug": "schneehase",
+      "title": "Schneehase",
+      "category": "tierart",
+      "habitat": "Alpen",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "hasenart",
+        "alpen"
+      ],
+      "summary": "Der Schneehase (Lepus timidus) ist eine zur Familie der Hasen (Leporidae) gehörige Art.",
+      "related": [
+        "alpen",
+        "tarnung-biologie",
+        "steinadler",
+        "eurasischer-luchs",
+        "alpenschneehuhn",
+        "klimawandel"
+      ],
+      "source_file": "raw/schneehase.md",
+      "key_points": [
+        "Der Schneehase (Lepus timidus) ist eine zur Familie der Hasen (Leporidae) gehörige Art.",
+        "In Europa gehört er zur Wirbeltierfauna der Alpen und ist gemeinsam mit dem Alpenschneehuhn eine der wenigen Tierarten, die an den boreo-alpinen Lebensraum gut angepasst sind.",
+        "Die Deutsche Wildtier Stiftung wählte den Alpenschneehasen zum Tier des Jahres 2025.",
+        "Mit etwa drei Kilogramm Durchschnittsgewicht und knapp 40 bis 60 Zentimetern Länge ist er etwas kleiner als der Feldhase."
+      ]
+    },
+    {
+      "slug": "alpensalamander",
+      "title": "Alpensalamander",
+      "category": "tierart",
+      "habitat": "Alpen",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "amphibie",
+        "alpen"
+      ],
+      "summary": "Der Alpensalamander (Salamandra atra) ist eine schwarz gefärbte, landlebende Art der Schwanzlurche.",
+      "related": [
+        "alpen",
+        "alpensteinbock",
+        "alpenmurmeltier",
+        "steinadler"
+      ],
+      "source_file": "raw/alpensalamander.md",
+      "key_points": [
+        "Der Alpensalamander (Salamandra atra) ist eine schwarz gefärbte, landlebende Art der Schwanzlurche.",
+        "Er lebt in einem zusammenhängenden Areal in den Alpen sowie in einzelnen isolierten Populationen in den Dinariden in mittleren bis hohen Gebirgslagen und bevorzugt feuchte Laubmischwälder, Blockhalden und Almwiesen in kalkreichen Lebensräumen mit zahlreichen Unterschlüpfen.",
+        "Als besondere Anpassung an seinen Lebensraum pflanzt sich der Alpensalamander als eines der wenigen Amphibien vivipar fort und hat unter allen Wirbeltieren die vermutlich längste Tragzeit.",
+        "Die Art wurde zum „Lurch des Jahres“ 2026 erklärt."
+      ]
+    },
+    {
+      "slug": "eurasischer-luchs",
+      "title": "Eurasischer Luchs",
+      "category": "tierart",
+      "habitat": "Alpen",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "raubkatze",
+        "alpen"
+      ],
+      "summary": "Der Eurasische Luchs oder Nordluchs (Lynx lynx) ist eine in Eurasien verbreitete Art der Luchse.",
+      "related": [
+        "alpen",
+        "alpensteinbock",
+        "alpenmurmeltier",
+        "steinadler"
+      ],
+      "source_file": "raw/eurasischer-luchs.md",
+      "key_points": [
+        "Der Eurasische Luchs oder Nordluchs (Lynx lynx) ist eine in Eurasien verbreitete Art der Luchse.",
+        "Im deutschen Sprachgebrauch ist mit Luchs fast immer diese Art gemeint.",
+        "Nach Braunbär, Wolf und Persischem Leoparden und noch vor dem Vielfraß ist diese Katze das viertgrößte in Europa heimische Landraubtier.",
+        "Der Eurasische Luchs wird seit Jahrhunderten stark verfolgt, in Europa begannen im Spätmittelalter systematische Ausrottungsversuche."
+      ]
+    },
+    {
+      "slug": "alpenschneehuhn",
+      "title": "Alpenschneehuhn",
+      "category": "tierart",
+      "habitat": "Alpen",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "vogel",
+        "alpen"
+      ],
+      "summary": "Das Alpenschneehuhn (Lagopus muta) ist eine Vogelart aus der Familie der Fasanenartigen (Phasianidae).",
+      "related": [
+        "alpen",
+        "arktis",
+        "tarnung-biologie"
+      ],
+      "source_file": "raw/alpenschneehuhn.md",
+      "key_points": [
+        "Das Alpenschneehuhn (Lagopus muta) ist eine Vogelart aus der Familie der Fasanenartigen (Phasianidae).",
+        "Die Art ist vor allem in der Tundrenzone der gesamten Holarktis vertreten.",
+        "Zurzeit werden 25, zum Teil jedoch nur sehr schwach differenzierte Unterarten beschrieben.",
+        "In Mitteleuropa ist das Alpenschneehuhn ein Eiszeitrelikt, das in einem eng umgrenzten Gebiet der Alpinstufe ein verbreiteter bis häufiger Brut- und Jahresvogel ist."
+      ]
+    },
+    {
+      "slug": "afrikanischer-elefant",
+      "title": "Afrikanischer Elefant",
+      "category": "tierart",
+      "habitat": "Savanne",
+      "status": "Stark gefährdet (EN)",
+      "tags": [
+        "tierart",
+        "saeugetier",
+        "savanne"
+      ],
+      "summary": "Der Afrikanische Elefant (Loxodonta africana), auch Afrikanischer Savannenelefant, Afrikanischer Steppenelefant oder Afrikanischer Buschelefant, ist eine Säugetierart aus der Familie der Elefanten.",
+      "related": [
+        "savanne",
+        "schluesselart",
+        "loewe",
+        "biodiversitaet"
+      ],
+      "source_file": "raw/afrikanischer-elefant.md",
+      "key_points": [
+        "Der Afrikanische Elefant (Loxodonta africana), auch Afrikanischer Savannenelefant, Afrikanischer Steppenelefant oder Afrikanischer Buschelefant, ist eine Säugetierart aus der Familie der Elefanten.",
+        "Er ist das größte rezente landbewohnende Tier der Erde.",
+        "Herausragende Kennzeichen sind neben den Stoßzähnen und dem markanten Rüssel die großen Ohren und die säulenförmigen Beine.",
+        "In zahlreichen morphologischen und anatomischen Merkmalen unterscheidet sich der Afrikanische Elefant von seinen etwas kleineren Verwandten, dem Waldelefanten und dem Asiatischen Elefanten."
+      ]
+    },
+    {
+      "slug": "loewe",
+      "title": "Löwe",
+      "category": "tierart",
+      "habitat": "Savanne",
+      "status": "Gefährdet (VU)",
+      "tags": [
+        "tierart",
+        "raubkatze",
+        "savanne"
+      ],
+      "summary": "Der Löwe (Panthera leo) ist neben dem Tiger eine der beiden größten Arten aus der Familie der Katzen.",
+      "related": [
+        "savanne",
+        "steppenzebra",
+        "streifengnu",
+        "tuepfelhyaene",
+        "raeuber-beute-beziehung"
+      ],
+      "source_file": "raw/loewe.md",
+      "key_points": [
+        "Der Löwe (Panthera leo) ist neben dem Tiger eine der beiden größten Arten aus der Familie der Katzen.",
+        "Er ist heute nur noch in Teilen Afrikas südlich der Sahara sowie im indischen Bundesstaat Gujarat beheimatet; in Afrika ist er das größte Landraubtier.",
+        "Charakteristisches Merkmal erwachsener Männchen ist eine Mähne.",
+        "Löwen leben im Unterschied zu anderen Katzen in Rudeln."
+      ]
+    },
+    {
+      "slug": "gepard",
+      "title": "Gepard",
+      "category": "tierart",
+      "habitat": "Savanne",
+      "status": "Gefährdet (VU)",
+      "tags": [
+        "tierart",
+        "raubkatze",
+        "savanne"
+      ],
+      "summary": "Der Gepard [ˈgeːpart/geˈpart] (Acinonyx jubatus) ist ein hauptsächlich in Afrika verbreitetes Raubtier, das zur Familie der Katzen gehört.",
+      "related": [
+        "savanne",
+        "loewe",
+        "tarnung-biologie",
+        "rote-liste-gefaehrdeter-arten"
+      ],
+      "source_file": "raw/gepard.md",
+      "key_points": [
+        "Der Gepard [ˈgeːpart/geˈpart] (Acinonyx jubatus) ist ein hauptsächlich in Afrika verbreitetes Raubtier, das zur Familie der Katzen gehört.",
+        "Die in ihrem Jagdverhalten hoch spezialisierten Geparde sind die schnellsten Landtiere der Welt.",
+        "Damit verbunden gibt es in Gestalt und Körperbau deutliche Unterschiede zu anderen Katzenarten, weshalb dem Gepard traditionell eine eigene Unterfamilie eingeräumt wurde.",
+        "Genetische Untersuchungen zeigten jedoch, dass diese Sonderstellung entwicklungsgeschichtlich nicht gerechtfertigt ist; der Gepard gehört zu den Kleinkatzen, und seine nächsten Verwandten sind die amerikanischen Katzen Puma und Jaguarundi."
+      ]
+    },
+    {
+      "slug": "giraffen",
+      "title": "Giraffen",
+      "category": "tierart",
+      "habitat": "Savanne",
+      "status": "Artengruppe / Gattung (variiert je nach Art)",
+      "tags": [
+        "tierart",
+        "huftier",
+        "savanne"
+      ],
+      "summary": "Die Giraffen (Giraffa), bundesdeutsches und Schweizer Hochdeutsch: [ɡiˈrafə] , österreichisches Hochdeutsch: [ʒiˈrafɛ] (von arabisch جرافة ǧurāfa, vgl.",
+      "related": [
+        "savanne",
+        "afrikanischer-elefant",
+        "loewe",
+        "gepard"
+      ],
+      "source_file": "raw/giraffen.md",
+      "key_points": [
+        "Die Giraffen (Giraffa), bundesdeutsches und Schweizer Hochdeutsch: [ɡiˈrafə] , österreichisches Hochdeutsch: [ʒiˈrafɛ] (von arabisch جرافة ǧurāfa, vgl.",
+        "Standardarabisch زرافة zarāfa, zurāfa), sind eine Gattung der Säugetiere aus der Ordnung der Paarhufer.",
+        "Ursprünglich wurde ihr mit Giraffa camelopardalis und der Trivialbezeichnung „Giraffe“ nur eine einzige Art zugewiesen.",
+        "Molekulargenetische Untersuchungen aus den Jahren 2016 und 2020 zeigen jedoch, dass die Gattung mehrere Arten mit zehn eigenständigen Populationen (davon eine schon ausgestorben) umfasst."
+      ]
+    },
+    {
+      "slug": "steppenzebra",
+      "title": "Steppenzebra",
+      "category": "tierart",
+      "habitat": "Savanne",
+      "status": "Potenziell gefährdet (NT)",
+      "tags": [
+        "tierart",
+        "huftier",
+        "savanne"
+      ],
+      "summary": "Das Steppenzebra (Equus quagga) oder Pferdezebra ist ein Zebra aus der Gattung der Pferde (Equus) innerhalb der Familie der Pferde (Equidae).",
+      "related": [
+        "savanne",
+        "streifengnu",
+        "loewe",
+        "tarnung-biologie"
+      ],
+      "source_file": "raw/steppenzebra.md",
+      "key_points": [
+        "Das Steppenzebra (Equus quagga) oder Pferdezebra ist ein Zebra aus der Gattung der Pferde (Equus) innerhalb der Familie der Pferde (Equidae).",
+        "Es stellt heute die häufigste Zebra-Art in Afrika dar und ist vom Nordosten bis in den Süden des Kontinents verbreitet.",
+        "Es lebt gesellig in kleinen Herdenverbänden und ernährt sich hauptsächlich von Gräsern.",
+        "Im Gegensatz zu den anderen heutigen Pferdearten kommt es auch in teilweise geschlossenen Landschaften vor."
+      ]
+    },
+    {
+      "slug": "streifengnu",
+      "title": "Streifengnu",
+      "category": "tierart",
+      "habitat": "Savanne",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "huftier",
+        "savanne"
+      ],
+      "summary": "Das Streifengnu (Connochaetes taurinus) ist eine Antilope aus der Gattung der Gnus, die als Grasfresser in offenen Steppen oder Baumsavannen Afrikas zu Hause ist.",
+      "related": [
+        "savanne",
+        "afrikanischer-elefant",
+        "loewe",
+        "gepard"
+      ],
+      "source_file": "raw/streifengnu.md",
+      "key_points": [
+        "Das Streifengnu (Connochaetes taurinus) ist eine Antilope aus der Gattung der Gnus, die als Grasfresser in offenen Steppen oder Baumsavannen Afrikas zu Hause ist.",
+        "Es wird auch als Blaues Gnu bezeichnet.",
+        "Streifengnus haben eine Schulterhöhe von 140 cm und einen hohen, stämmigen Vorderkörper, der zu den Hinterbeinen abfällt.",
+        "Das Körpergewicht kann 270 Kilogramm erreichen."
+      ]
+    },
+    {
+      "slug": "tuepfelhyaene",
+      "title": "Tüpfelhyäne",
+      "category": "tierart",
+      "habitat": "Savanne",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "raubtier",
+        "savanne"
+      ],
+      "summary": "Die Tüpfelhyäne oder Fleckenhyäne (Crocuta crocuta) ist eine Raubtierart aus der Familie der Hyänen (Hyaenidae).",
+      "related": [
+        "savanne",
+        "afrikanischer-elefant",
+        "loewe",
+        "gepard"
+      ],
+      "source_file": "raw/tuepfelhyaene.md",
+      "key_points": [
+        "Die Tüpfelhyäne oder Fleckenhyäne (Crocuta crocuta) ist eine Raubtierart aus der Familie der Hyänen (Hyaenidae).",
+        "Sie ist die größte Hyänenart und durch ihr namensgebendes geflecktes Fell gekennzeichnet; ein weiteres Charakteristikum ist die „Vermännlichung“ des Genitaltraktes der Weibchen.",
+        "Die Art besiedelt weite Teile Afrikas und ernährt sich vorwiegend von größeren, selbst gerissenen Wirbeltieren.",
+        "Tüpfelhyänen leben in Gruppen mit einer komplexen Sozialstruktur, die bis zu 130 Tiere umfassen können und von Weibchen dominiert werden."
+      ]
+    },
+    {
+      "slug": "erdmaennchen",
+      "title": "Erdmännchen",
+      "category": "tierart",
+      "habitat": "Savanne",
+      "status": "Nicht gefährdet (LC)",
+      "tags": [
+        "tierart",
+        "raubtier",
+        "savanne"
+      ],
+      "summary": "Das Erdmännchen (Suricata suricatta), auch Surikate oder veraltet Scharrtier genannt, ist eine Säugetierart aus der Familie der Mangusten (Herpestidae).",
+      "related": [
+        "savanne",
+        "afrikanischer-elefant",
+        "loewe",
+        "gepard"
+      ],
+      "source_file": "raw/erdmaennchen.md",
+      "key_points": [
+        "Das Erdmännchen (Suricata suricatta), auch Surikate oder veraltet Scharrtier genannt, ist eine Säugetierart aus der Familie der Mangusten (Herpestidae).",
+        "Mit durchschnittlich 700 bis 750 g ist es eine der kleinsten Mangustenarten, es hat ein hellgraues Fell mit unauffälligen Querstreifen.",
+        "Erdmännchen leben in trockenen Regionen im südlichen Afrika.",
+        "Sie leben meist in Gruppen von vier bis neun Tieren mit ausgeprägtem Sozialverhalten und ernähren sich vorwiegend von Insekten."
+      ]
+    },
+    {
+      "slug": "termiten",
+      "title": "Termiten",
+      "category": "tierart",
+      "habitat": "Savanne",
+      "status": "Artengruppe / Gattung (variiert je nach Art)",
+      "tags": [
+        "tierart",
+        "insekt",
+        "savanne"
+      ],
+      "summary": "Termiten (Termitoidae, Termitoidea oder Isoptera) sind eine staatenbildende, in warmen Erdregionen vorkommende Epifamilie der zu den Insekten gehörenden Schaben.",
+      "related": [
+        "savanne",
+        "afrikanischer-elefant",
+        "loewe",
+        "gepard"
+      ],
+      "source_file": "raw/termiten.md",
+      "key_points": [
+        "Termiten (Termitoidae, Termitoidea oder Isoptera) sind eine staatenbildende, in warmen Erdregionen vorkommende Epifamilie der zu den Insekten gehörenden Schaben.",
+        "Nachdem sie lange Zeit als eigene Ordnung (Isoptera) galten, konnten modernere Forschungen nach und nach ans Licht bringen, dass es sich in Wahrheit nur um einen stammesgeschichtlichen Zweig der Schaben handelt.",
+        "Daher werden die Termiten heutzutage entweder als Infraordnung der Schaben (Isoptera) oder Epifamilie innerhalb der Überfamilie Blattoidea (Termitoidae) angesehen.",
+        "Mit den ebenfalls staatenbildenden Hautflüglern (Ameisen, Bienen und Wespen) sind sie jedoch nicht näher verwandt."
+      ]
+    },
+    {
+      "slug": "symbiose",
+      "title": "Symbiose",
+      "category": "konzept",
+      "habitat": "Übergreifend",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "konzept",
+        "interaktion",
+        "oekologie"
+      ],
+      "summary": "Symbiose (von altgriechisch σύν sýn, deutsch ‚zusammen‘ sowie altgriechisch βίος bíos, deutsch ‚Leben‘) bezeichnet die Vergesellschaftung von Individuen zweier unterschiedlicher Arten, die für beide Partner vorteilhaft ist.",
+      "related": [
+        "anemonenfische",
+        "seeanemonen",
+        "steinkorallen",
+        "blattschneiderameisen",
+        "oekosystem"
+      ],
+      "source_file": "raw/symbiose.md",
+      "key_points": [
+        "Symbiose (von altgriechisch σύν sýn, deutsch ‚zusammen‘ sowie altgriechisch βίος bíos, deutsch ‚Leben‘) bezeichnet die Vergesellschaftung von Individuen zweier unterschiedlicher Arten, die für beide Partner vorteilhaft ist.",
+        "Ausgehend von seinen Arbeiten an Flechten schlug Anton de Bary 1878 auf der 51.",
+        "Versammlung Deutscher Naturforscher und Ärzte in Kassel vor, die Bezeichnung Symbiose für jegliches Zusammenleben von artverschiedenen Organismen, also auch für den Parasitismus, in die Biologie einzuführen.",
+        "In diesem weitgefassten Sinn wird die Bezeichnung Symbiose (englisch symbiosis) noch immer in der US-amerikanischen Literatur für sämtliche Formen des koevolutionär entstandenen Zusammenlebens, vom Mutualismus über den Kommensalismus, den Neutralismus bis hin zum Parasitismus verwendet."
+      ]
+    },
+    {
+      "slug": "nahrungskette",
+      "title": "Nahrungskette",
+      "category": "konzept",
+      "habitat": "Übergreifend",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "konzept",
+        "trophie",
+        "oekologie"
+      ],
+      "summary": "Eine Nahrungskette ist ein Modell für die linearen energetischen und stofflichen Beziehungen zwischen verschiedenen Arten von Lebewesen, wobei jede Art Nahrungsgrundlage einer anderen Art ist, ausgenommen die Art am Ende der Nahrungskette.",
+      "related": [
+        "raeuber-beute-beziehung",
+        "eisbaer",
+        "ringelrobbe",
+        "alpenmurmeltier",
+        "steinadler",
+        "oekosystem"
+      ],
+      "source_file": "raw/nahrungskette.md",
+      "key_points": [
+        "Eine Nahrungskette ist ein Modell für die linearen energetischen und stofflichen Beziehungen zwischen verschiedenen Arten von Lebewesen, wobei jede Art Nahrungsgrundlage einer anderen Art ist, ausgenommen die Art am Ende der Nahrungskette.",
+        "Man spricht auch von trophischen Beziehungen (abgeleitet von griechisch trophein „sich ernähren“).",
+        "Am Beginn von Nahrungsketten stehen Vertreter der Produzenten (vor allem Pflanzen), dann folgen Konsumenten (Pflanzenfresser und Fleischfresser).",
+        "Am Ende einer solchen Kette steht oft ein Spitzenprädator."
+      ]
+    },
+    {
+      "slug": "raeuber-beute-beziehung",
+      "title": "Räuber-Beute-Beziehung",
+      "category": "konzept",
+      "habitat": "Übergreifend",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "konzept",
+        "trophie",
+        "oekologie"
+      ],
+      "summary": "Als Räuber-Beute-Beziehung oder seltener Räuber-Beute-Verhältnis wird die dynamische Wechselwirkung zwischen einer Räuber- und einer Beutepopulation über längere Zeiträume beschrieben.",
+      "related": [
+        "nahrungskette",
+        "oekosystem",
+        "schluesselart",
+        "biodiversitaet"
+      ],
+      "source_file": "raw/raeuber-beute-beziehung.md",
+      "key_points": [
+        "Als Räuber-Beute-Beziehung oder seltener Räuber-Beute-Verhältnis wird die dynamische Wechselwirkung zwischen einer Räuber- und einer Beutepopulation über längere Zeiträume beschrieben.",
+        "Es handelt sich um ein vereinfachendes Modell eines Ausschnitts der Nahrungsnetze, die im biologischen Fachgebiet Ökologie analysiert werden.",
+        "Räuber-Beute-Beziehungen lassen sich mathematisch darstellen und können in begrenztem Maß zur Vorhersage zukünftiger Populationsentwicklungen genutzt werden.",
+        "Räuber-Beute-Beziehungen stellen einen Ausschnitt einer Nahrungskette aus einem der Nahrungsnetze dar, die ein Forschungsgegenstand des Fachgebiets Ökologie sind."
+      ]
+    },
+    {
+      "slug": "tarnung-biologie",
+      "title": "Tarnung (Biologie)",
+      "category": "konzept",
+      "habitat": "Übergreifend",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "konzept",
+        "anpassung",
+        "oekologie"
+      ],
+      "summary": "Tarnung, in der Verhaltensbiologie auch als Krypsis (von altgriechisch κρύψις krýpsis, deutsch ‚das Verbergen, Sichverbergen‘) bezeichnet, ist bei Tieren der Vorgang oder Zustand, der darauf abzielt, irreführende Signale an ein anderes Lebewesen zu senden.",
+      "related": [
+        "mimikry",
+        "schneehase",
+        "polarfuchs",
+        "gepard"
+      ],
+      "source_file": "raw/tarnung-biologie.md",
+      "key_points": [
+        "Tarnung, in der Verhaltensbiologie auch als Krypsis (von altgriechisch κρύψις krýpsis, deutsch ‚das Verbergen, Sichverbergen‘) bezeichnet, ist bei Tieren der Vorgang oder Zustand, der darauf abzielt, irreführende Signale an ein anderes Lebewesen zu senden.",
+        "Es ist sowohl der simpelste und effektivste Mechanismus zur Reduzierung des Prädationsrisikos als auch eine mögliche evolutionäre Anpassung von Beutegreifern, die aufgrund ihrer Tarnung von potentiellen Beutetieren weniger leicht wahrgenommen werden.",
+        "Diese Irreführung kann sich gegen alle Sinnesorgane richten, also zum Beispiel die visuelle Wahrnehmung („das Auge“) täuschen, die auditive Wahrnehmung („das Ohr“) oder die olfaktorische Wahrnehmung („den Geruchssinn“).",
+        "Als Sonderform der Tarnung können auch bestimmte Mimikry-Varianten aufgefasst werden, bei denen zum Beispiel wohlschmeckende oder wehrlose Arten äußere Merkmale übelschmeckender oder wehrhafter Arten kopieren und sich so gegenüber potenziellen Fressfeinden tarnen."
+      ]
+    },
+    {
+      "slug": "mimikry",
+      "title": "Mimikry",
+      "category": "konzept",
+      "habitat": "Übergreifend",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "konzept",
+        "anpassung",
+        "oekologie"
+      ],
+      "summary": "Die Mimikry bezeichnet in der Biologie eine Form der Nachahmung visueller, auditiver oder olfaktorischer Signale, die dazu führt, dass dem Nachahmer und Fälscher Vorteile durch die Täuschung des Signalempfängers entstehen.",
+      "related": [
+        "tarnung-biologie",
+        "morphofalter",
+        "baumsteigerfroesche"
+      ],
+      "source_file": "raw/mimikry.md",
+      "key_points": [
+        "Die Mimikry bezeichnet in der Biologie eine Form der Nachahmung visueller, auditiver oder olfaktorischer Signale, die dazu führt, dass dem Nachahmer und Fälscher Vorteile durch die Täuschung des Signalempfängers entstehen.",
+        "Bei der Mimikry können aus Sicht des Signalfälschers insbesondere zwei häufige Varianten unterschieden werden: zum einen Schutzmimikry durch Imitation von Vorbildern, die zum Beispiel potentielle Fressfeinde abschrecken; zum anderen Lockmimikry durch Imitation von Vorbildern, die zum Beispiel für potentielle Beute oder für Bestäuber attraktiv sind.",
+        "Ein bekanntes Beispiel für Mimikry ist die Ähnlichkeit von Gestalt und Farbmuster der Blütenblätter bestimmter Orchideen der Gattung Ophrys und bestimmter Insekten, die so auffallend ist, dass sie namensgebend wurde (Bienen-Ragwurz, Hummel-Ragwurz, Fliegen-Ragwurz).",
+        "Die Blüten der Großen Spinnen-Ragwurz ahmen das Lock-Pheromon weiblicher Sandbienen der Art Andrena nigroaenea nach – für die schwärmenden Drohnen eine unwiderstehliche Verlockung, auf diesen Orchideen-Blüten zu landen und sie auf der Suche nach dem Weibchen zu bestäuben."
+      ]
+    },
+    {
+      "slug": "invasive-art",
+      "title": "Biologische Invasion",
+      "category": "konzept",
+      "habitat": "Übergreifend",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "konzept",
+        "artenschutz",
+        "oekologie"
+      ],
+      "summary": "Als biologische Invasion bezeichnet man allgemein die durch Menschen verursachte Ausbreitung einer gebietsfremden Art in einem Gebiet, in dem sie ursprünglich nicht heimisch war.",
+      "related": [
+        "biodiversitaet",
+        "artensterben",
+        "oekosystem"
+      ],
+      "source_file": "raw/invasive-art.md",
+      "key_points": [
+        "Als biologische Invasion bezeichnet man allgemein die durch Menschen verursachte Ausbreitung einer gebietsfremden Art in einem Gebiet, in dem sie ursprünglich nicht heimisch war.",
+        "Invasiv im Sinne des Naturschutzes ist „eine gebietsfremde Art, deren Einbringung oder Ausbreitung die Biodiversität und die damit verbundenen Ökosystemdienstleistungen gefährdet oder nachteilig beeinflusst“; letzteres schließt ökonomische (z. B.",
+        "Schädlinge) oder gesundheitliche Gefahren ein.",
+        "Umgangssprachlich wird auch von Einschleppung und eingeschleppten Arten gesprochen."
+      ]
+    },
+    {
+      "slug": "artensterben",
+      "title": "Aussterben",
+      "category": "konzept",
+      "habitat": "Übergreifend",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "konzept",
+        "artenschutz",
+        "oekologie"
+      ],
+      "summary": "Aussterben (fachsprachlich auch Extinktion) bezeichnet das Ende einer evolutionären Stammlinie infolge des Tods aller Nachkommen.",
+      "related": [
+        "rote-liste-gefaehrdeter-arten",
+        "biodiversitaet",
+        "klimawandel",
+        "invasive-art"
+      ],
+      "source_file": "raw/artensterben.md",
+      "key_points": [
+        "Aussterben (fachsprachlich auch Extinktion) bezeichnet das Ende einer evolutionären Stammlinie infolge des Tods aller Nachkommen.",
+        "Die Bezeichnung Aussterben kann sich sowohl auf eine Population als auch auf eine Art beziehen.",
+        "Solange Populationen derselben Art an anderen Orten weiter existieren, handelt es sich um ein lokales Aussterben.",
+        "Eine biologische Art stirbt aus, wenn das letzte Individuum der Art stirbt."
+      ]
+    },
+    {
+      "slug": "biodiversitaet",
+      "title": "Biodiversität",
+      "category": "konzept",
+      "habitat": "Übergreifend",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "konzept",
+        "vielfalt",
+        "oekologie"
+      ],
+      "summary": "Biodiversität oder biologische Vielfalt ist ein Konzept der Biowissenschaften für die Vielfalt und Variabilität des Lebens in einem bestimmten Landschaftsraum oder in einem geographisch begrenzten Gebiet (beispielsweise Rasterzelle oder Land).",
+      "related": [
+        "oekosystem",
+        "tropischer-regenwald",
+        "korallenriff",
+        "artensterben"
+      ],
+      "source_file": "raw/biodiversitaet.md",
+      "key_points": [
+        "Biodiversität oder biologische Vielfalt ist ein Konzept der Biowissenschaften für die Vielfalt und Variabilität des Lebens in einem bestimmten Landschaftsraum oder in einem geographisch begrenzten Gebiet (beispielsweise Rasterzelle oder Land).",
+        "Als wissenschaftlicher Fachbegriff setzt sich der Begriff aus drei Ebenen zusammen: Die genetische (häufig auch sichtbar unterscheidbare) Ebene umfasst die Zahl der Varianten innerhalb und zwischen Populationen von Organismen.",
+        "Die Ebene der Artenvielfalt bezieht sich in der Regel auf die Anzahl der Arten oder Taxa.",
+        "Die Ebene der Ökosysteme schließt die Vielfalt der Lebensräume wie Biotop, Biom oder Ökoregion mit ein."
+      ]
+    },
+    {
+      "slug": "klimawandel",
+      "title": "Klimawandel",
+      "category": "konzept",
+      "habitat": "Übergreifend",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "konzept",
+        "klima",
+        "oekologie"
+      ],
+      "summary": "Klimawandel, auch Klimaveränderung, Klimaänderung oder Klimawechsel, ist eine weltweit auftretende Veränderung des Klimas auf der Erde oder erdähnlichen Planeten oder Monden, die eine Atmosphäre besitzen.",
+      "related": [
+        "arktis",
+        "eisbaer",
+        "korallenbleiche",
+        "alpen",
+        "artensterben"
+      ],
+      "source_file": "raw/klimawandel.md",
+      "key_points": [
+        "Klimawandel, auch Klimaveränderung, Klimaänderung oder Klimawechsel, ist eine weltweit auftretende Veränderung des Klimas auf der Erde oder erdähnlichen Planeten oder Monden, die eine Atmosphäre besitzen.",
+        "Die mit einem Klimawandel verbundene Abkühlung oder Erwärmung kann über unterschiedlich lange Zeiträume erfolgen.",
+        "Ein wichtiges Unterscheidungsmerkmal besteht dabei zwischen jenen Witterungsverläufen, die im Rahmen eines Klimazustands beziehungsweise einer Klimazone erfolgen, und dem Klimawandel selbst, der die Wahrscheinlichkeit für das Auftreten bestimmter Wetterlagen erhöht oder vermindert.",
+        "Die gegenwärtige, vor allem durch den Menschen verursachte (anthropogene) globale Erwärmung ist ein Beispiel für einen sehr rasch verlaufenden, aber noch nicht abgeschlossenen Klimawandel."
+      ]
+    },
+    {
+      "slug": "korallenbleiche",
+      "title": "Korallenbleiche",
+      "category": "konzept",
+      "habitat": "Korallenriff",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "konzept",
+        "korallenriff",
+        "klima"
+      ],
+      "summary": "Mit Korallenbleiche wird das Ausbleichen von Steinkorallen-Stöcken bezeichnet, das zum anschließenden Absterben der Korallen führen kann.",
+      "related": [
+        "korallenriff",
+        "steinkorallen",
+        "klimawandel",
+        "symbiose",
+        "biodiversitaet"
+      ],
+      "source_file": "raw/korallenbleiche.md",
+      "key_points": [
+        "Mit Korallenbleiche wird das Ausbleichen von Steinkorallen-Stöcken bezeichnet, das zum anschließenden Absterben der Korallen führen kann.",
+        "Sie gehören zu den Nesseltieren und siedeln in Symbiose mit photosynthetisch aktiven Einzellern (Zooxanthellen) auf einer Kalkschicht, die von Jahr zu Jahr wächst.",
+        "Werden die Zooxanthellen von der Koralle abgestoßen, verliert der Korallenstock seine Farbenpracht und seine ökologische Funktion.",
+        "Korallenbleiche kann sowohl örtlich begrenzt als auch großflächig auftreten und tritt vor allem bei zu hohen Wassertemperaturen auf."
+      ]
+    },
+    {
+      "slug": "winterschlaf",
+      "title": "Winterschlaf",
+      "category": "konzept",
+      "habitat": "Alpen",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "konzept",
+        "anpassung",
+        "winter"
+      ],
+      "summary": "Als Winterschlaf oder Hibernation bezeichnet man einen saisonalen mehrtägigen Torpor in manchen Säugetieren und einer Vogelart, der durch eine Herabsetzung der Stoffwechselaktivität und Körpertemperatur definiert ist.",
+      "related": [
+        "alpen",
+        "alpenmurmeltier",
+        "klimawandel"
+      ],
+      "source_file": "raw/winterschlaf.md",
+      "key_points": [
+        "Als Winterschlaf oder Hibernation bezeichnet man einen saisonalen mehrtägigen Torpor in manchen Säugetieren und einer Vogelart, der durch eine Herabsetzung der Stoffwechselaktivität und Körpertemperatur definiert ist.",
+        "Für gleichwarme Tiere ist es die wirksamste Methode um Energie zu sparen.",
+        "Die meisten Winterschläfer tun dies im Winter bei niedrigen Temperaturen, jedoch gibt es auch Säugetiere, die Lemuren, die bei tropischem Klima Winterschlaf nutzen, um Trockenzeiten zu überbrücken.",
+        "Da normale Körperfunktionen durch die geringe Stoffwechselaktivität und Körpertemperatur während mehrtägigem Torpor gestört sind, unterbrechen Winterschläfer regelmäßig den Torpor, um unter anderem das Immunsystem hochzufahren."
+      ]
+    },
+    {
+      "slug": "vogelzug",
+      "title": "Vogelzug",
+      "category": "konzept",
+      "habitat": "Übergreifend",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "konzept",
+        "migration",
+        "voegel"
+      ],
+      "summary": "Als Vogelzug bezeichnet man den alljährlichen Flug der Zugvögel von ihren Brutgebieten zu ihren Winterquartieren und wieder zurück.",
+      "related": [
+        "schneeeule",
+        "klimawandel",
+        "oekosystem"
+      ],
+      "source_file": "raw/vogelzug.md",
+      "key_points": [
+        "Als Vogelzug bezeichnet man den alljährlichen Flug der Zugvögel von ihren Brutgebieten zu ihren Winterquartieren und wieder zurück.",
+        "Jährlich sind weltweit schätzungsweise 50 Milliarden Zugvögel unterwegs, davon etwa fünf Milliarden zwischen Europa und Afrika.",
+        "Als Zugvogel wird eine Vogelart dann bezeichnet, wenn sie verschiedene Jahreszeiten an unterschiedlichen Orten verbringt.",
+        "Obligate Zugvögel verlassen immer ungefähr zur selben Zeit und unabhängig von klimatischen Bedingungen ihre Brutgebiete, fliegen auf etwa gleichbleibenden Routen zu ihrem Winterquartier und kehren im darauffolgenden Frühjahr zurück."
+      ]
+    },
+    {
+      "slug": "schluesselart",
+      "title": "Schlüsselart",
+      "category": "konzept",
+      "habitat": "Übergreifend",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "konzept",
+        "oekosystem",
+        "trophie"
+      ],
+      "summary": "Als Schlüsselart oder Schlüsselspezies (in Anlehnung an die engl.",
+      "related": [
+        "steinkorallen",
+        "afrikanischer-elefant",
+        "papageifische",
+        "raeuber-beute-beziehung",
+        "biodiversitaet",
+        "oekosystem"
+      ],
+      "source_file": "raw/schluesselart.md",
+      "key_points": [
+        "Als Schlüsselart oder Schlüsselspezies (in Anlehnung an die engl.",
+        "Bezeichnung „Keystone Species“, eigentl.",
+        "„Schlussstein-Art“) wird in der Ökologie eine Art bezeichnet, die im Vergleich zu ihrer geringen Häufigkeit einen unverhältnismäßig großen Einfluss auf die Artenvielfalt einer Lebensgemeinschaft ausübt.",
+        "Eine Schlüsselart ist eine Art, die zur Definition eines Ökosystems beiträgt."
+      ]
+    },
+    {
+      "slug": "oekosystem",
+      "title": "Ökosystem",
+      "category": "konzept",
+      "habitat": "Übergreifend",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "konzept",
+        "grundlage",
+        "oekologie"
+      ],
+      "summary": "Ökosystem (altgriechisch οἶκος oikós, deutsch ‚Haus‘ und σύστημα sýstema, deutsch ‚das Zusammengestellte, das Verbundene‘) ist ein Fachbegriff der ökologischen Wissenschaften.",
+      "related": [
+        "raeuber-beute-beziehung",
+        "biodiversitaet",
+        "schluesselart",
+        "symbiose",
+        "tropischer-regenwald"
+      ],
+      "source_file": "raw/oekosystem.md",
+      "key_points": [
+        "Ökosystem (altgriechisch οἶκος oikós, deutsch ‚Haus‘ und σύστημα sýstema, deutsch ‚das Zusammengestellte, das Verbundene‘) ist ein Fachbegriff der ökologischen Wissenschaften.",
+        "Ein Ökosystem besteht aus einer Lebensgemeinschaft von Organismen mehrerer Arten (Biozönose) und ihrer unbelebten Umwelt, die man als Habitat oder Biotop bezeichnet.",
+        "Der Begriff Ökosystem wird in den Naturwissenschaften in einem werturteilsfreien Sinne gebraucht.",
+        "In Politik und Alltagswelt wird dagegen oftmals so gesprochen, als seien Ökosysteme an sich schützenswert."
+      ]
+    },
+    {
+      "slug": "rote-liste-gefaehrdeter-arten",
+      "title": "Rote Liste gefährdeter Arten",
+      "category": "konzept",
+      "habitat": "Übergreifend",
+      "status": "Konzept / Lebensraum",
+      "tags": [
+        "konzept",
+        "artenschutz",
+        "iucn"
+      ],
+      "summary": "Die Rote Liste gefährdeter Arten, auch nur Rote Liste oder im Original Red Data Book genannt, ist die von der IUCN (International Union for Conservation of Nature and Natural Resources) veröffentlichte Liste weltweit vom",
+      "related": [
+        "artensterben",
+        "eisbaer",
+        "orang-utans",
+        "gepard"
+      ],
+      "source_file": "raw/rote-liste-gefaehrdeter-arten.md",
+      "key_points": [
+        "Die Rote Liste gefährdeter Arten, auch nur Rote Liste oder im Original Red Data Book genannt, ist die von der IUCN (International Union for Conservation of Nature and Natural Resources) veröffentlichte Liste weltweit vom Aussterben gefährdeter Tier- und Pflanzenarten.",
+        "Sowohl von der IUCN als auch von anderen internationalen Organisationen, Staaten, politischen Gliederungen wie Bundesländern oder von Naturschutzverbänden werden ähnliche Listen mit geographischer oder taxonomischer Beschränkung veröffentlicht, die ebenfalls Rote Liste genannt werden.",
+        "Heute gibt es neben Roten Listen gefährdeter Arten auch solche gefährdeter Biotoptypen.",
+        "Rote Listen gelten als wissenschaftliche Fachgutachten zum Aussterberisiko von Arten, die Gesetzgebern und Behörden als Grundlage für ihr Handeln in Bezug auf den Arten-, Natur- und Umweltschutz dienen sollen."
+      ]
+    }
+  ],
+  "mcpConfigs": {
+    "claudeCode": "{\n  \"mcpServers\": {\n    \"workshop-wildlife\": {\n      \"command\": \"node\",\n      \"args\": [\"./mcp-server/server.mjs\"],\n      \"env\": {\n        \"BEAMER_URL\": \"http://127.0.0.1:3777/api/submissions\"\n      }\n    }\n  }\n}",
+    "geminiCli": "{\n  \"mcpServers\": {\n    \"workshop-wildlife\": {\n      \"command\": \"node\",\n      \"args\": [\"./mcp-server/server.mjs\"],\n      \"env\": {\n        \"BEAMER_URL\": \"http://127.0.0.1:3777/api/submissions\"\n      }\n    }\n  }\n}",
+    "codex": "[mcp_servers.workshop-wildlife]\ncommand = \"node\"\nargs = [\"./mcp-server/server.mjs\"]\n\n[mcp_servers.workshop-wildlife.env]\nBEAMER_URL = \"http://127.0.0.1:3777/api/submissions\"",
+    "vscodeCursor": "{\n  \"servers\": {\n    \"workshop-wildlife\": {\n      \"type\": \"stdio\",\n      \"command\": \"node\",\n      \"args\": [\"./mcp-server/server.mjs\"],\n      \"env\": {\n        \"BEAMER_URL\": \"http://127.0.0.1:3777/api/submissions\"\n      }\n    }\n  }\n}",
+    "cliCommand": "node mcp-server/submit-question.mjs --team \"Euer Team\" --question \"Wie überwintern Alpenmurmeltiere?\" --stage \"Stufe 3\""
+  }
+}
