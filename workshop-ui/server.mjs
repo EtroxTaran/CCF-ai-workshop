@@ -340,6 +340,13 @@ const state = {
   seenFiles: new Set(),
   seenIssues: new Set(),
   demoCursor: 0,
+  stage: {
+    phaseIdx: 0,
+    running: false,
+    secondsLeft: 600,
+    updatedAt: Date.now(),
+    beamerActive: false,
+  },
   config: {
     joinUrl: getLanUrls()[0],
     githubRepo: process.env.GITHUB_REPO || "",
@@ -349,8 +356,25 @@ const state = {
   sseClients: new Set(),
 };
 
-function broadcastSubmissions() {
-  const payload = `event: submissions\ndata: ${JSON.stringify({ items: state.submissions })}\n\n`;
+function currentStagePayload() {
+  const s = state.stage;
+  let computedSeconds = s.secondsLeft;
+  if (s.running) {
+    const elapsedSec = Math.floor((Date.now() - s.updatedAt) / 1000);
+    computedSeconds = Math.max(0, s.secondsLeft - elapsedSec);
+  }
+  return {
+    phaseIdx: s.phaseIdx,
+    running: s.running,
+    secondsLeft: computedSeconds,
+    updatedAt: s.updatedAt,
+    beamerActive: s.beamerActive,
+    connectedClients: state.sseClients.size,
+  };
+}
+
+function broadcastEvent(eventName, payloadObj) {
+  const payload = `event: ${eventName}\ndata: ${JSON.stringify(payloadObj)}\n\n`;
   for (const res of state.sseClients) {
     try {
       res.write(payload);
@@ -358,6 +382,14 @@ function broadcastSubmissions() {
       state.sseClients.delete(res);
     }
   }
+}
+
+function broadcastSubmissions() {
+  broadcastEvent("submissions", { items: state.submissions });
+}
+
+function broadcastStage() {
+  broadcastEvent("stage", currentStagePayload());
 }
 
 async function addSubmission(raw, persistFile = false) {
@@ -560,6 +592,29 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (pathname === "/api/stage" && req.method === "GET") {
+    sendJson(res, 200, currentStagePayload());
+    return;
+  }
+
+  if (pathname === "/api/stage" && req.method === "POST") {
+    const body = await readJsonBody(req).catch(() => ({}));
+    if (typeof body.phaseIdx === "number" && body.phaseIdx >= 0 && body.phaseIdx <= 6) {
+      state.stage.phaseIdx = body.phaseIdx;
+    }
+    if (typeof body.running === "boolean") {
+      state.stage.running = body.running;
+    }
+    if (typeof body.secondsLeft === "number" && body.secondsLeft >= 0) {
+      state.stage.secondsLeft = Math.floor(body.secondsLeft);
+    }
+    state.stage.updatedAt = Date.now();
+    state.stage.beamerActive = true;
+    broadcastStage();
+    sendJson(res, 200, { ok: true, stage: currentStagePayload() });
+    return;
+  }
+
   if (pathname === "/api/submissions" && req.method === "GET") {
     sendJson(res, 200, { items: state.submissions });
     return;
@@ -618,9 +673,14 @@ const server = http.createServer(async (req, res) => {
       Connection: "keep-alive",
       "Access-Control-Allow-Origin": "*",
     });
-    res.write(`event: submissions\ndata: ${JSON.stringify({ items: state.submissions })}\n\n`);
     state.sseClients.add(res);
-    req.on("close", () => state.sseClients.delete(res));
+    res.write(`event: submissions\ndata: ${JSON.stringify({ items: state.submissions })}\n\n`);
+    res.write(`event: stage\ndata: ${JSON.stringify(currentStagePayload())}\n\n`);
+    broadcastStage();
+    req.on("close", () => {
+      state.sseClients.delete(res);
+      broadcastStage();
+    });
     return;
   }
 

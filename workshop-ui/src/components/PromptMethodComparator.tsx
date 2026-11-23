@@ -14,39 +14,88 @@ interface PromptMethodComparatorProps {
   onShareMethod: (methodName: string, promptTask: string) => void;
 }
 
-const EXPECTED_OUTPUT_PREVIEWS: Record<string, { title: string; lines: string[] }> = {
-  "zero-shot": {
-    title: "Typische Roh-Antwort (unstrukturiert)",
-    lines: [
-      "Langer Fließtext ohne Trennung nach Lebensräumen",
-      "Mischt eigenes Vorwissen mit Dokumenten",
-      "Keine Dateinamen, beliebige Länge & Tonalität",
-    ],
-  },
-  costar: {
-    title: "Strukturiertes Management-Memo",
-    lines: [
-      "Sektion 1: Arktis & Eisbär (max. 3 Bulletpoints + Quelle)",
-      "Sektion 2: Korallenriff & Steinkorallen (max. 3 Bulletpoints + Quelle)",
-      "Sachliche Tonalität passend für Fachbereich & Leitung",
-    ],
-  },
-  "few-shot": {
-    title: "Exakte Schema-Zeilen (BI / Datenbank)",
-    lines: [
-      "Lebensraum: Arktis | Betroffene Art: Eisbär | Konkreter Befund: ... | Quelle: eisbaer.md",
-      "Lebensraum: Korallenriff | Betroffene Art: Steinkorallen | Konkreter Befund: ... | Quelle: korallenbleiche.md",
-    ],
-  },
-  "risen-cot": {
-    title: "Verifizierte Vergleichstabelle",
-    lines: [
-      "Schrittweise Prüfung aller Zahlen (2030, 20–29 °C, acht Wochen)",
-      "Kompakte Vergleichstabelle mit Quelle in jeder Zeile",
-      "Fehlende Angaben explizit als [Nicht in Quelle] markiert",
-    ],
-  },
-};
+interface OutputSimulationProps {
+  methodId: string;
+}
+
+function OutputSimulationPreview({ methodId }: OutputSimulationProps) {
+  if (methodId === "zero-shot") {
+    return (
+      <div className="space-y-2 rounded-xl border border-rose-300/60 bg-rose-50/60 p-3 text-xs dark:border-rose-500/30 dark:bg-rose-500/10">
+        <p className="leading-relaxed text-foreground/90">
+          „Der Klimawandel bedroht Eisbären durch schmelzendes Packeis und Korallenriffe durch Erwärmung
+          der Ozeane. Besonders stark betroffen sind Jungtiere und tropische Arten weltweit…“
+        </p>
+        <div className="flex flex-wrap gap-1.5">
+          <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-800 dark:bg-rose-500/20 dark:text-rose-300">
+            Ohne Quellenbeleg
+          </span>
+          <span className="rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-800 dark:bg-rose-500/20 dark:text-rose-300">
+            Trainingswissen vermischt
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (methodId === "costar") {
+    return (
+      <div className="space-y-2 rounded-xl border bg-muted/40 p-3 text-xs">
+        <div className="font-semibold text-foreground">Arktis &amp; Eisbär</div>
+        <div className="flex items-start gap-1.5 text-muted-foreground">
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-lime" />
+          <span>
+            Arktischer Ozean könnte ab 2030 im Sommer eisfrei sein{" "}
+            <code className="text-brand-ink">(arktis.md)</code>.
+          </span>
+        </div>
+        <div className="pt-0.5 font-semibold text-foreground">Korallenriff &amp; Steinkorallen</div>
+        <div className="flex items-start gap-1.5 text-muted-foreground">
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-lime" />
+          <span>
+            Ab ~29 °C Abstoßung der Zooxanthellen{" "}
+            <code className="text-brand-ink">(korallenbleiche.md)</code>.
+          </span>
+        </div>
+      </div>
+    );
+  }
+
+  if (methodId === "few-shot") {
+    return (
+      <div className="space-y-1.5 rounded-xl border bg-muted/40 p-3 font-mono text-[11px]">
+        <div className="wrap-safe rounded bg-card px-2 py-1">
+          <span className="font-semibold text-brand-ink">Arktis</span> | Eisbär | Ab 2030 eisfreie
+          Sommer möglich | eisbaer.md
+        </div>
+        <div className="wrap-safe rounded bg-card px-2 py-1">
+          <span className="font-semibold text-brand-ink">Korallenriff</span> | Steinkorallen | Bleiche
+          ab ~29 °C, Tod nach 8 Wochen | korallenbleiche.md
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden rounded-xl border text-[11px]">
+      <div className="grid grid-cols-3 bg-muted/70 px-2.5 py-1.5 font-semibold text-foreground">
+        <span>Bereich</span>
+        <span>Belegter Befund</span>
+        <span>Quelle</span>
+      </div>
+      <div className="grid grid-cols-3 border-t px-2.5 py-1.5 text-muted-foreground">
+        <span className="font-medium text-foreground">Eisbär</span>
+        <span>Gewichtsverlust im Sommer</span>
+        <span className="font-mono text-brand-ink">eisbaer.md</span>
+      </div>
+      <div className="grid grid-cols-3 border-t px-2.5 py-1.5 text-muted-foreground">
+        <span className="font-medium text-foreground">Schutzbudget</span>
+        <span className="font-mono text-amber-700 dark:text-amber-300">[Nicht in Quelle]</span>
+        <span>—</span>
+      </div>
+    </div>
+  );
+}
 
 const ANATOMY_KEYS = [
   "Context",
@@ -97,7 +146,6 @@ export function PromptMethodComparator({
 
   const activeHighlight = pinnedPart ?? hoveredPart;
   const promptLines = useMemo(() => active.prompt.split("\n"), [active.prompt]);
-  const preview = EXPECTED_OUTPUT_PREVIEWS[active.id] || EXPECTED_OUTPUT_PREVIEWS["zero-shot"];
 
   function isLineHighlighted(line: string, key: string | null): boolean {
     if (!activeHighlight) return false;
@@ -175,7 +223,7 @@ export function PromptMethodComparator({
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.16 }}
-          className="overflow-hidden rounded-2xl border bg-card"
+          className="card-elevated overflow-hidden rounded-2xl border bg-card"
         >
           {/* Method Header + Anatomy Pills */}
           <div className="space-y-3 border-b p-5">
@@ -273,20 +321,13 @@ export function PromptMethodComparator({
               </div>
             </div>
 
-            <div className="space-y-2 md:pl-5">
+            <div className="space-y-2.5 md:pl-5">
               <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.06em] text-brand-ink">
                 <Sparkles className="h-3.5 w-3.5" />
-                {preview.title}
+                Simulierte KI-Antwortform
               </div>
-              <ul className="space-y-1 text-xs text-muted-foreground">
-                {preview.lines.map((ln, idx) => (
-                  <li key={idx} className="wrap-safe flex items-start gap-2">
-                    <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-brand-lime" />
-                    <span>{ln}</span>
-                  </li>
-                ))}
-              </ul>
-              <div className="pt-1">
+              <OutputSimulationPreview methodId={active.id} />
+              <div className="flex justify-end pt-0.5">
                 <Button
                   type="button"
                   size="sm"

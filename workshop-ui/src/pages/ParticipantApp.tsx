@@ -27,6 +27,8 @@ import { CopyButton } from "@/components/CopyButton";
 import { ObsidianKnowledgeGraph } from "@/components/ObsidianKnowledgeGraph";
 import { PromptMethodComparator } from "@/components/PromptMethodComparator";
 import { StageArtifactsSheet } from "@/components/StageArtifactsSheet";
+import { StageBackdrop } from "@/components/StageBackdrop";
+import { StageMiniDiagram } from "@/components/StageMiniDiagram";
 import { Virtual7Logo } from "@/components/Virtual7Logo";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
@@ -44,7 +46,7 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import type { EvidenceMatch, WorkshopDataset } from "@/types/workshop";
+import type { EvidenceMatch, StageState, WorkshopDataset } from "@/types/workshop";
 
 const data = rawData as unknown as WorkshopDataset;
 
@@ -77,6 +79,10 @@ export function ParticipantApp() {
   const [teamName, setTeamName] = useState<string>("Tisch 1");
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [activeStageIdx, setActiveStageIdx] = useState<number>(0);
+
+  // Live synced Beamer stage companion
+  const [liveStage, setLiveStage] = useState<StageState | null>(null);
+  const [syncedSec, setSyncedSec] = useState<number>(600);
 
   // Send-to-Beamer global drawer
   const [sendOpen, setSendOpen] = useState(false);
@@ -125,7 +131,42 @@ export function ParticipantApp() {
         if (h?.githubRepo) setGithubRepoSlug(h.githubRepo);
       })
       .catch(() => undefined);
+
+    const es = new EventSource("/api/events");
+    es.addEventListener("stage", (ev) => {
+      try {
+        const st = JSON.parse((ev as MessageEvent).data) as StageState;
+        setLiveStage(st);
+        setSyncedSec(st.secondsLeft);
+      } catch {
+        // ignore
+      }
+    });
+    return () => es.close();
   }, []);
+
+  useEffect(() => {
+    if (!liveStage?.running) return;
+    const id = window.setInterval(() => {
+      setSyncedSec((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(id);
+  }, [liveStage?.running, liveStage?.updatedAt]);
+
+  function mapPhaseToStep(phaseIdx: number): { step: StepId; stageIdx?: number } {
+    if (phaseIdx <= 1) return { step: "start" };
+    if (phaseIdx === 2) return { step: "methods" };
+    if (phaseIdx === 3) return { step: "stages", stageIdx: 1 };
+    if (phaseIdx === 4) return { step: "stages", stageIdx: 2 };
+    return { step: "missions" };
+  }
+
+  function formatCompactTime(sec: number): string {
+    const safe = Math.max(0, Math.floor(sec));
+    const m = Math.floor(safe / 60);
+    const s = safe % 60;
+    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+  }
 
   const completedCount = useMemo(
     () => CHECKLIST_ITEMS.filter((item) => checked[item.id]).length,
@@ -432,6 +473,32 @@ export function ParticipantApp() {
         {/* Focused Editorial Content Canvas */}
         <main className="min-w-0 flex-1 px-4 pb-28 pt-6 sm:px-8 lg:px-12 lg:py-10">
           <div className="mx-auto max-w-[920px]">
+            {liveStage?.beamerActive && data.phases[liveStage.phaseIdx] && (
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-brand-lime/40 bg-secondary/50 px-4 py-2.5 text-xs">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-brand-lime" />
+                  <span className="font-semibold text-foreground">
+                    Live auf dem Beamer: Phase {data.phases[liveStage.phaseIdx].number} ·{" "}
+                    {data.phases[liveStage.phaseIdx].title}
+                  </span>
+                  <span className="num-tabular rounded-md bg-card px-2 py-0.5 font-mono font-semibold text-brand-ink">
+                    {formatCompactTime(syncedSec)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = mapPhaseToStep(liveStage.phaseIdx);
+                    if (typeof target.stageIdx === "number") setActiveStageIdx(target.stageIdx);
+                    goToStep(target.step);
+                  }}
+                  className="shrink-0 font-semibold text-brand-ink hover:underline"
+                >
+                  Zur aktuellen Etappe →
+                </button>
+              </div>
+            )}
+
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
@@ -444,20 +511,47 @@ export function ParticipantApp() {
                 {/* STEP 0: START & TRACK */}
                 {step === "start" && (
                   <div className="space-y-9">
-                    <section className="space-y-4">
-                      <div className="inline-flex items-center gap-2 rounded-full border bg-secondary/50 px-3 py-1 text-xs font-semibold text-brand-ink">
-                        <ShieldCheck className="h-3.5 w-3.5" />
-                        <span>virtual7 CCF Clustertag · 100 % öffentliche Daten</span>
+                    {/* Signature virtual7 Dark Keynote Hero Card */}
+                    <section className="stage-atmosphere relative overflow-hidden rounded-3xl border border-[#232B20] bg-[#0B0F0A] p-6 text-[#F2F4EE] shadow-xl sm:p-9">
+                      <StageBackdrop className="absolute -right-24 -top-20 h-[400px] w-[400px] opacity-65" />
+                      <div className="relative z-10 space-y-5">
+                        <div className="inline-flex items-center gap-2 rounded-full border border-[#A9C23F]/35 bg-[#A9C23F]/15 px-3 py-1 text-xs font-semibold text-[#A9C23F]">
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          <span>virtual7 CCF Clustertag · 11:00–12:00 · 100 % öffentliche Daten</span>
+                        </div>
+
+                        <h1 className="font-display text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                          Vom ungefilterten Chat zum{" "}
+                          <span className="text-[#A9C23F]">strukturierten KI-System.</span>
+                        </h1>
+
+                        <p className="editorial-measure text-sm leading-relaxed text-[#D3DACD] sm:text-base">
+                          Direkte Praxis auf Basis eurer CCF-Umfrage (n = 47): erlebe in 5 klaren
+                          Etappen, wie Prompt-Methodik, System-Regeln, Guardrails, Markdown-RAG und
+                          MCP aus vagen Antworten verlässliche Ergebnisse machen.
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-3 pt-2 sm:grid-cols-4">
+                          {[
+                            { val: "57 %", lbl: "Prompting-Training gewünscht" },
+                            { val: "62 %", lbl: "Erste Agent-Praxis heute" },
+                            { val: "66 %", lbl: "Klarheit zu RAG schaffen" },
+                            { val: "68", lbl: "Öffentliche Wiki-Artikel" },
+                          ].map((kpi) => (
+                            <div
+                              key={kpi.lbl}
+                              className="rounded-xl border border-white/10 bg-white/[0.04] p-3"
+                            >
+                              <div className="num-tabular font-display text-xl font-extrabold text-[#A9C23F] sm:text-2xl">
+                                {kpi.val}
+                              </div>
+                              <div className="mt-0.5 text-[11px] leading-snug text-[#9FA998]">
+                                {kpi.lbl}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <h1 className="font-display text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
-                        Vom ungefilterten Chat zum strukturierten KI-System.
-                      </h1>
-                      <p className="editorial-measure text-base leading-relaxed text-muted-foreground">
-                        In unserer Vormittagsumfrage wünschten sich <strong>57 %</strong> praktisches
-                        Prompting-Training, <strong>62 %</strong> hatten noch keine Agent-Erfahrung und{" "}
-                        <strong>66 %</strong> wollten Klarheit zu RAG. Genau das erlebst du jetzt in 5
-                        klaren Schritten.
-                      </p>
                     </section>
 
                     <section className="space-y-3">
@@ -642,7 +736,7 @@ export function ParticipantApp() {
                             key={st.id}
                             type="button"
                             onClick={() => setActiveStageIdx(idx)}
-                            className={`flex flex-col gap-1.5 rounded-2xl border p-4 text-left transition-all ${
+                            className={`card-elevated flex flex-col gap-2 rounded-2xl border p-4 text-left transition-all ${
                               isActive
                                 ? "border-primary bg-secondary/45 ring-1 ring-primary"
                                 : "bg-card hover:bg-muted/40"
@@ -657,7 +751,10 @@ export function ParticipantApp() {
                                 {st.badge}
                               </Badge>
                             </div>
-                            <div className="text-xs font-medium text-foreground">
+                            <StageMiniDiagram
+                              variant={idx === 0 ? "chaos" : idx === 1 ? "harness" : "vault"}
+                            />
+                            <div className="text-xs font-semibold text-foreground">
                               {st.title.split(" · ")[1]}
                             </div>
                             <p className="text-xs text-muted-foreground">{st.summary}</p>
@@ -822,20 +919,49 @@ export function ParticipantApp() {
                       ].map((node) => {
                         const Icon = node.icon;
                         const lit = mcpActiveHop === node.hop;
+                        const passed = mcpActiveHop > node.hop;
+                        const edgeActive =
+                          mcpActiveHop === node.hop || mcpActiveHop === node.hop + 1;
                         return (
                           <div
                             key={node.hop}
-                            className={`rounded-2xl border p-4 transition-all ${
+                            className={`relative rounded-2xl border p-4 transition-all duration-300 ${
                               lit
-                                ? "border-brand-lime bg-secondary/70 shadow-sm ring-1 ring-brand-lime"
-                                : "bg-card"
+                                ? "lime-glow border-brand-lime bg-secondary/80 ring-1 ring-brand-lime"
+                                : passed
+                                  ? "border-brand-lime/45 bg-secondary/35"
+                                  : "card-elevated bg-card"
                             }`}
                           >
-                            <div className="mb-1.5 flex items-center gap-2 font-display text-sm font-bold">
-                              <Icon className={`h-4 w-4 ${lit ? "text-brand-ink" : "text-muted-foreground"}`} />
-                              <span>{node.title}</span>
+                            <div className="mb-1.5 flex items-center justify-between gap-2 font-display text-sm font-bold">
+                              <span className="flex items-center gap-2">
+                                <Icon
+                                  className={`h-4 w-4 ${
+                                    lit || passed ? "text-brand-ink" : "text-muted-foreground"
+                                  }`}
+                                />
+                                <span>{node.title}</span>
+                              </span>
+                              {lit && (
+                                <span
+                                  className="inline-block h-2 w-2 rounded-full bg-brand-lime animate-pulse"
+                                  aria-hidden="true"
+                                />
+                              )}
                             </div>
                             <p className="text-xs text-muted-foreground">{node.desc}</p>
+                            {node.hop < 4 && (
+                              <span
+                                aria-hidden="true"
+                                className={`pointer-events-none absolute -right-2.5 top-1/2 z-10 hidden h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border text-[11px] font-bold transition-all lg:flex ${
+                                  edgeActive
+                                    ? "animate-pulse border-brand-lime bg-brand-lime text-brand-obsidian shadow-sm"
+                                    : "border-border bg-background text-muted-foreground"
+                                }`}
+                              >
+                                →
+                              </span>
+                            )}
                           </div>
                         );
                       })}

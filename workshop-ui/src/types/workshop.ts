@@ -167,3 +167,12 @@ export interface ServerHealth {
   gitAutoPull: boolean;
   joinUrl: string;
 }
+
+export interface StageState {
+  phaseIdx: number;
+  running: boolean;
+  secondsLeft: number;
+  updatedAt: number;
+  beamerActive: boolean;
+  connectedClients: number;
+}

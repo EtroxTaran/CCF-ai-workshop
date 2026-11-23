@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Clock,
   Eye,
   Maximize2,
   Minimize2,
@@ -21,10 +20,13 @@ import {
   Sparkles,
   Sun,
   Trash2,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import rawData from "@/data/workshopData.json";
+import { BeamerDemoSimulator } from "@/components/BeamerDemoSimulator";
 import { QrCodeSvg } from "@/components/QrCodeSvg";
+import { StageBackdrop } from "@/components/StageBackdrop";
 import { Virtual7Logo } from "@/components/Virtual7Logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -82,6 +84,7 @@ export function BeamerApp() {
   const [spotlight, setSpotlight] = useState<SubmissionItem | null>(null);
   const [health, setHealth] = useState<ServerHealth | null>(null);
   const [sseConnected, setSseConnected] = useState<boolean>(false);
+  const [connectedClients, setConnectedClients] = useState<number>(1);
 
   // Settings inside Regie Drawer
   const [cfgJoinUrl, setCfgJoinUrl] = useState<string>("");
@@ -139,6 +142,8 @@ export function BeamerApp() {
       })
       .catch(() => undefined);
 
+    syncStage(0, false, data.phases[0].durationMin * 60);
+
     const es = new EventSource("/api/events");
     es.onopen = () => setSseConnected(true);
     es.onerror = () => setSseConnected(false);
@@ -150,13 +155,55 @@ export function BeamerApp() {
         // ignore
       }
     });
+    es.addEventListener("stage", (ev) => {
+      try {
+        const payload = JSON.parse((ev as MessageEvent).data);
+        if (typeof payload.connectedClients === "number") {
+          setConnectedClients(Math.max(1, payload.connectedClients));
+        }
+      } catch {
+        // ignore
+      }
+    });
     return () => es.close();
   }, []);
 
+  function syncStage(nextPhaseIdx: number, nextRunning: boolean, nextSecondsLeft: number) {
+    fetch("/api/stage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        phaseIdx: nextPhaseIdx,
+        running: nextRunning,
+        secondsLeft: nextSecondsLeft,
+      }),
+    }).catch(() => undefined);
+  }
+
   function goPhase(nextIdx: number) {
+    const nextSec = data.phases[nextIdx].durationMin * 60;
     setPhaseIdx(nextIdx);
-    setSecondsLeft(data.phases[nextIdx].durationMin * 60);
+    setSecondsLeft(nextSec);
     setRevealSolution(false);
+    syncStage(nextIdx, running, nextSec);
+  }
+
+  function toggleRunning() {
+    const nextRunning = !running;
+    setRunning(nextRunning);
+    syncStage(phaseIdx, nextRunning, secondsLeft);
+  }
+
+  function addOneMinute() {
+    const nextSec = secondsLeft + 60;
+    setSecondsLeft(nextSec);
+    syncStage(phaseIdx, running, nextSec);
+  }
+
+  function resetPhaseTimer() {
+    const nextSec = activePhase.durationMin * 60;
+    setSecondsLeft(nextSec);
+    syncStage(phaseIdx, running, nextSec);
   }
 
   // Keyboard shortcuts guarded when inputs, spotlight dialog, or regie drawer are open
@@ -167,7 +214,7 @@ export function BeamerApp() {
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (e.code === "Space") {
         e.preventDefault();
-        setRunning((r) => !r);
+        toggleRunning();
       } else if (e.code === "ArrowRight") {
         goPhase(Math.min(data.phases.length - 1, phaseIdx + 1));
       } else if (e.code === "ArrowLeft") {
@@ -188,7 +235,7 @@ export function BeamerApp() {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [phaseIdx, regieOpen, spotlight]);
+  }, [phaseIdx, running, secondsLeft, regieOpen, spotlight]);
 
   function toggleFullscreen() {
     if (!document.fullscreenElement) {
@@ -254,6 +301,16 @@ export function BeamerApp() {
     return sortedSubmissions;
   }, [sortedSubmissions, wallFilter]);
 
+  const wallMetrics = useMemo(
+    () => ({
+      total: submissions.length,
+      grounded: submissions.filter((s) => s.evaluation.status === "belegt").length,
+      traps: submissions.filter((s) => s.evaluation.isLikelyTrap).length,
+      cited: submissions.filter((s) => s.evaluation.evidence.length > 0).length,
+    }),
+    [submissions]
+  );
+
   return (
     <div className="flex min-h-dvh flex-col bg-background text-foreground lg:h-dvh lg:overflow-hidden">
       {/* Minimal 56px Stage Header */}
@@ -274,7 +331,9 @@ export function BeamerApp() {
                 sseConnected ? "animate-pulse bg-brand-lime" : "bg-amber-400"
               }`}
             />
-            <span className="hidden xl:inline">{sseConnected ? "Live" : "Lokal"}</span>
+            <span className="hidden xl:inline">
+              {sseConnected ? `Live · ${connectedClients}` : "Lokal"}
+            </span>
           </span>
         </div>
 
@@ -339,8 +398,39 @@ export function BeamerApp() {
             </Button>
           </div>
 
-          <div className="flex items-center gap-1.5 rounded-xl border bg-muted/60 px-2.5 py-1">
-            <Clock className="hidden h-4 w-4 text-brand-ink sm:block" />
+          <div
+            className={`flex items-center gap-1.5 rounded-xl border bg-muted/60 px-2.5 py-1 transition-all ${
+              running ? "lime-glow border-brand-lime/55" : ""
+            }`}
+          >
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 22 22"
+              className="hidden h-5 w-5 -rotate-90 sm:block"
+            >
+              <circle
+                cx="11"
+                cy="11"
+                r="8.5"
+                fill="none"
+                stroke="currentColor"
+                strokeOpacity="0.16"
+                strokeWidth="2.4"
+              />
+              <circle
+                cx="11"
+                cy="11"
+                r="8.5"
+                fill="none"
+                stroke={secondsLeft <= 60 && running ? "#F43F5E" : "#A9C23F"}
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeDasharray={53.41}
+                strokeDashoffset={
+                  53.41 * (1 - Math.max(0, Math.min(1, secondsLeft / Math.max(1, totalSec))))
+                }
+              />
+            </svg>
             <span
               className={`num-tabular font-mono text-xl font-bold tracking-tight sm:text-2xl ${
                 secondsLeft <= 60 && running ? "text-rose-400" : ""
@@ -353,7 +443,7 @@ export function BeamerApp() {
               size="icon"
               variant={running ? "secondary" : "accent"}
               className="h-7 w-7"
-              onClick={() => setRunning((r) => !r)}
+              onClick={toggleRunning}
               title="Timer Start/Pause (Leertaste)"
             >
               {running ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
@@ -363,7 +453,7 @@ export function BeamerApp() {
               size="sm"
               variant="ghost"
               className="hidden h-7 px-2 text-xs sm:inline-flex"
-              onClick={() => setSecondsLeft((s) => s + 60)}
+              onClick={addOneMinute}
               title="+1 Minute"
             >
               <Plus className="h-3 w-3" />1m
@@ -388,7 +478,7 @@ export function BeamerApp() {
 
               <div className="mt-5 space-y-5 text-sm">
                 <div className="grid grid-cols-2 gap-2">
-                  <Button type="button" variant="outline" onClick={() => setSecondsLeft(activePhase.durationMin * 60)}>
+                  <Button type="button" variant="outline" onClick={resetPhaseTimer}>
                     <RotateCcw className="h-4 w-4" />
                     <span>Timer Reset</span>
                   </Button>
@@ -489,7 +579,17 @@ export function BeamerApp() {
       {/* Main 16:9 Stage Workspace */}
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* PRIMARY STAGE CANVAS */}
-        <main className="flex min-h-0 min-w-0 flex-1 flex-col justify-between overflow-y-auto p-5 sm:p-6 lg:px-9 lg:py-6">
+        <main
+          className={`relative flex min-h-0 min-w-0 flex-1 flex-col justify-between overflow-x-hidden overflow-y-auto p-5 sm:p-6 lg:px-9 lg:py-6 ${
+            stageMode === "stage" || stageMode === "qr" ? "stage-atmosphere" : ""
+          }`}
+        >
+          {(stageMode === "stage" || stageMode === "qr") && (
+            <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+              <StageBackdrop className="absolute -right-28 -top-24 h-[460px] w-[460px] opacity-30 dark:opacity-45" />
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
             {/* MODE 1: STAGE / AKTUELLE PHASE */}
             {stageMode === "stage" && (
@@ -499,7 +599,7 @@ export function BeamerApp() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.18 }}
-                className="mx-auto flex h-full w-full max-w-[1060px] flex-col justify-between gap-4"
+                className="relative z-10 mx-auto flex h-full w-full max-w-[1060px] flex-col justify-between gap-4"
               >
                 {/* Upper Focus: Phase Eyebrow + Massive Keynote Headline */}
                 <div className="space-y-3">
@@ -539,14 +639,24 @@ export function BeamerApp() {
 
                 {/* Lower Anchor: Active Test Question Spotlight */}
                 <div
-                  className={`rounded-2xl border bg-card p-5 ${
+                  className={`card-elevated rounded-2xl border bg-card p-5 ${
                     activeQuestion.number === 3 ? "border-l-4 border-l-rose-500" : "border-l-4 border-l-brand-lime"
                   }`}
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <Badge variant={activeQuestion.number === 3 ? "danger" : "lime"}>
-                      Testfrage {activeQuestion.number} · {activeQuestion.type}
-                    </Badge>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge variant={activeQuestion.number === 3 ? "danger" : "lime"}>
+                        Testfrage {activeQuestion.number} · {activeQuestion.type}
+                      </Badge>
+                      {activeQuestion.number === 3 && (
+                        <Badge
+                          variant="outline"
+                          className="border-rose-500/40 bg-rose-500/10 font-mono text-rose-500 dark:text-rose-300"
+                        >
+                          0 Treffer in 68 Dateien
+                        </Badge>
+                      )}
+                    </div>
                     <Button
                       type="button"
                       size="sm"
@@ -582,23 +692,49 @@ export function BeamerApp() {
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.18 }}
-                className="mx-auto flex h-full w-full max-w-[1160px] flex-col items-center justify-center gap-10 rounded-3xl bg-[radial-gradient(circle_at_30%_50%,rgba(169,194,63,0.12),transparent_60%)] p-6 lg:flex-row lg:gap-14"
+                className="relative z-10 mx-auto flex h-full w-full max-w-[1160px] flex-col items-center justify-center gap-10 rounded-3xl bg-[radial-gradient(circle_at_30%_50%,rgba(169,194,63,0.12),transparent_60%)] p-6 lg:flex-row lg:gap-14"
               >
-                <div className="relative shrink-0 rounded-3xl bg-white p-5 shadow-2xl ring-4 ring-brand-lime/40">
-                  <QrCodeSvg value={qrTargetUrl} size={300} />
+                <div className="relative shrink-0">
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -left-2.5 -top-2.5 h-7 w-7 rounded-tl-2xl border-l-[3px] border-t-[3px] border-brand-lime"
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -right-2.5 -top-2.5 h-7 w-7 rounded-tr-2xl border-r-[3px] border-t-[3px] border-brand-lime"
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -bottom-2.5 -left-2.5 h-7 w-7 rounded-bl-2xl border-b-[3px] border-l-[3px] border-brand-lime"
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="pointer-events-none absolute -bottom-2.5 -right-2.5 h-7 w-7 rounded-br-2xl border-b-[3px] border-r-[3px] border-brand-lime"
+                  />
+                  <div className="lime-glow rounded-3xl bg-white p-5 shadow-2xl ring-2 ring-brand-lime/45">
+                    <QrCodeSvg value={qrTargetUrl} size={300} />
+                  </div>
                 </div>
 
                 <div className="max-w-xl space-y-6 text-center lg:text-left">
-                  <div className="inline-flex items-center gap-2 rounded-full border border-brand-lime/40 bg-brand-lime/15 px-3.5 py-1 text-xs font-bold uppercase tracking-[0.1em] text-brand-ink">
-                    <QrCode className="h-3.5 w-3.5" />
-                    Smartphone · Tablet · Laptop
+                  <div className="flex flex-wrap items-center justify-center gap-2 lg:justify-start">
+                    <div className="inline-flex items-center gap-2 rounded-full border border-brand-lime/40 bg-brand-lime/15 px-3.5 py-1 text-xs font-bold uppercase tracking-[0.1em] text-brand-ink">
+                      <QrCode className="h-3.5 w-3.5" />
+                      Smartphone · Tablet · Laptop
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 rounded-full border bg-card/85 px-3 py-1 text-xs font-semibold text-foreground num-tabular">
+                      <Users className="h-3.5 w-3.5 text-brand-ink" />
+                      <span>
+                        {submissions.length} Live-Beiträge · {connectedClients} verbundene Geräte
+                      </span>
+                    </div>
                   </div>
 
                   <h1 className="font-display text-[clamp(2.2rem,3.6vw,3.75rem)] font-extrabold leading-[1.06] tracking-[-0.03em]">
                     Scannen &amp; live mitmachen
                   </h1>
 
-                  <div className="wrap-safe rounded-2xl border bg-card px-5 py-3.5 font-mono text-xl font-bold text-brand-ink sm:text-2xl">
+                  <div className="card-elevated wrap-safe rounded-2xl border bg-card px-5 py-3.5 font-mono text-xl font-bold text-brand-ink sm:text-2xl">
                     {qrTargetUrl}
                   </div>
 
@@ -608,7 +744,7 @@ export function BeamerApp() {
                       { n: "02", t: "Track A (Chat) oder Track B (CLI) wählen" },
                       { n: "03", t: "Ergebnisse live an den Beamer senden" },
                     ].map((st) => (
-                      <div key={st.n} className="rounded-xl border bg-card/70 p-3">
+                      <div key={st.n} className="card-elevated rounded-xl border bg-card/85 p-3">
                         <div className="num-tabular font-mono text-xs font-bold text-brand-ink">{st.n}</div>
                         <div className="mt-1 text-sm font-medium leading-snug">{st.t}</div>
                       </div>
@@ -626,7 +762,7 @@ export function BeamerApp() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.16 }}
-                className="mx-auto flex h-full w-full max-w-[1220px] flex-col justify-between gap-6"
+                className="relative z-10 mx-auto flex h-full w-full max-w-[1220px] flex-col justify-between gap-3"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -660,84 +796,12 @@ export function BeamerApp() {
                   </div>
                 </div>
 
-                {demoTab === "stages" && (
-                  <div className="grid flex-1 gap-5 md:grid-cols-3">
-                    {[
-                      {
-                        num: "01",
-                        title: "Stufe 1 · Chaos",
-                        folder: "stufe-1-chaos/",
-                        stripe: "border-t-rose-500",
-                        badge: "Baseline",
-                        badgeVar: "danger" as const,
-                        rows: [
-                          { k: "Prompt", v: "1 Satz ohne Quellenpflicht" },
-                          { k: "Daten", v: "68 flache .md-Dateien in docs/" },
-                          { k: "Fangfrage 3", v: "Rät oder füllt mit Vorwissen" },
-                        ],
-                      },
-                      {
-                        num: "02",
-                        title: "Stufe 2 · Harness",
-                        folder: "stufe-2-skills-guardrails/",
-                        stripe: "border-t-amber-500",
-                        badge: "Leitplanken",
-                        badgeVar: "warning" as const,
-                        rows: [
-                          { k: "Prompt", v: "Verbindliche Guardrails + Quellenpflicht" },
-                          { k: "Skills", v: "quellen-recherche & fakten-pruefer" },
-                          { k: "Fangfrage 3", v: "„Nicht in Dokumenten enthalten.“" },
-                        ],
-                      },
-                      {
-                        num: "03",
-                        title: "Stufe 3 · Markdown-RAG",
-                        folder: "stufe-3-obsidian-vault/",
-                        stripe: "border-t-brand-lime",
-                        badge: "Wissens-Graph",
-                        badgeVar: "success" as const,
-                        rows: [
-                          { k: "Architektur", v: "_index.md + wiki/ + raw/ (3 Zonen)" },
-                          { k: "Navigation", v: "Frontmatter & 294 [[Wikilinks]]" },
-                          { k: "Querverbindung 2", v: "Verbindet 4+ Artikel treffsicher" },
-                        ],
-                      },
-                    ].map((col) => (
-                      <div
-                        key={col.num}
-                        className={`flex flex-col justify-between rounded-2xl border border-t-4 ${col.stripe} bg-card p-6`}
-                      >
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <span className="num-tabular font-mono text-3xl font-extrabold text-muted-foreground/40">
-                              {col.num}
-                            </span>
-                            <Badge variant={col.badgeVar}>{col.badge}</Badge>
-                          </div>
-                          <div>
-                            <h3 className="font-display text-2xl font-bold">{col.title}</h3>
-                            <code className="text-xs text-muted-foreground">{col.folder}</code>
-                          </div>
-                          <div className="divide-y">
-                            {col.rows.map((r) => (
-                              <div key={r.k} className="py-3">
-                                <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                                  {r.k}
-                                </div>
-                                <div className="mt-0.5 text-base font-medium">{r.v}</div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                {demoTab === "stages" && <BeamerDemoSimulator />}
 
                 {demoTab === "methods" && (
                   <div className="grid flex-1 gap-4 md:grid-cols-2">
                     {data.promptMethods.map((m) => (
-                      <div key={m.id} className="flex flex-col justify-between rounded-2xl border bg-card p-6">
+                      <div key={m.id} className="card-elevated flex flex-col justify-between rounded-2xl border bg-card p-6">
                         <div className="space-y-2.5">
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <h3 className="font-display text-xl font-bold">{m.name}</h3>
@@ -766,7 +830,7 @@ export function BeamerApp() {
                     {data.architectureLayers.map((l, idx) => (
                       <div
                         key={l.layer}
-                        className="grid items-center gap-3 rounded-2xl border bg-card px-6 py-4 md:grid-cols-12"
+                        className="card-elevated grid items-center gap-3 rounded-2xl border bg-card px-6 py-4 md:grid-cols-12"
                       >
                         <div className="font-display text-lg font-bold md:col-span-3">{l.layer}</div>
                         <div className="text-base font-semibold text-brand-ink md:col-span-3">
@@ -799,7 +863,7 @@ export function BeamerApp() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.16 }}
-                className="mx-auto flex h-full w-full max-w-[1260px] flex-col gap-5"
+                className="relative z-10 mx-auto flex h-full w-full max-w-[1260px] flex-col gap-5"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
@@ -834,6 +898,48 @@ export function BeamerApp() {
                   </div>
                 </div>
 
+                {/* Live Telemetry KPI Strip */}
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                  {[
+                    {
+                      label: "Eingänge gesamt",
+                      value: wallMetrics.total,
+                      tone: "text-foreground",
+                      accent: "border-t-brand-lime",
+                    },
+                    {
+                      label: "Im Korpus belegt",
+                      value: wallMetrics.grounded,
+                      tone: "text-emerald-500 dark:text-emerald-400",
+                      accent: "border-t-emerald-500",
+                    },
+                    {
+                      label: "Fangfragen erkannt",
+                      value: wallMetrics.traps,
+                      tone: "text-rose-500 dark:text-rose-400",
+                      accent: "border-t-rose-500",
+                    },
+                    {
+                      label: "Mit Quellenangabe",
+                      value: wallMetrics.cited,
+                      tone: "text-brand-ink",
+                      accent: "border-t-brand-lime",
+                    },
+                  ].map((kpi) => (
+                    <div
+                      key={kpi.label}
+                      className={`card-elevated rounded-2xl border border-t-2 ${kpi.accent} bg-card px-4 py-3`}
+                    >
+                      <div className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                        {kpi.label}
+                      </div>
+                      <div className={`num-tabular mt-1 font-display text-2xl font-extrabold ${kpi.tone}`}>
+                        {kpi.value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 {wallSubmissions.length === 0 ? (
                   <div className="flex flex-1 flex-col items-center justify-center gap-4 rounded-3xl border border-dashed p-12 text-center">
                     <Radio className="h-10 w-10 text-brand-ink" />
@@ -859,7 +965,7 @@ export function BeamerApp() {
                         <div
                           key={sub.id}
                           onClick={() => setSpotlight(sub)}
-                          className={`group flex cursor-pointer flex-col justify-between gap-3 rounded-2xl border bg-card p-5 transition-all hover:border-brand-lime ${
+                          className={`card-elevated group flex cursor-pointer flex-col justify-between gap-3 rounded-2xl border bg-card p-5 transition-all hover:border-brand-lime ${
                             sub.pinned ? "ring-2 ring-brand-lime" : ""
                           }`}
                         >
@@ -983,76 +1089,83 @@ export function BeamerApp() {
                 </div>
               )}
 
-              {sortedSubmissions.map((sub) => {
-                const ev = sub.evaluation;
-                const dotColor =
-                  ev.status === "belegt"
-                    ? "bg-emerald-400"
-                    : ev.status === "teilweise"
-                      ? "bg-amber-400"
-                      : "bg-rose-400";
-                const statusText =
-                  ev.status === "belegt"
-                    ? "Belegt"
-                    : ev.status === "teilweise"
-                      ? "Teilweise"
-                      : "Fangfrage!";
-                return (
-                  <div
-                    key={sub.id}
-                    onClick={() => setSpotlight(sub)}
-                    className={`group cursor-pointer space-y-1.5 px-4 py-3.5 transition-colors hover:bg-muted/60 ${
-                      sub.pinned ? "bg-secondary/35" : ""
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex min-w-0 items-center gap-2">
-                        <span className="truncate text-sm font-bold text-foreground">{sub.team}</span>
-                        <span className="shrink-0 text-[11px] text-muted-foreground">{sub.stage}</span>
-                      </div>
-                      <div
-                        className="flex shrink-0 items-center gap-0.5 opacity-80 lg:opacity-0 lg:group-hover:opacity-100"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={() => togglePin(sub)}
+              <AnimatePresence initial={false}>
+                {sortedSubmissions.map((sub) => {
+                  const ev = sub.evaluation;
+                  const dotColor =
+                    ev.status === "belegt"
+                      ? "bg-emerald-400"
+                      : ev.status === "teilweise"
+                        ? "bg-amber-400"
+                        : "bg-rose-400";
+                  const statusText =
+                    ev.status === "belegt"
+                      ? "Belegt"
+                      : ev.status === "teilweise"
+                        ? "Teilweise"
+                        : "Fangfrage!";
+                  return (
+                    <motion.div
+                      layout
+                      key={sub.id}
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -10 }}
+                      transition={{ duration: 0.2 }}
+                      onClick={() => setSpotlight(sub)}
+                      className={`group cursor-pointer space-y-1.5 px-4 py-3.5 transition-colors hover:bg-muted/60 ${
+                        sub.pinned ? "bg-secondary/35" : ""
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="truncate text-sm font-bold text-foreground">{sub.team}</span>
+                          <span className="shrink-0 text-[11px] text-muted-foreground">{sub.stage}</span>
+                        </div>
+                        <div
+                          className="flex shrink-0 items-center gap-0.5 opacity-80 lg:opacity-0 lg:group-hover:opacity-100"
+                          onClick={(e) => e.stopPropagation()}
                         >
-                          <Pin className={`h-3 w-3 ${sub.pinned ? "text-brand-ink" : ""}`} />
-                        </Button>
-                        <Button
-                          type="button"
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={() => removeSubmission(sub.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={() => togglePin(sub)}
+                          >
+                            <Pin className={`h-3 w-3 ${sub.pinned ? "text-brand-ink" : ""}`} />
+                          </Button>
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={() => removeSubmission(sub.id)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
 
-                    <p className="line-clamp-2 text-sm leading-snug text-foreground/95">
-                      {sub.question}
-                    </p>
+                      <p className="line-clamp-2 text-sm leading-snug text-foreground/95">
+                        {sub.question}
+                      </p>
 
-                    <div className="flex items-center gap-2 pt-0.5 text-[11px]">
-                      <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
-                        <span className={`h-2 w-2 rounded-full ${dotColor}`} />
-                        {statusText}
-                      </span>
-                      {ev.evidence[0] && (
-                        <span className="truncate font-mono text-muted-foreground">
-                          · [[{ev.evidence[0].slug}]]
+                      <div className="flex items-center gap-2 pt-0.5 text-[11px]">
+                        <span className="inline-flex items-center gap-1.5 font-semibold text-foreground">
+                          <span className={`h-2 w-2 rounded-full ${dotColor}`} />
+                          {statusText}
                         </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
+                        {ev.evidence[0] && (
+                          <span className="truncate font-mono text-muted-foreground">
+                            · [[{ev.evidence[0].slug}]]
+                          </span>
+                        )}
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
             </div>
           </aside>
         )}

@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   forceCenter,
   forceCollide,
@@ -10,10 +10,19 @@ import {
   type SimulationLinkDatum,
   type SimulationNodeDatum,
 } from "d3-force";
-import { ArrowRight, Link2, List, Minus, Network, Plus, RotateCcw, Search } from "lucide-react";
+import { ArrowRight, Link2, List, Minus, Network, Play, Plus, RotateCcw, Search, Square } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import type { VaultArticle } from "@/types/workshop";
+
+const RAG_WALK_STEPS: { slug: string; note: string }[] = [
+  { slug: "anemonenfische", note: "Hop 1/6 · [[anemonenfische]]: Geringer Sialinsäure-Anteil schützt vor Nesselzellen" },
+  { slug: "seeanemonen", note: "Hop 2/6 · [[seeanemonen]]: 7 von 10 Symbioseanemonen in Stichodactylidae" },
+  { slug: "symbiose", note: "Hop 3/6 · [[symbiose]]: Ektosymbiose (Clownfisch) vs. Endosymbiose (Koralle)" },
+  { slug: "steinkorallen", note: "Hop 4/6 · [[steinkorallen]]: Riffbildung bei 20–29 °C mit Zooxanthellen" },
+  { slug: "korallenbleiche", note: "Hop 5/6 · [[korallenbleiche]]: Ab ~29 °C Abstoßung, Tod binnen ~8 Wochen" },
+  { slug: "korallenriff", note: "Hop 6/6 · [[korallenriff]]: Synthese komplett · 70–90 % Wellenschutz" },
+];
 
 interface ObsidianKnowledgeGraphProps {
   articles: VaultArticle[];
@@ -71,8 +80,44 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
   const [trail, setTrail] = useState<string[]>(["anemonenfische"]);
   const [zoom, setZoom] = useState<number>(1);
   const [showRawYaml, setShowRawYaml] = useState<boolean>(false);
+  const [ragWalkIdx, setRagWalkIdx] = useState<number | null>(null);
+  const [dragPositions, setDragPositions] = useState<Record<string, { x: number; y: number }>>({});
+  const draggingSlugRef = useRef<string | null>(null);
+  const movedDuringDragRef = useRef<boolean>(false);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
+
+  useEffect(() => {
+    if (ragWalkIdx === null) return;
+    const step = RAG_WALK_STEPS[ragWalkIdx];
+    if (step) {
+      setSelectedSlug(step.slug);
+      setTrail(RAG_WALK_STEPS.slice(0, ragWalkIdx + 1).map((s) => s.slug));
+    }
+    const timer = window.setTimeout(() => {
+      if (ragWalkIdx + 1 < RAG_WALK_STEPS.length) {
+        setRagWalkIdx(ragWalkIdx + 1);
+      } else {
+        setRagWalkIdx(null);
+      }
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [ragWalkIdx]);
+
+  function clientToSvg(clientX: number, clientY: number): { x: number; y: number } | null {
+    const svg = svgRef.current;
+    if (!svg) return null;
+    const ctm = svg.getScreenCTM();
+    if (!ctm) return null;
+    const pt = svg.createSVGPoint();
+    pt.x = clientX;
+    pt.y = clientY;
+    const mapped = pt.matrixTransform(ctm.inverse());
+    return {
+      x: Math.max(24, Math.min(WIDTH - 24, mapped.x)),
+      y: Math.max(24, Math.min(HEIGHT - 24, mapped.y)),
+    };
+  }
 
   const bySlug = useMemo(() => {
     const map = new Map<string, VaultArticle>();
@@ -225,12 +270,32 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              if (ragWalkIdx !== null) {
+                setRagWalkIdx(null);
+              } else {
+                setViewMode("graph");
+                setRagWalkIdx(0);
+              }
+            }}
+            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+              ragWalkIdx !== null
+                ? "border-[#A9C23F] bg-[#A9C23F] text-[#0B0F0A]"
+                : "border-[#232B20] bg-[#1B2419] text-[#A9C23F] hover:border-[#A9C23F]"
+            }`}
+          >
+            {ragWalkIdx !== null ? <Square className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+            <span>{ragWalkIdx !== null ? "Stoppen" : "RAG-Pfad abspielen"}</span>
+          </button>
+
           <div className="relative min-w-[190px] flex-1 sm:w-56 sm:flex-none">
             <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[#9FA998]" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Knoten / Lebensraum suchen…"
+              placeholder="Artikel / Habitat suchen…"
               className="h-8 border-[#232B20] bg-[#0B0F0A] pl-8 text-xs text-[#F2F4EE] placeholder:text-[#737C6D]"
             />
           </div>
@@ -333,15 +398,48 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
               <svg
                 ref={svgRef}
                 viewBox={`${viewX} ${viewY} ${viewW} ${viewH}`}
-                className="h-full w-full select-none"
+                className="h-full w-full select-none touch-none"
                 role="img"
                 aria-label="Interaktiver Obsidian Wissens-Graph"
+                onPointerMove={(e) => {
+                  const slug = draggingSlugRef.current;
+                  if (!slug) return;
+                  const pt = clientToSvg(e.clientX, e.clientY);
+                  if (!pt) return;
+                  movedDuringDragRef.current = true;
+                  setDragPositions((prev) => ({ ...prev, [slug]: pt }));
+                }}
+                onPointerUp={() => {
+                  draggingSlugRef.current = null;
+                }}
+                onPointerLeave={() => {
+                  draggingSlugRef.current = null;
+                }}
               >
+                <defs>
+                  <filter id="v7-lime-glow" x="-40%" y="-40%" width="180%" height="180%">
+                    <feGaussianBlur stdDeviation="3.2" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
                 {/* Edges */}
                 <g>
                   {layoutLinks.map((link, idx) => {
                     const s = link.source as GraphNode;
                     const t = link.target as GraphNode;
+                    const sx = dragPositions[s.slug]?.x ?? s.x;
+                    const sy = dragPositions[s.slug]?.y ?? s.y;
+                    const tx = dragPositions[t.slug]?.x ?? t.x;
+                    const ty = dragPositions[t.slug]?.y ?? t.y;
+
+                    const walkedSlugs =
+                      ragWalkIdx !== null
+                        ? new Set(RAG_WALK_STEPS.slice(0, ragWalkIdx + 1).map((x) => x.slug))
+                        : null;
+                    const inRagWalk = walkedSlugs !== null && walkedSlugs.has(s.slug) && walkedSlugs.has(t.slug);
                     const touchesFocus = s.slug === focusSlug || t.slug === focusSlug;
                     const matchesFilter =
                       !isFiltering || (matchingSlugs.has(s.slug) && matchingSlugs.has(t.slug));
@@ -349,24 +447,25 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                     let strokeWidth = 0.9;
                     let opacity = matchesFilter ? 0.85 : 0.08;
 
-                    if (touchesFocus) {
+                    if (inRagWalk || touchesFocus) {
                       stroke = "#A9C23F";
-                      strokeWidth = 1.8;
+                      strokeWidth = inRagWalk ? 2.2 : 1.8;
                       opacity = 0.95;
-                    } else if (hoveredSlug) {
-                      opacity = 0.06;
+                    } else if (hoveredSlug || ragWalkIdx !== null) {
+                      opacity = 0.07;
                     }
 
                     return (
                       <line
                         key={idx}
-                        x1={s.x}
-                        y1={s.y}
-                        x2={t.x}
-                        y2={t.y}
+                        x1={sx}
+                        y1={sy}
+                        x2={tx}
+                        y2={ty}
                         stroke={stroke}
                         strokeWidth={strokeWidth}
                         opacity={opacity}
+                        filter={inRagWalk ? "url(#v7-lime-glow)" : undefined}
                         style={{ transition: "opacity 160ms ease, stroke 160ms ease" }}
                       />
                     );
@@ -376,18 +475,27 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                 {/* Nodes */}
                 <g>
                   {layoutNodes.map((node) => {
+                    const nx = dragPositions[node.slug]?.x ?? node.x;
+                    const ny = dragPositions[node.slug]?.y ?? node.y;
+                    const walkedSlugs =
+                      ragWalkIdx !== null
+                        ? new Set(RAG_WALK_STEPS.slice(0, ragWalkIdx + 1).map((x) => x.slug))
+                        : null;
+                    const isWalked = walkedSlugs !== null && walkedSlugs.has(node.slug);
                     const isSelected = node.slug === selectedSlug;
                     const isHovered = node.slug === hoveredSlug;
                     const isNeighbor = focusNeighbors.has(node.slug);
                     const matchesFilter = matchingSlugs.has(node.slug);
 
+                    const dimByWalk = ragWalkIdx !== null && !isWalked && !isNeighbor;
                     const dimByHover = hoveredSlug !== null && !isHovered && !isNeighbor;
                     const dimByFilter = isFiltering && !matchesFilter;
-                    const opacity = dimByFilter ? 0.1 : dimByHover ? 0.16 : 1;
+                    const opacity = dimByFilter ? 0.1 : dimByWalk ? 0.14 : dimByHover ? 0.16 : 1;
 
                     const r = nodeBaseRadius(node) + (isSelected || isHovered ? 2 : 0);
                     const showLabel =
                       isSelected ||
+                      isWalked ||
                       isHovered ||
                       isNeighbor ||
                       node.category === "lebensraum" ||
@@ -396,32 +504,42 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                     return (
                       <g
                         key={node.slug}
-                        transform={`translate(${node.x}, ${node.y})`}
+                        transform={`translate(${nx}, ${ny})`}
                         onMouseEnter={() => setHoveredSlug(node.slug)}
                         onMouseLeave={() => setHoveredSlug(null)}
-                        onClick={() => selectNode(node.slug)}
-                        style={{ cursor: "pointer", opacity, transition: "opacity 160ms ease" }}
+                        onPointerDown={(e) => {
+                          e.stopPropagation();
+                          draggingSlugRef.current = node.slug;
+                          movedDuringDragRef.current = false;
+                        }}
+                        onClick={() => {
+                          if (movedDuringDragRef.current) return;
+                          setRagWalkIdx(null);
+                          selectNode(node.slug);
+                        }}
+                        style={{ cursor: "grab", opacity, transition: "opacity 160ms ease" }}
                       >
-                        {(isSelected || node.category === "lebensraum") && (
+                        {(isSelected || isWalked || node.category === "lebensraum") && (
                           <circle
                             r={r + 4.5}
                             fill="none"
                             stroke="#A9C23F"
-                            strokeOpacity={isSelected ? 0.85 : 0.25}
-                            strokeWidth={isSelected ? 2 : 1}
+                            strokeOpacity={isSelected || isWalked ? 0.9 : 0.25}
+                            strokeWidth={isSelected || isWalked ? 2 : 1}
+                            filter={isSelected || isWalked ? "url(#v7-lime-glow)" : undefined}
                           />
                         )}
                         <circle
                           r={r}
-                          fill={isSelected ? "#A9C23F" : nodeColor(node.category)}
+                          fill={isSelected || isWalked ? "#A9C23F" : nodeColor(node.category)}
                         />
                         {showLabel && (
                           <text
                             x={r + 5}
                             y={3.5}
-                            fill={isSelected || isHovered ? "#FFFFFF" : "#D3DACD"}
+                            fill={isSelected || isHovered || isWalked ? "#FFFFFF" : "#D3DACD"}
                             fontSize={node.category === "lebensraum" ? 11.5 : 10}
-                            fontWeight={isSelected || node.category === "lebensraum" ? 700 : 500}
+                            fontWeight={isSelected || isWalked || node.category === "lebensraum" ? 700 : 500}
                             fontFamily="Inter, system-ui, sans-serif"
                             style={{ pointerEvents: "none" }}
                           >
@@ -433,6 +551,12 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                   })}
                 </g>
               </svg>
+
+              {ragWalkIdx !== null && RAG_WALK_STEPS[ragWalkIdx] && (
+                <div className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[calc(100%-8.5rem)] rounded-xl border border-[#A9C23F]/50 bg-[#111610]/95 px-3 py-2 text-xs font-medium text-[#F2F4EE] shadow-lg">
+                  {RAG_WALK_STEPS[ragWalkIdx].note}
+                </div>
+              )}
             </div>
           ) : (
             <div className="h-[360px] overflow-y-auto p-3 sm:h-[460px] lg:h-[510px]">
@@ -469,7 +593,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
         <div className="flex min-w-0 flex-col justify-between gap-4 border-t border-[#232B20] bg-[#111610] p-5 lg:col-span-4 lg:border-l lg:border-t-0">
           <div className="space-y-4">
             {/* Breadcrumb Trail */}
-            <div className="no-scrollbar flex items-center gap-1 overflow-x-auto text-[11px] text-[#9FA998]">
+            <div className="flex flex-wrap items-center gap-1 text-[11px] text-[#9FA998]">
               <span className="shrink-0 uppercase tracking-wider">Pfad:</span>
               {trail.map((step, i) => {
                 const n = bySlug.get(step);
