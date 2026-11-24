@@ -52,6 +52,25 @@ const data = rawData as unknown as WorkshopDataset;
 
 type StepId = "start" | "methods" | "stages" | "mcp" | "missions";
 
+function renderInlineCode(text: string) {
+  const parts = String(text || "").split(/(`[^`]+`)/g);
+  return parts.map((part, idx) =>
+    part.startsWith("`") && part.endsWith("`") && part.length > 2 ? (
+      <code key={idx} className="rounded bg-muted px-1 py-0.5 font-mono text-[0.9em]">
+        {part.slice(1, -1)}
+      </code>
+    ) : (
+      part
+    )
+  );
+}
+
+function parseWikilink(raw: string, fallbackSlug: string, fallbackTitle?: string) {
+  const m = String(raw || "").match(/^\[\[([^\]|]+)(?:\|([^\]]+))?\]\]$/);
+  if (m) return { slug: m[1], title: m[2] || fallbackTitle || m[1] };
+  return { slug: fallbackSlug, title: fallbackTitle || fallbackSlug };
+}
+
 const STEPS: { id: StepId; num: string; label: string; short: string; icon: typeof Compass }[] = [
   { id: "start", num: "01", label: "Start & Track", short: "Start", icon: Compass },
   { id: "methods", num: "02", label: "Methoden & Ebenen", short: "Methoden", icon: Layers },
@@ -311,8 +330,8 @@ export function ParticipantApp() {
     <div className="min-h-dvh bg-background text-foreground">
       {/* Slim Single-Row Sticky Header (56px) */}
       <header className="sticky top-0 z-40 h-14 border-b bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-full max-w-[1320px] items-center justify-between gap-2 px-4">
-          <div className="flex min-w-0 items-center gap-2">
+        <div className="mx-auto flex h-full max-w-[1320px] items-center justify-between gap-2 px-3 sm:px-4">
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
             <Virtual7Logo compact className="sm:hidden" />
             <Virtual7Logo className="hidden h-7 sm:block" />
             <Separator orientation="vertical" className="hidden h-5 sm:block" />
@@ -322,15 +341,16 @@ export function ParticipantApp() {
             </span>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             {/* Compact Track Segmented Switch */}
             <div className="inline-flex rounded-lg border bg-muted p-0.5 text-xs">
               <button
                 type="button"
                 onClick={() => setTrack("A")}
-                className={`rounded-md px-2 py-1 font-medium transition-colors ${
+                className={`min-h-[34px] min-w-[30px] rounded-md px-2.5 py-1 font-medium transition-colors ${
                   track === "A" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                 }`}
+                title="Track A: Browser & Web-Chat"
               >
                 <span className="sm:hidden">A</span>
                 <span className="hidden sm:inline">Track A · Chat</span>
@@ -338,9 +358,10 @@ export function ParticipantApp() {
               <button
                 type="button"
                 onClick={() => setTrack("B")}
-                className={`rounded-md px-2 py-1 font-medium transition-colors ${
+                className={`min-h-[34px] min-w-[30px] rounded-md px-2.5 py-1 font-medium transition-colors ${
                   track === "B" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                 }`}
+                title="Track B: Terminal, IDE & Agent"
               >
                 <span className="sm:hidden">B</span>
                 <span className="hidden sm:inline">Track B · CLI</span>
@@ -354,7 +375,7 @@ export function ParticipantApp() {
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="num-tabular h-8 gap-1.5 px-2.5 text-xs"
+                  className="num-tabular h-9 gap-1.5 px-2.5 text-xs"
                   title="Fortschritt & Team-Einstellungen"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5 text-brand-ink" />
@@ -363,7 +384,7 @@ export function ParticipantApp() {
                   </span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right">
+              <SheetContent side="right" className="overflow-y-auto">
                 <SheetHeader>
                   <SheetTitle>Euer Fortschritt ({progressPct}%)</SheetTitle>
                   <SheetDescription>
@@ -406,7 +427,7 @@ export function ParticipantApp() {
             <Button
               type="button"
               size="sm"
-              className="h-8 gap-1.5 px-2.5 text-xs sm:px-3"
+              className="h-9 gap-1.5 px-2.5 text-xs sm:px-3"
               onClick={() => openBeamerSheet()}
             >
               <Send className="h-3.5 w-3.5" />
@@ -416,8 +437,9 @@ export function ParticipantApp() {
 
             <a
               href="/beamer"
-              className="hidden h-8 items-center gap-1 rounded-lg border px-2.5 text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground md:inline-flex"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               title="Zur Beamer-Ansicht wechseln"
+              aria-label="Zur Beamer-Ansicht wechseln"
             >
               <Monitor className="h-3.5 w-3.5" />
             </a>
@@ -475,14 +497,14 @@ export function ParticipantApp() {
           <div className="mx-auto max-w-[920px]">
             {liveStage?.beamerActive && data.phases[liveStage.phaseIdx] && (
               <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-brand-lime/40 bg-secondary/50 px-4 py-2.5 text-xs">
-                <div className="flex min-w-0 items-center gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
                   <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-brand-lime" />
                   <span className="font-semibold text-foreground">
                     Live auf dem Beamer: Phase {data.phases[liveStage.phaseIdx].number} ·{" "}
                     {data.phases[liveStage.phaseIdx].title}
                   </span>
-                  <span className="num-tabular rounded-md bg-card px-2 py-0.5 font-mono font-semibold text-brand-ink">
-                    {formatCompactTime(syncedSec)}
+                  <span className="num-tabular whitespace-nowrap rounded-md bg-card px-2 py-0.5 font-mono font-semibold text-brand-ink">
+                    Restzeit {formatCompactTime(syncedSec)}
                   </span>
                 </div>
                 <button
@@ -516,8 +538,11 @@ export function ParticipantApp() {
                       <StageBackdrop className="absolute -right-24 -top-20 h-[400px] w-[400px] opacity-65" />
                       <div className="relative z-10 space-y-5">
                         <div className="inline-flex items-center gap-2 rounded-full border border-[#A9C23F]/35 bg-[#A9C23F]/15 px-3 py-1 text-xs font-semibold text-[#A9C23F]">
-                          <ShieldCheck className="h-3.5 w-3.5" />
-                          <span>virtual7 CCF Clustertag · 11:00–12:00 · 100 % öffentliche Daten</span>
+                          <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                          <span>
+                            virtual7 CCF Clustertag · 11:00–12:00 ·{" "}
+                            <span className="whitespace-nowrap">100&nbsp;% öffentliche Daten</span>
+                          </span>
                         </div>
 
                         <h1 className="font-display text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
@@ -527,8 +552,9 @@ export function ParticipantApp() {
 
                         <p className="editorial-measure text-sm leading-relaxed text-[#D3DACD] sm:text-base">
                           Direkte Praxis auf Basis eurer CCF-Umfrage (n = 47): erlebe in 5 klaren
-                          Etappen, wie Prompt-Methodik, System-Regeln, Guardrails, Markdown-RAG und
-                          MCP aus vagen Antworten verlässliche Ergebnisse machen.
+                          Etappen, wie klare Prompt-Methodik, System-Regeln, Leitplanken (Guardrails),
+                          verknüpftes Nachschlagen (Markdown-RAG) und Werkzeug-Anbindung (MCP) aus
+                          vagen Antworten verlässliche Ergebnisse machen.
                         </p>
 
                         <div className="grid grid-cols-2 gap-3 pt-2 sm:grid-cols-4">
@@ -581,7 +607,7 @@ export function ParticipantApp() {
                           </div>
                           <p className="text-sm leading-relaxed text-muted-foreground">
                             ChatGPT, Claude oder Gemini im Browser. Du nutzt 1-Klick-Kopierpakete für
-                            Prompts, Regeln und Starter-Artikel direkt aus dieser PWA.
+                            Prompts, Regeln und Starter-Artikel direkt aus dieser Web-App.
                           </p>
                         </button>
 
@@ -607,7 +633,7 @@ export function ParticipantApp() {
                           </div>
                           <p className="text-sm leading-relaxed text-muted-foreground">
                             Claude Code, Codex, Gemini CLI oder OpenCode. Du öffnest die drei
-                            Projekt-Ordner nacheinander lokal und bindest den MCP-Server ein.
+                            Projekt-Ordner nacheinander lokal und bindest die Werkzeug-Schnittstelle (MCP) ein.
                           </p>
                         </button>
                       </div>
@@ -701,6 +727,8 @@ export function ParticipantApp() {
                     <ArchitectureLayerStack
                       layers={data.architectureLayers}
                       primingTemplate={data.trackAPrimingTemplate}
+                      track={track}
+                      trackBAgentsTemplate={data.stages[1]?.agentsMd}
                     />
                   </div>
                 )}
@@ -773,18 +801,36 @@ export function ParticipantApp() {
                         </div>
                         <p className="text-sm text-muted-foreground">
                           {track === "A"
-                            ? "1. Neuen Chat öffnen → 2. AGENTS.md & Skills kopieren → 3. Starter-Artikel + Testfrage senden."
+                            ? currentStage.id === "stufe-1"
+                              ? "1. Neuen Browser-Chat öffnen (noch OHNE Leitplanken!) → 2. Arktis-Artikelpaket kopieren → 3. Testfragen 1–3 stellen."
+                              : currentStage.id === "stufe-2"
+                                ? "1. Neuen Chat öffnen → 2. AGENTS.md als System-Regel einfügen → 3. Artikel-Paket + Testfragen 1–3 senden."
+                                : "1. Neuen Chat öffnen → 2. AGENTS.md + _index.md einfügen → 3. Korallenriff-Artikel & Querverbindung (Frage 2) testen."
                             : `Öffne ${currentStage.folder}/ als Arbeitsverzeichnis in Claude Code, Codex, Gemini CLI oder OpenCode.`}
                         </p>
                       </div>
 
                       <div className="flex shrink-0 flex-wrap items-center gap-2">
                         {track === "A" ? (
-                          <CopyButton
-                            text={currentStage.agentsMd}
-                            label="AGENTS.md kopieren"
-                            variant="default"
-                          />
+                          currentStage.id === "stufe-1" ? (
+                            <CopyButton
+                              text={trackAPacks.arctic}
+                              label="Arktis-Paket kopieren"
+                              variant="default"
+                            />
+                          ) : currentStage.id === "stufe-2" ? (
+                            <CopyButton
+                              text={currentStage.agentsMd}
+                              label="AGENTS.md kopieren"
+                              variant="default"
+                            />
+                          ) : (
+                            <CopyButton
+                              text={currentStage.indexMd || currentStage.agentsMd}
+                              label="_index.md kopieren"
+                              variant="default"
+                            />
+                          )
                         ) : (
                           <CopyButton
                             text={`cd ${currentStage.folder}`}
@@ -807,73 +853,82 @@ export function ParticipantApp() {
                         Die 4 Testfragen (für alle 3 Stufen identisch)
                       </h2>
                       <div className="grid gap-4 md:grid-cols-2">
-                        {data.testQuestions.map((q) => (
-                          <div
-                            key={q.id}
-                            className={`flex flex-col justify-between gap-4 rounded-2xl border bg-card p-5 ${
-                              q.number === 3 ? "border-l-4 border-l-rose-500" : ""
-                            }`}
-                          >
-                            <div className="space-y-3">
-                              <div className="flex flex-wrap items-center justify-between gap-2">
-                                <div className="flex min-w-0 items-center gap-2">
-                                  <span className="num-tabular font-mono text-xs font-bold text-brand-ink">
-                                    0{q.number}
-                                  </span>
-                                  <span className="text-xs font-semibold text-muted-foreground">
-                                    {q.type}
-                                  </span>
+                        {data.testQuestions.map((q) => {
+                          const isTrackAQ4 = q.number === 4 && track === "A";
+                          const displayQuestion = isTrackAQ4
+                            ? "Ersetze in deinen kopierten Eisbär-Notizen im Chat kurz ‚42 Zähne‘ durch ‚38 Zähne‘ ODER ergänze im Chat-Priming eine neue Formatpflicht (z. B. 3-spaltige Risiko-Tabelle) und prüfe, ob die KI strikt deinen Vorgaben statt ihrem Vorwissen folgt."
+                            : q.question;
+                          const displayWatch = isTrackAQ4
+                            ? "Beweist den Unterschied zwischen allgemeinem KI-Vorwissen und deinem explizit gesetzten Chat-Kontext."
+                            : q.whatToWatch;
+                          return (
+                            <div
+                              key={q.id}
+                              className={`flex flex-col justify-between gap-4 rounded-2xl border bg-card p-5 ${
+                                q.number === 3 ? "border-l-4 border-l-rose-500" : ""
+                              }`}
+                            >
+                              <div className="space-y-3">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex min-w-0 items-baseline gap-2">
+                                    <span className="num-tabular shrink-0 font-mono text-xs font-bold text-brand-ink">
+                                      0{q.number}
+                                    </span>
+                                    <span className="text-xs font-semibold leading-snug text-muted-foreground">
+                                      {q.type}
+                                    </span>
+                                  </div>
+                                  <CopyButton text={displayQuestion} label="Kopieren" className="shrink-0" />
                                 </div>
-                                <CopyButton text={q.question} label="Kopieren" />
+
+                                <p className="text-[15px] font-medium leading-snug text-foreground">
+                                  {renderInlineCode(displayQuestion)}
+                                </p>
+
+                                <p className="rounded-xl bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
+                                  <strong className="text-foreground">Fokus: </strong>
+                                  {renderInlineCode(displayWatch)}
+                                </p>
                               </div>
 
-                              <p className="text-[15px] font-medium leading-snug text-foreground">
-                                {q.question}
-                              </p>
+                              <div className="space-y-2 border-t pt-3">
+                                <Accordion type="single" collapsible>
+                                  <AccordionItem value="sol" className="border-none">
+                                    <AccordionTrigger className="py-1 text-xs font-medium text-brand-ink">
+                                      Verifizierte Lösung (nach dem Testen öffnen)
+                                    </AccordionTrigger>
+                                    <AccordionContent className="rounded-xl bg-secondary/40 p-3 text-xs leading-relaxed text-foreground">
+                                      {renderInlineCode(q.solutionSummary)}
+                                    </AccordionContent>
+                                  </AccordionItem>
+                                </Accordion>
 
-                              <p className="rounded-xl bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
-                                <strong className="text-foreground">Fokus: </strong>
-                                {q.whatToWatch}
-                              </p>
-                            </div>
-
-                            <div className="space-y-2 border-t pt-3">
-                              <Accordion type="single" collapsible>
-                                <AccordionItem value="sol" className="border-none">
-                                  <AccordionTrigger className="py-1 text-xs font-medium text-brand-ink">
-                                    Verifizierte Lösung (nach dem Testen öffnen)
-                                  </AccordionTrigger>
-                                  <AccordionContent className="rounded-xl bg-secondary/40 p-3 text-xs leading-relaxed text-foreground">
-                                    {q.solutionSummary}
-                                  </AccordionContent>
-                                </AccordionItem>
-                              </Accordion>
-
-                              <div className="flex justify-end">
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="ghost"
-                                  className="h-8 px-2 text-xs text-brand-ink"
-                                  onClick={() =>
-                                    openBeamerSheet({
-                                      stage:
-                                        currentStage.id === "stufe-1"
-                                          ? "Stufe 1"
-                                          : currentStage.id === "stufe-2"
-                                            ? "Stufe 2"
-                                            : "Stufe 3",
-                                      question: q.question,
-                                    })
-                                  }
-                                >
-                                  <Send className="h-3.5 w-3.5" />
-                                  <span>Beobachtung an Beamer</span>
-                                </Button>
+                                <div className="flex justify-end">
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-8 px-2 text-xs text-brand-ink"
+                                    onClick={() =>
+                                      openBeamerSheet({
+                                        stage:
+                                          currentStage.id === "stufe-1"
+                                            ? "Stufe 1"
+                                            : currentStage.id === "stufe-2"
+                                              ? "Stufe 2"
+                                              : "Stufe 3",
+                                        question: displayQuestion,
+                                      })
+                                    }
+                                  >
+                                    <Send className="h-3.5 w-3.5" />
+                                    <span>Beobachtung an Beamer</span>
+                                  </Button>
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </section>
 
@@ -898,24 +953,25 @@ export function ParticipantApp() {
                   <div className="space-y-8">
                     <div className="space-y-2">
                       <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
-                        Schritt 04 · Protokoll &amp; Live-Werkzeuge
+                        Schritt 04 · Werkzeug-Protokoll (MCP) &amp; Live-Tests
                       </div>
                       <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
-                        Tools &amp; Model Context Protocol (MCP)
+                        Werkzeuge &amp; Model Context Protocol (MCP)
                       </h1>
                       <p className="editorial-measure text-sm leading-relaxed text-muted-foreground">
-                        Mit MCP greift jede kompatible KI standardisiert auf unseren Vault, auf
-                        Faktenprüfer und direkt auf den Beamer zu.
+                        MCP funktioniert wie ein USB-C-Anschluss für KI: Jede kompatible KI greift
+                        über einheitliche Befehle direkt auf unsere 68 Artikel, den Faktencheck und
+                        den Beamer zu.
                       </p>
                     </div>
 
                     {/* Interactive Animated 4-Node Protocol Pipeline */}
-                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                       {[
-                        { hop: 1, icon: Bot, title: "1 · KI-Host", desc: "Claude, Codex, Gemini CLI oder UI" },
-                        { hop: 2, icon: Network, title: "2 · JSON-RPC", desc: "Standardisiertes MCP-Protokoll" },
-                        { hop: 3, icon: Cpu, title: "3 · MCP-Server", desc: "mcp-server/server.mjs (3 Tools)" },
-                        { hop: 4, icon: Monitor, title: "4 · Vault & Beamer", desc: "Suche, Prüfung & Live-Post" },
+                        { hop: 1, icon: Bot, title: "1 · KI-Oberfläche", desc: "Web-Chat, CLI oder diese App" },
+                        { hop: 2, icon: Network, title: "2 · MCP-Protokoll", desc: "Einheitliches Datenformat (JSON-RPC)" },
+                        { hop: 3, icon: Cpu, title: "3 · Werkzeug-Server", desc: "mcp-server/server.mjs (3 Tools)" },
+                        { hop: 4, icon: Monitor, title: "4 · Wissensbasis & Beamer", desc: "Suche, Prüfung & Live-Post" },
                       ].map((node) => {
                         const Icon = node.icon;
                         const lit = mcpActiveHop === node.hop;
@@ -951,16 +1007,28 @@ export function ParticipantApp() {
                             </div>
                             <p className="text-xs text-muted-foreground">{node.desc}</p>
                             {node.hop < 4 && (
-                              <span
-                                aria-hidden="true"
-                                className={`pointer-events-none absolute -right-2.5 top-1/2 z-10 hidden h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border text-[11px] font-bold transition-all lg:flex ${
-                                  edgeActive
-                                    ? "animate-pulse border-brand-lime bg-brand-lime text-brand-obsidian shadow-sm"
-                                    : "border-border bg-background text-muted-foreground"
-                                }`}
-                              >
-                                →
-                              </span>
+                              <>
+                                <span
+                                  aria-hidden="true"
+                                  className={`pointer-events-none absolute -right-3 top-1/2 z-10 hidden h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border text-[11px] font-bold transition-all lg:flex ${
+                                    edgeActive
+                                      ? "animate-pulse border-brand-lime bg-brand-lime text-brand-obsidian shadow-sm"
+                                      : "border-border bg-background text-muted-foreground"
+                                  }`}
+                                >
+                                  →
+                                </span>
+                                <span
+                                  aria-hidden="true"
+                                  className={`pointer-events-none absolute -bottom-3 left-1/2 z-10 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full border text-[11px] font-bold transition-all sm:hidden ${
+                                    edgeActive
+                                      ? "animate-pulse border-brand-lime bg-brand-lime text-brand-obsidian shadow-sm"
+                                      : "border-border bg-background text-muted-foreground"
+                                  }`}
+                                >
+                                  ↓
+                                </span>
+                              </>
                             )}
                           </div>
                         );
@@ -968,16 +1036,22 @@ export function ParticipantApp() {
                     </div>
 
                     {/* Unified Interactive Tool Lab */}
-                    <div className="rounded-2xl border bg-card p-5 sm:p-6">
+                    <div className="rounded-2xl border bg-card p-4 sm:p-6">
                       <Tabs defaultValue="search" className="space-y-4">
-                        <TabsList>
-                          <TabsTrigger value="search" className="gap-1.5">
-                            <Wrench className="h-3.5 w-3.5" />
-                            <span>search_wildlife_vault</span>
+                        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 p-1 sm:inline-flex sm:w-auto sm:flex-wrap">
+                          <TabsTrigger value="search" className="justify-start gap-1.5 px-3 py-2 text-xs sm:text-sm">
+                            <Wrench className="h-3.5 w-3.5 shrink-0" />
+                            <span>Vault durchsuchen</span>
+                            <code className="hidden text-[11px] opacity-70 sm:inline">
+                              search_wildlife_vault
+                            </code>
                           </TabsTrigger>
-                          <TabsTrigger value="verify" className="gap-1.5">
-                            <ShieldCheck className="h-3.5 w-3.5" />
-                            <span>verify_claim_against_corpus</span>
+                          <TabsTrigger value="verify" className="justify-start gap-1.5 px-3 py-2 text-xs sm:text-sm">
+                            <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                            <span>Fakten prüfen</span>
+                            <code className="hidden text-[11px] opacity-70 sm:inline">
+                              verify_claim_against_corpus
+                            </code>
                           </TabsTrigger>
                         </TabsList>
 
@@ -999,6 +1073,7 @@ export function ParticipantApp() {
                               "Eisbär Talg Squalen",
                               "Korallenbleiche Temperatur",
                               "Alpenmurmeltier Winterschlaf",
+                              "Schneeleopard Nationalpark",
                             ].map((preset) => (
                               <button
                                 key={preset}
@@ -1015,23 +1090,46 @@ export function ParticipantApp() {
                             <div className="divide-y rounded-xl border bg-muted/20">
                               {mcpResults.length === 0 && (
                                 <div className="p-4 text-xs text-muted-foreground">
-                                  Keine Treffer gefunden.
+                                  Keine Treffer im 68-Artikel-Korpus gefunden (0 Treffer).
                                 </div>
                               )}
-                              {mcpResults.map((m) => (
-                                <div key={m.slug} className="space-y-1 p-3.5 text-xs">
-                                  <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <span className="wrap-safe font-mono font-bold text-brand-ink">
-                                      {m.wikilink}
-                                    </span>
-                                    <Badge variant="outline">Score {m.score}</Badge>
+                              {mcpResults.map((m) => {
+                                const parsed = parseWikilink(m.wikilink, m.slug, m.title);
+                                return (
+                                  <div key={m.slug} className="space-y-1.5 p-3.5 text-xs">
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <span className="font-display text-sm font-bold text-foreground">
+                                          {parsed.title}
+                                        </span>
+                                        <Badge variant="outline" className="font-mono text-[11px] text-brand-ink">
+                                          [[{parsed.slug}]]
+                                        </Badge>
+                                      </div>
+                                      <Badge variant="outline">Relevanz {m.score}</Badge>
+                                    </div>
+                                    <div className="break-all font-mono text-[11px] text-muted-foreground">
+                                      {m.rel_path}
+                                    </div>
+                                    <p className="leading-relaxed text-foreground/90">{m.snippet}</p>
+                                    {m.matched_tokens && m.matched_tokens.length > 0 && (
+                                      <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                                          Treffer:
+                                        </span>
+                                        {m.matched_tokens.slice(0, 6).map((tok) => (
+                                          <span
+                                            key={tok}
+                                            className="rounded bg-secondary/70 px-1.5 py-0.5 font-mono text-[10px] text-foreground"
+                                          >
+                                            {tok}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
-                                  <div className="font-mono text-[11px] text-muted-foreground">
-                                    {m.rel_path}
-                                  </div>
-                                  <p className="leading-relaxed text-foreground/90">{m.snippet}</p>
-                                </div>
-                              ))}
+                                );
+                              })}
                             </div>
                           )}
                         </TabsContent>
@@ -1076,32 +1174,46 @@ export function ParticipantApp() {
                                 </Badge>
                                 <span className="font-medium">{verifyOutput.label}</span>
                               </div>
-                              {verifyOutput.evidence.map((ev) => (
-                                <div key={ev.slug} className="rounded-lg border bg-card p-3">
-                                  <div className="wrap-safe font-mono font-semibold text-brand-ink">
-                                    {ev.wikilink}
-                                  </div>
-                                  <p className="mt-1 text-muted-foreground">{ev.snippet}</p>
+                              {verifyOutput.evidence.length === 0 && (
+                                <div className="rounded-lg border border-dashed bg-card p-3 text-muted-foreground">
+                                  0 verlässliche Belege in den 68 Artikeln – korrekte System-Reaktion:
+                                  Behauptung nicht bestätigen.
                                 </div>
-                              ))}
+                              )}
+                              {verifyOutput.evidence.map((ev) => {
+                                const parsed = parseWikilink(ev.wikilink, ev.slug, ev.title);
+                                return (
+                                  <div key={ev.slug} className="space-y-1 rounded-lg border bg-card p-3">
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <span className="font-display text-sm font-bold text-foreground">
+                                        {parsed.title}
+                                      </span>
+                                      <Badge variant="outline" className="font-mono text-[11px] text-brand-ink">
+                                        [[{parsed.slug}]]
+                                      </Badge>
+                                    </div>
+                                    <p className="leading-relaxed text-muted-foreground">{ev.snippet}</p>
+                                  </div>
+                                );
+                              })}
                             </div>
                           )}
                         </TabsContent>
                       </Tabs>
                     </div>
 
-                    {/* Track B MCP Configs (Strict overflow-x-auto inside min-w-0!) */}
+                    {/* Track B MCP Configs (Clean file targets + wrapping without awkward desktop scrollbars) */}
                     <Accordion type="single" collapsible className="rounded-2xl border bg-card px-5">
                       <AccordionItem value="mcp-cfg" className="border-none">
                         <AccordionTrigger className="font-display text-sm font-semibold">
-                          <span className="flex items-center gap-2">
-                            <FileCode2 className="h-4 w-4 text-brand-ink" />
-                            MCP-Konfiguration für Track B anzeigen (5 Clients)
+                          <span className="flex items-center gap-2 text-left">
+                            <FileCode2 className="h-4 w-4 shrink-0 text-brand-ink" />
+                            <span>MCP-Konfiguration für Track B anzeigen (5 Clients)</span>
                           </span>
                         </AccordionTrigger>
                         <AccordionContent className="min-w-0 pb-4">
                           <Tabs defaultValue="claude" className="min-w-0">
-                            <TabsList className="h-auto w-full flex-wrap gap-1 overflow-visible bg-muted p-1.5">
+                            <TabsList className="h-auto w-full flex-wrap justify-start gap-1 overflow-visible bg-muted p-1.5">
                               <TabsTrigger value="claude" className="px-2.5 py-1 text-xs">Claude Code</TabsTrigger>
                               <TabsTrigger value="gemini" className="px-2.5 py-1 text-xs">Gemini CLI</TabsTrigger>
                               <TabsTrigger value="codex" className="px-2.5 py-1 text-xs">Codex</TabsTrigger>
@@ -1109,17 +1221,34 @@ export function ParticipantApp() {
                               <TabsTrigger value="cli" className="px-2.5 py-1 text-xs">1-Zeiler CLI</TabsTrigger>
                             </TabsList>
                             {[
-                              { id: "claude", code: data.mcpConfigs.claudeCode },
-                              { id: "gemini", code: data.mcpConfigs.geminiCli },
-                              { id: "codex", code: data.mcpConfigs.codex },
-                              { id: "vscode", code: data.mcpConfigs.vscodeCursor },
-                              { id: "cli", code: data.mcpConfigs.cliCommand },
+                              { id: "claude", path: ".mcp.json (im Repo-Root bereits hinterlegt)", code: data.mcpConfigs.claudeCode, wrapAll: false },
+                              { id: "gemini", path: "~/.gemini/settings.json (oder .gemini/settings.json im Projekt)", code: data.mcpConfigs.geminiCli, wrapAll: false },
+                              { id: "codex", path: "~/.codex/config.toml", code: data.mcpConfigs.codex, wrapAll: false },
+                              { id: "vscode", path: ".vscode/mcp.json (bzw. Cursor MCP Settings)", code: data.mcpConfigs.vscodeCursor, wrapAll: false },
+                              {
+                                id: "cli",
+                                path: "Terminal (PowerShell / Bash im Repo-Root)",
+                                code: data.mcpConfigs.cliCommand.replace(
+                                  /--team\s+"[^"]*"/,
+                                  `--team "${(teamName.trim() || "Euer Team").replace(/"/g, "'")}"`
+                                ),
+                                wrapAll: true,
+                              },
                             ].map((cfg) => (
                               <TabsContent key={cfg.id} value={cfg.id} className="min-w-0 space-y-2">
-                                <div className="flex justify-end">
-                                  <CopyButton text={cfg.code} />
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <code className="break-all text-[11px] text-muted-foreground">
+                                    Zieldatei: {cfg.path}
+                                  </code>
+                                  <CopyButton text={cfg.code} label="Konfig kopieren" />
                                 </div>
-                                <pre className="max-w-full overflow-x-auto rounded-xl border bg-muted/40 p-3.5 font-mono text-xs">
+                                <pre
+                                  className={`max-w-full rounded-xl border bg-muted/40 p-3.5 font-mono text-xs ${
+                                    cfg.wrapAll
+                                      ? "whitespace-pre-wrap break-all"
+                                      : "overflow-x-auto whitespace-pre-wrap break-words"
+                                  }`}
+                                >
                                   {cfg.code}
                                 </pre>
                               </TabsContent>
@@ -1161,7 +1290,7 @@ export function ParticipantApp() {
                             </div>
                             <h3 className="font-display text-lg font-bold">{m.title}</h3>
                             <p className="text-sm leading-relaxed text-muted-foreground">
-                              {m.description}
+                              {renderInlineCode(m.description)}
                             </p>
                             <pre className="whitespace-pre-wrap break-words rounded-xl border bg-muted/35 p-3.5 font-mono text-xs leading-relaxed">
                               {m.prompt}

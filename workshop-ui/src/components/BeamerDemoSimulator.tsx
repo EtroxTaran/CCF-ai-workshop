@@ -123,7 +123,7 @@ export function BeamerDemoSimulator() {
   const scenario = DEMO_SCENARIOS[scenarioKey];
 
   return (
-    <div className="flex flex-1 flex-col justify-between gap-3">
+    <div className="flex flex-1 flex-col justify-between gap-3 xl:my-auto xl:max-h-[600px]">
       <div className="flex flex-col gap-2.5 rounded-2xl border bg-card/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 space-y-0.5">
           <div className="text-xs font-bold uppercase tracking-wider text-brand-ink">

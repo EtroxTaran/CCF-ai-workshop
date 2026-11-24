@@ -35,7 +35,10 @@ export function CopyButton({
       document.body.removeChild(ta);
     }
     setCopied(true);
-    toast.success(toastMessage || `${label} in Zwischenablage kopiert`);
+    const cleaned = label.replace(/\s*kopieren$/i, "").trim();
+    toast.success(
+      toastMessage || (cleaned ? `${cleaned} in Zwischenablage kopiert` : "In Zwischenablage kopiert")
+    );
     window.setTimeout(() => setCopied(false), 1800);
   }
 

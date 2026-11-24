@@ -150,9 +150,14 @@ export function BeamerSendSheet({
     );
   }
 
+  const personalizedCliCommand = cliCommandTemplate.replace(
+    /--team\s+"[^"]*"/,
+    `--team "${(teamName.trim() || "Euer Team").replace(/"/g, "'")}"`
+  );
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="max-w-[500px]">
+      <SheetContent side="right" className="max-w-[500px] overflow-y-auto pb-8">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Send className="h-4 w-4 text-brand-ink" />
@@ -325,10 +330,10 @@ export function BeamerSendSheet({
                 <p className="text-[11px] text-muted-foreground">
                   Sage deinem Agenten: <code>„Nutze send_to_beamer für Team {teamName}“</code> oder:
                 </p>
-                <pre className="overflow-x-auto whitespace-nowrap rounded border bg-card p-2 font-mono text-[11px]">
-                  {cliCommandTemplate}
+                <pre className="whitespace-pre-wrap break-all rounded border bg-card p-2 font-mono text-[11px]">
+                  {personalizedCliCommand}
                 </pre>
-                <CopyButton text={cliCommandTemplate} label="CLI-Befehl kopieren" />
+                <CopyButton text={personalizedCliCommand} label="CLI-Befehl kopieren" />
               </div>
             </AccordionContent>
           </AccordionItem>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
+  ArrowLeft,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -47,13 +48,26 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
-import type { ServerHealth, SubmissionItem, WorkshopDataset } from "@/types/workshop";
+import type { ServerHealth, StageState, SubmissionItem, WorkshopDataset } from "@/types/workshop";
 
 const data = rawData as unknown as WorkshopDataset;
 
 type StageMode = "stage" | "qr" | "demo" | "wall";
 type DemoSubTab = "stages" | "methods" | "layers";
 type WallFilter = "all" | "pinned" | "belegt" | "trap";
+
+function renderInlineCode(text: string) {
+  const parts = String(text || "").split(/(`[^`]+`)/g);
+  return parts.map((part, idx) =>
+    part.startsWith("`") && part.endsWith("`") && part.length > 2 ? (
+      <code key={idx} className="rounded bg-muted px-1 py-0.5 font-mono text-[0.9em]">
+        {part.slice(1, -1)}
+      </code>
+    ) : (
+      part
+    )
+  );
+}
 
 function formatMMSS(sec: number): string {
   const safe = Math.max(0, Math.floor(sec));
@@ -142,7 +156,30 @@ export function BeamerApp() {
       })
       .catch(() => undefined);
 
-    syncStage(0, false, data.phases[0].durationMin * 60);
+    fetch("/api/stage")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((st: StageState | null) => {
+        if (st?.beamerActive) {
+          const clampedIdx = Math.max(0, Math.min(data.phases.length - 1, Number(st.phaseIdx) || 0));
+          const baseSec = Number.isFinite(st.secondsLeft)
+            ? st.secondsLeft
+            : data.phases[clampedIdx].durationMin * 60;
+          const elapsed = st.running
+            ? Math.max(0, Math.floor((Date.now() - (st.updatedAt || Date.now())) / 1000))
+            : 0;
+          setPhaseIdx(clampedIdx);
+          setSecondsLeft(Math.max(0, baseSec - elapsed));
+          setRunning(Boolean(st.running));
+          if (typeof st.connectedClients === "number") {
+            setConnectedClients(Math.max(1, st.connectedClients));
+          }
+        } else {
+          syncStage(0, false, data.phases[0].durationMin * 60);
+        }
+      })
+      .catch(() => {
+        syncStage(0, false, data.phases[0].durationMin * 60);
+      });
 
     const es = new EventSource("/api/events");
     es.onopen = () => setSseConnected(true);
@@ -202,22 +239,39 @@ export function BeamerApp() {
 
   function resetPhaseTimer() {
     const nextSec = activePhase.durationMin * 60;
+    setRunning(false);
     setSecondsLeft(nextSec);
-    syncStage(phaseIdx, running, nextSec);
+    syncStage(phaseIdx, false, nextSec);
+  }
+
+  function restartWorkshop() {
+    const nextSec = data.phases[0].durationMin * 60;
+    setPhaseIdx(0);
+    setRunning(false);
+    setSecondsLeft(nextSec);
+    setRevealSolution(false);
+    syncStage(0, false, nextSec);
+    toast.success("Workshop auf Phase 1 zurückgesetzt");
   }
 
   // Keyboard shortcuts guarded when inputs, spotlight dialog, or regie drawer are open
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (regieOpen || spotlight !== null) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA") return;
       if (e.code === "Space") {
         e.preventDefault();
+        if (document.activeElement instanceof HTMLButtonElement) {
+          document.activeElement.blur();
+        }
         toggleRunning();
       } else if (e.code === "ArrowRight") {
+        e.preventDefault();
         goPhase(Math.min(data.phases.length - 1, phaseIdx + 1));
       } else if (e.code === "ArrowLeft") {
+        e.preventDefault();
         goPhase(Math.max(0, phaseIdx - 1));
       } else if (e.key === "1") {
         setStageMode("stage");
@@ -228,6 +282,10 @@ export function BeamerApp() {
       } else if (e.key === "4") {
         setStageMode("wall");
       } else if (e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        if (document.activeElement instanceof HTMLButtonElement) {
+          document.activeElement.blur();
+        }
         setRevealSolution((v) => !v);
       } else if (e.key.toLowerCase() === "f" && !e.shiftKey) {
         setShowFeedRail((v) => !v);
@@ -331,7 +389,7 @@ export function BeamerApp() {
                 sseConnected ? "animate-pulse bg-brand-lime" : "bg-amber-400"
               }`}
             />
-            <span className="hidden xl:inline">
+            <span className="hidden md:inline">
               {sseConnected ? `Live · ${connectedClients}` : "Lokal"}
             </span>
           </span>
@@ -368,7 +426,7 @@ export function BeamerApp() {
           })}
         </div>
 
-        {/* Right Countdown + Phase Nav + Regie Drawer */}
+        {/* Right Countdown + Phase Nav + App Return + Regie Drawer */}
         <div className="flex shrink-0 items-center gap-2">
           <div className="hidden items-center gap-1 md:flex">
             <Button
@@ -379,6 +437,7 @@ export function BeamerApp() {
               disabled={phaseIdx === 0}
               onClick={() => goPhase(phaseIdx - 1)}
               title="Vorherige Phase"
+              aria-label="Vorherige Phase"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -393,6 +452,7 @@ export function BeamerApp() {
               disabled={phaseIdx === data.phases.length - 1}
               onClick={() => goPhase(phaseIdx + 1)}
               title="Nächste Phase"
+              aria-label="Nächste Phase"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -445,6 +505,7 @@ export function BeamerApp() {
               className="h-7 w-7"
               onClick={toggleRunning}
               title="Timer Start/Pause (Leertaste)"
+              aria-label={running ? "Timer pausieren" : "Timer starten"}
             >
               {running ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
             </Button>
@@ -460,6 +521,15 @@ export function BeamerApp() {
             </Button>
           </div>
 
+          <a
+            href="/"
+            title="Zur Teilnehmer-UI wechseln"
+            className="hidden h-8 items-center gap-1 rounded-lg border px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground lg:inline-flex"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>App</span>
+          </a>
+
           {/* Single Regie Controls Drawer */}
           <Sheet open={regieOpen} onOpenChange={setRegieOpen}>
             <SheetTrigger asChild>
@@ -468,7 +538,7 @@ export function BeamerApp() {
                 <span className="hidden sm:inline">Regie</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="right">
+            <SheetContent side="right" className="overflow-y-auto">
               <SheetHeader>
                 <SheetTitle>Beamer-Regie &amp; Steuerung</SheetTitle>
                 <SheetDescription>
@@ -476,42 +546,47 @@ export function BeamerApp() {
                 </SheetDescription>
               </SheetHeader>
 
-              <div className="mt-5 space-y-5 text-sm">
+              <div className="mt-3 space-y-3 text-sm">
                 <div className="grid grid-cols-2 gap-2">
-                  <Button type="button" variant="outline" onClick={resetPhaseTimer}>
-                    <RotateCcw className="h-4 w-4" />
+                  <Button type="button" size="sm" variant="outline" onClick={resetPhaseTimer}>
+                    <RotateCcw className="h-3.5 w-3.5" />
                     <span>Timer Reset</span>
                   </Button>
-                  <Button type="button" variant="accent" onClick={simulateDemoQuestion}>
-                    <Sparkles className="h-4 w-4" />
+                  <Button type="button" size="sm" variant="accent" onClick={simulateDemoQuestion}>
+                    <Sparkles className="h-3.5 w-3.5" />
                     <span>Demo-Frage</span>
                   </Button>
-                  <Button type="button" variant="outline" onClick={() => setDarkBeamer((d) => !d)}>
-                    {darkBeamer ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                    <span>{darkBeamer ? "Hell-Modus" : "Dark-Modus"}</span>
+                  <Button type="button" size="sm" variant="outline" onClick={() => setDarkBeamer((d) => !d)}>
+                    {darkBeamer ? <Sun className="h-3.5 w-3.5" /> : <Moon className="h-3.5 w-3.5" />}
+                    <span>{darkBeamer ? "Hell-Modus" : "Dunkel-Modus"}</span>
                   </Button>
-                  <Button type="button" variant="outline" onClick={toggleFullscreen}>
-                    {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                  <Button type="button" size="sm" variant="outline" onClick={toggleFullscreen}>
+                    {isFullscreen ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
                     <span>{isFullscreen ? "Fenster" : "Vollbild"}</span>
                   </Button>
                 </div>
 
-                <label className="flex items-center justify-between rounded-xl border p-3">
+                <Button type="button" size="sm" variant="ghost" className="w-full justify-start text-xs text-muted-foreground" onClick={restartWorkshop}>
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  <span>Workshop auf Phase 1 zurücksetzen</span>
+                </Button>
+
+                <label className="flex items-center justify-between rounded-xl border p-2.5">
                   <div>
-                    <div className="font-semibold">Live-Feed-Leiste in Stage zeigen</div>
-                    <div className="text-xs text-muted-foreground">Taste F zum schnellen Ausblenden</div>
+                    <div className="text-xs font-semibold">Live-Feed-Leiste in Stage zeigen</div>
+                    <div className="text-[11px] text-muted-foreground">Taste F zum schnellen Ausblenden</div>
                   </div>
                   <Switch checked={showFeedRail} onCheckedChange={setShowFeedRail} />
                 </label>
 
                 <Separator />
 
-                <div className="space-y-3">
+                <div className="space-y-2.5">
                   <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                     QR-Join &amp; Dual-Modus Watcher
                   </div>
                   {health?.lanUrls && health.lanUrls.length > 0 && (
-                    <div className="rounded-xl border bg-muted/40 p-3 font-mono text-xs">
+                    <div className="rounded-xl border bg-muted/40 p-2.5 font-mono text-[11px]">
                       <div className="mb-1 font-sans font-semibold text-muted-foreground">
                         Erkannte LAN-Adressen:
                       </div>
@@ -524,12 +599,13 @@ export function BeamerApp() {
                   )}
                   <div className="space-y-1">
                     <label className="text-xs font-medium">QR-Code Ziel-URL</label>
-                    <Input value={cfgJoinUrl} onChange={(e) => setCfgJoinUrl(e.target.value)} />
+                    <Input className="h-8 text-xs" value={cfgJoinUrl} onChange={(e) => setCfgJoinUrl(e.target.value)} />
                   </div>
                   <div className="grid gap-2 sm:grid-cols-2">
                     <div className="space-y-1">
                       <label className="text-xs font-medium">GitHub Repo (owner/repo)</label>
                       <Input
+                        className="h-8 text-xs"
                         value={cfgGithubRepo}
                         onChange={(e) => setCfgGithubRepo(e.target.value)}
                         placeholder="owner/repo"
@@ -537,10 +613,10 @@ export function BeamerApp() {
                     </div>
                     <div className="space-y-1">
                       <label className="text-xs font-medium">Issue-Label</label>
-                      <Input value={cfgGithubLabel} onChange={(e) => setCfgGithubLabel(e.target.value)} />
+                      <Input className="h-8 text-xs" value={cfgGithubLabel} onChange={(e) => setCfgGithubLabel(e.target.value)} />
                     </div>
                   </div>
-                  <label className="flex items-center justify-between rounded-xl border p-3">
+                  <label className="flex items-center justify-between rounded-xl border p-2.5">
                     <div>
                       <div className="text-xs font-semibold">Git Auto-Pull (20s)</div>
                       <div className="text-[11px] text-muted-foreground">
@@ -549,16 +625,16 @@ export function BeamerApp() {
                     </div>
                     <Switch checked={cfgGitPull} onCheckedChange={setCfgGitPull} />
                   </label>
-                  <Button type="button" className="w-full" onClick={saveServerConfig}>
+                  <Button type="button" size="sm" className="w-full" onClick={saveServerConfig}>
                     Einstellungen speichern
                   </Button>
                 </div>
 
                 <Separator />
 
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Shortcuts: Space (Timer) · ←/→ · 1–4 · Q · S · F</span>
-                  <a href="/" className="font-semibold text-brand-ink hover:underline">
+                <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                  <span>Shortcuts: Space · ←/→ · 1–4 · Q · S · F</span>
+                  <a href="/" className="shrink-0 font-semibold text-brand-ink hover:underline">
                     Teilnehmer-UI →
                   </a>
                 </div>
@@ -643,8 +719,8 @@ export function BeamerApp() {
                     activeQuestion.number === 3 ? "border-l-4 border-l-rose-500" : "border-l-4 border-l-brand-lime"
                   }`}
                 >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 flex-wrap items-center gap-2">
                       <Badge variant={activeQuestion.number === 3 ? "danger" : "lime"}>
                         Testfrage {activeQuestion.number} · {activeQuestion.type}
                       </Badge>
@@ -660,11 +736,15 @@ export function BeamerApp() {
                     <Button
                       type="button"
                       size="sm"
-                      variant="outline"
-                      onClick={() => setRevealSolution((v) => !v)}
+                      variant={revealSolution ? "accent" : "outline"}
+                      className="shrink-0 whitespace-nowrap"
+                      onClick={(e) => {
+                        e.currentTarget.blur();
+                        setRevealSolution((v) => !v);
+                      }}
                     >
                       <Eye className="h-3.5 w-3.5" />
-                      <span>{revealSolution ? "Lösung ausblenden (S)" : "Verifizierte Lösung (S)"}</span>
+                      <span>{revealSolution ? "Lösung schließen (S)" : "Verifizierte Lösung (S)"}</span>
                     </Button>
                   </div>
                   <p className="mt-2.5 font-display text-[clamp(1.1rem,1.5vw,1.48rem)] font-bold leading-snug text-foreground">
@@ -672,14 +752,8 @@ export function BeamerApp() {
                   </p>
                   <p className="mt-2 text-sm text-muted-foreground">
                     <strong className="text-foreground">Beobachtung: </strong>
-                    {activeQuestion.whatToWatch}
+                    {renderInlineCode(activeQuestion.whatToWatch)}
                   </p>
-                  {revealSolution && (
-                    <div className="mt-3 rounded-xl border border-emerald-500/35 bg-emerald-500/10 p-4 text-sm leading-relaxed text-foreground">
-                      <strong>Verifizierte Lösung: </strong>
-                      {activeQuestion.solutionSummary}
-                    </div>
-                  )}
                 </div>
               </motion.div>
             )}
@@ -799,7 +873,7 @@ export function BeamerApp() {
                 {demoTab === "stages" && <BeamerDemoSimulator />}
 
                 {demoTab === "methods" && (
-                  <div className="grid flex-1 gap-4 md:grid-cols-2">
+                  <div className="grid flex-1 gap-4 md:grid-cols-2 xl:my-auto xl:max-h-[600px]">
                     {data.promptMethods.map((m) => (
                       <div key={m.id} className="card-elevated flex flex-col justify-between rounded-2xl border bg-card p-6">
                         <div className="space-y-2.5">
@@ -989,6 +1063,8 @@ export function BeamerApp() {
                                   variant="ghost"
                                   className="h-8 w-8"
                                   onClick={() => togglePin(sub)}
+                                  aria-label={sub.pinned ? "Anpinnen aufheben" : "Eintrag anpinnen"}
+                                  title={sub.pinned ? "Anpinnen aufheben" : "Eintrag anpinnen"}
                                 >
                                   <Pin className={`h-4 w-4 ${sub.pinned ? "text-brand-ink" : ""}`} />
                                 </Button>
@@ -998,6 +1074,8 @@ export function BeamerApp() {
                                   variant="ghost"
                                   className="h-8 w-8"
                                   onClick={() => removeSubmission(sub.id)}
+                                  aria-label="Eintrag löschen"
+                                  title="Eintrag löschen"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -1007,9 +1085,11 @@ export function BeamerApp() {
                             <p className="text-lg font-semibold leading-snug">{sub.question}</p>
 
                             {sub.ai_answer && (
-                              <p className="line-clamp-3 rounded-xl bg-muted/50 px-3.5 py-2.5 text-sm leading-relaxed text-muted-foreground">
-                                {sub.ai_answer}
-                              </p>
+                              <div className="overflow-hidden rounded-xl bg-muted/50 px-3.5 py-2.5">
+                                <p className="line-clamp-3 text-sm leading-snug text-muted-foreground">
+                                  {sub.ai_answer}
+                                </p>
+                              </div>
                             )}
                           </div>
 
@@ -1132,6 +1212,8 @@ export function BeamerApp() {
                             variant="ghost"
                             className="h-6 w-6"
                             onClick={() => togglePin(sub)}
+                            aria-label={sub.pinned ? "Anpinnen aufheben" : "Eintrag anpinnen"}
+                            title={sub.pinned ? "Anpinnen aufheben" : "Eintrag anpinnen"}
                           >
                             <Pin className={`h-3 w-3 ${sub.pinned ? "text-brand-ink" : ""}`} />
                           </Button>
@@ -1141,6 +1223,8 @@ export function BeamerApp() {
                             variant="ghost"
                             className="h-6 w-6"
                             onClick={() => removeSubmission(sub.id)}
+                            aria-label="Eintrag löschen"
+                            title="Eintrag löschen"
                           >
                             <Trash2 className="h-3 w-3" />
                           </Button>
@@ -1201,14 +1285,65 @@ export function BeamerApp() {
             );
           })}
         </div>
-        <div className="hidden font-mono text-xs text-muted-foreground xl:block">
+        <div className="hidden shrink-0 font-mono text-xs text-muted-foreground sm:block">
           {nowClock}
         </div>
       </footer>
 
+      {/* Verified Solution Overlay Modal (keeps Stage 1280x720 100% overflow-free!) */}
+      <Dialog open={revealSolution} onOpenChange={setRevealSolution}>
+        <DialogContent className="max-h-[88dvh] max-w-3xl overflow-y-auto">
+          <DialogHeader>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="lime">Verifizierte Lösung</Badge>
+              <Badge variant={activeQuestion.number === 3 ? "danger" : "secondary"}>
+                Testfrage {activeQuestion.number} · {activeQuestion.type}
+              </Badge>
+              {activeQuestion.number === 3 && (
+                <Badge
+                  variant="outline"
+                  className="border-rose-500/40 bg-rose-500/10 font-mono text-rose-500 dark:text-rose-300"
+                >
+                  0 Treffer in 68 Dateien
+                </Badge>
+              )}
+              {activeQuestion.targetDocs.map((doc) => (
+                <Badge key={doc} variant="outline" className="font-mono text-xs">
+                  {doc}
+                </Badge>
+              ))}
+            </div>
+            <DialogTitle className="pt-2 text-xl leading-snug sm:text-2xl">
+              „{activeQuestion.question}“
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 text-sm">
+            <div className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-base leading-relaxed text-foreground">
+              <div className="mb-1 text-xs font-bold uppercase tracking-wider text-emerald-500 dark:text-emerald-400">
+                Verifizierte Antwort aus dem Korpus
+              </div>
+              {renderInlineCode(activeQuestion.solutionSummary)}
+            </div>
+
+            <div className="rounded-xl border bg-muted/40 p-3.5 text-sm leading-relaxed text-muted-foreground">
+              <strong className="text-foreground">Beobachtung im Workshop: </strong>
+              {renderInlineCode(activeQuestion.whatToWatch)}
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>Shortcut: Taste S oder Esc schließt dieses Fenster.</span>
+              <Button type="button" size="sm" variant="outline" onClick={() => setRevealSolution(false)}>
+                Schließen (S)
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Plenum Spotlight Modal (Inherits Dark Mode cleanly via documentElement!) */}
       <Dialog open={!!spotlight} onOpenChange={(o) => !o && setSpotlight(null)}>
-        <DialogContent className="max-w-3xl">
+        <DialogContent className="max-h-[88dvh] max-w-3xl overflow-y-auto">
           {spotlight && (
             <>
               <DialogHeader>

@@ -22,27 +22,38 @@ const LIVE_DIR = path.join(REPO_ROOT, "live-questions");
 
 const STOPWORDS = new Set([
   "aber", "alle", "allem", "allen", "aller", "alles", "also", "auch", "auf", "aus",
-  "bei", "beim", "beide", "beiden", "bis", "bist", "dabei", "dadurch", "dafuer",
-  "dafür", "dagegen", "daher", "damit", "danach", "dann", "darauf", "daraus", "darin",
-  "darum", "dass", "dazu", "dein", "deine", "dem", "den", "denn", "der", "deren",
-  "des", "dessen", "deshalb", "die", "dies", "diese", "diesem", "diesen", "dieser",
-  "dieses", "doch", "dort", "durch", "eine", "einem", "einen", "einer", "eines",
-  "einige", "einmal", "etwa", "etwas", "euch", "euer", "eure", "fuer", "für", "ganz",
-  "gegen", "genau", "gibt", "haben", "hat", "hatte", "hatten", "hier", "hinter",
-  "ihm", "ihn", "ihnen", "ihr", "ihre", "ihrem", "ihren", "ihrer", "immer", "indem",
-  "infolge", "innen", "ins", "ist", "jede", "jedem", "jeden", "jeder", "jedes",
-  "jedoch", "jetzt", "kann", "kein", "keine", "keinem", "keinen", "keiner", "koennen",
-  "können", "konnte", "lassen", "laut", "mehr", "mein", "meine", "mit", "muss",
-  "muessen", "müssen", "nach", "nachdem", "neben", "nein", "nicht", "nichts", "noch",
-  "nun", "nur", "oder", "ohne", "sehr", "sein", "seine", "seinem", "seinen", "seiner",
+  "bei", "beim", "beide", "beiden", "besitzen", "besitzt", "bestehen", "besteht",
+  "bietet", "bieten", "bis", "bist", "bleiben", "bleibt", "bzw", "circa", "dabei",
+  "dadurch", "dafuer", "dafür", "dagegen", "daher", "damit", "danach", "dann",
+  "darauf", "daraus", "darin", "darum", "dass", "dazu", "dein", "deine", "dem",
+  "den", "denn", "der", "deren", "des", "dessen", "deshalb", "die", "dies", "diese",
+  "diesem", "diesen", "dieser", "dieses", "doch", "dort", "durch", "eine", "einem",
+  "einen", "einer", "eines", "einige", "einmal", "enthaelt", "enthalten", "erhoben",
+  "erklaere", "etwa", "etwas", "euch", "euer", "eure", "findet", "finden", "fuer",
+  "für", "ganz", "geben", "gegen", "genau", "gibt", "gilt", "gelten", "haben",
+  "hat", "hatte", "hatten", "haengen", "heisst", "heissen", "heute", "hier",
+  "hierdurch", "hinter", "hoch", "ihm", "ihn", "ihnen", "ihr", "ihre", "ihrem",
+  "ihren", "ihrer", "immer", "indem", "infolge", "innen", "ins", "ist", "jaehrlich",
+  "jaehrlichen", "jede", "jedem", "jeden", "jeder", "jedes", "jedoch", "jetzt",
+  "kann", "kein", "keine", "keinem", "keinen", "keiner", "koennen", "können",
+  "kommen", "kommt", "konnte", "kostet", "kosten", "korpus", "lassen", "laut",
+  "leben", "lebt", "lebte", "lebten", "liegen", "liegt", "machen", "macht", "mehr",
+  "mehrere", "mein", "meine", "mit", "muss", "muessen", "müssen", "nach", "nachdem",
+  "neben", "nein", "nenne", "nennen", "nennt", "nicht", "nichts", "nimmt", "nehmen",
+  "noch", "nun", "nur", "nutzen", "nutzt", "oder", "ohne", "pro", "pruefe", "pruefen",
+  "rund", "sagen", "sagt", "sehr", "sein", "seine", "seinem", "seinen", "seiner",
   "seit", "selbst", "sich", "sie", "sind", "sobald", "sodass", "sofern", "solche",
-  "solchen", "soll", "sollen", "sollte", "sondern", "sonst", "sowie", "ueber", "über",
-  "um", "und", "uns", "unser", "unsere", "unter", "viel", "viele", "vielen", "vom",
-  "von", "vor", "waehrend", "während", "wann", "war", "waren", "warum", "was", "wegen",
+  "solchen", "soll", "sollen", "sollte", "sondern", "sonst", "sowie", "spielen",
+  "spielt", "stehen", "steht", "ueber", "über", "um", "und", "uns", "unser", "unsere",
+  "unter", "vergleiche", "viel", "viele", "vielen", "vom", "von", "vor", "vorkommen",
+  "vorkommt", "waehrend", "während", "wann", "war", "waren", "warum", "was", "wegen",
   "weil", "weit", "weiter", "welche", "welchem", "welchen", "welcher", "welches",
-  "wenn", "wer", "werden", "wie", "wieder", "wieso", "will", "wird", "wir", "wobei",
-  "wofuer", "wofür", "woher", "wohin", "wurde", "wurden", "zudem", "zum", "zur",
-  "zwar", "zwischen"
+  "weniger", "wenn", "wer", "werden", "weshalb", "wie", "wieder", "wieso", "will",
+  "wird", "wir", "wobei", "wofuer", "wofür", "woher", "wohin", "wurde", "wurden",
+  "zaehlen", "zaehlt", "zeigen", "zeigt", "zudem", "zum", "zur", "zusammen", "zwar",
+  "zwischen", "aktuell", "aktuelle", "aktuellen", "aktueller", "dokument",
+  "dokumente", "dokumenten", "artikel", "artikeln", "datei", "dateien", "frage",
+  "antwort", "stufe", "track", "beleg", "belegt", "quelle", "quellen",
 ]);
 
 function normalize(text) {
@@ -54,10 +65,31 @@ function normalize(text) {
     .replace(/ß/g, "ss");
 }
 
+function stemDe(word) {
+  if (word.length < 6) return word;
+  return word.replace(/(?:ern|em|en|er|es|e|n|s|t)$/, "");
+}
+
+function wordsMatch(word, tok) {
+  if (word === tok) return true;
+  if (tok.length >= 6 && word.length >= 6 && stemDe(word) === stemDe(tok)) return true;
+  if (tok.length >= 5 && word.startsWith(tok) && word.length - tok.length <= 2) return true;
+  if (word.length >= 5 && tok.startsWith(word) && tok.length - word.length <= 2) return true;
+  return false;
+}
+
+function matchesWordSet(wordSet, wordList, tok) {
+  if (wordSet.has(tok)) return true;
+  for (const w of wordList) {
+    if (wordsMatch(w, tok)) return true;
+  }
+  return false;
+}
+
 function tokenize(text) {
   const norm = normalize(text);
   const rawTokens = norm.match(/[a-z0-9]{3,}/g) || [];
-  return [...new Set(rawTokens.filter((t) => !STOPWORDS.has(t)))];
+  return [...new Set(rawTokens.filter((t) => !/^\d+$/.test(t) && !STOPWORDS.has(t)))];
 }
 
 function parseFrontmatter(content) {
@@ -98,6 +130,11 @@ function loadVaultArticles() {
       const { meta, body } = parseFrontmatter(raw);
       const slug = file.replace(/\.md$/, "");
       const wikilinks = [...new Set((body.match(/\[\[([^\]|]+)(?:\|[^\]]+)?\]\]/g) || []).map((w) => w.slice(2, -2).split("|")[0]))];
+      const normTitle = normalize(meta.title || slug);
+      const normBody = normalize(body);
+      const titleWords = [...new Set([...(normTitle.match(/[a-z0-9]{2,}/g) || []), ...slug.split("-")])];
+      const bodyWords = [...new Set(normBody.match(/[a-z0-9]{2,}/g) || [])];
+      const tagWords = [...new Set((Array.isArray(meta.tags) ? meta.tags : []).flatMap((t) => normalize(t).match(/[a-z0-9]{2,}/g) || []))];
       articles.push({
         slug,
         title: meta.title || slug,
@@ -109,8 +146,14 @@ function loadVaultArticles() {
         rel_path: `wiki/${sub}/${file}`,
         wikilinks,
         body,
-        normTitle: normalize(meta.title || slug),
-        normBody: normalize(body),
+        normTitle,
+        normBody,
+        titleWords,
+        titleWordSet: new Set(titleWords),
+        bodyWords,
+        bodyWordSet: new Set(bodyWords),
+        tagWords,
+        tagWordSet: new Set(tagWords),
       });
     }
   }
@@ -124,18 +167,38 @@ function extractBestSnippet(body, tokens) {
     .filter((l) => l && !l.startsWith("#") && !l.startsWith("---") && !l.startsWith("> **Kategorie"));
   let bestLine = lines[0] || "";
   let bestScore = -1;
+  let firstMatchIdx = -1;
   for (const line of lines) {
     const nl = normalize(line);
+    const lineWords = nl.match(/[a-z0-9]{2,}/g) || [];
     let score = 0;
+    let earliest = Infinity;
     for (const tok of tokens) {
-      if (nl.includes(tok)) score += tok.length;
+      if (lineWords.some((w) => wordsMatch(w, tok))) {
+        score += tok.length;
+        const pos = nl.indexOf(tok.slice(0, Math.min(5, tok.length)));
+        if (pos >= 0 && pos < earliest) earliest = pos;
+      }
     }
     if (score > bestScore) {
       bestScore = score;
       bestLine = line;
+      firstMatchIdx = earliest === Infinity ? -1 : earliest;
     }
   }
-  return bestLine.length > 320 ? bestLine.slice(0, 317) + "..." : bestLine;
+  if (bestLine.length <= 280) return bestLine;
+  const anchor = firstMatchIdx >= 0 ? firstMatchIdx : 0;
+  let start = Math.max(0, anchor - 75);
+  if (start > 0) {
+    const nextSpace = bestLine.indexOf(" ", start);
+    if (nextSpace > 0 && nextSpace < anchor) start = nextSpace + 1;
+  }
+  let end = Math.min(bestLine.length, start + 275);
+  if (end < bestLine.length) {
+    const prevSpace = bestLine.lastIndexOf(" ", end);
+    if (prevSpace > start + 140) end = prevSpace;
+  }
+  return `${start > 0 ? "…" : ""}${bestLine.slice(start, end)}${end < bestLine.length ? "…" : ""}`;
 }
 
 function searchVault(query, category, limit = 5) {
@@ -146,28 +209,50 @@ function searchVault(query, category, limit = 5) {
     ? articles.filter((a) => a.category === category || normalize(a.habitat) === normalize(category))
     : articles;
 
+  const total = filtered.length || 1;
+  const docFreq = new Map();
+  for (const tok of tokens) {
+    let df = 0;
+    for (const art of filtered) {
+      if (
+        matchesWordSet(art.titleWordSet, art.titleWords, tok) ||
+        matchesWordSet(art.bodyWordSet, art.bodyWords, tok)
+      ) {
+        df += 1;
+      }
+    }
+    docFreq.set(tok, df);
+  }
+
   const scored = [];
   for (const art of filtered) {
     let score = 0;
+    let hasTitleHit = false;
     const matchedTokens = [];
-    if (normQuery && art.normTitle.includes(normQuery)) score += 30;
+    if (normQuery && art.normTitle === normQuery) {
+      score += 36;
+      hasTitleHit = true;
+    }
     for (const tok of tokens) {
       let hit = false;
-      if (art.normTitle.includes(tok) || art.slug.includes(tok)) {
-        score += 14;
+      if (matchesWordSet(art.titleWordSet, art.titleWords, tok)) {
+        score += 16;
+        hasTitleHit = true;
         hit = true;
       }
-      if (art.normBody.includes(tok)) {
+      if (matchesWordSet(art.bodyWordSet, art.bodyWords, tok)) {
+        const df = docFreq.get(tok) || 1;
+        score += Math.round(4 + Math.log((total + 1) / (df + 1)) * 2);
+        hit = true;
+      }
+      if (matchesWordSet(art.tagWordSet, art.tagWords, tok)) {
         score += 5;
-        hit = true;
-      }
-      if (art.tags.some((t) => normalize(t).includes(tok))) {
-        score += 4;
         hit = true;
       }
       if (hit) matchedTokens.push(tok);
     }
-    if (score > 0) {
+    const minTokensOk = tokens.length <= 1 || hasTitleHit || matchedTokens.length >= 2;
+    if (score > 0 && minTokensOk) {
       scored.push({
         slug: art.slug,
         title: art.title,
@@ -179,8 +264,9 @@ function searchVault(query, category, limit = 5) {
         wikilink: `[[${art.slug}|${art.title}]]`,
         related_wikilinks: art.wikilinks.slice(0, 5).map((s) => `[[${s}]]`),
         matched_tokens: matchedTokens,
+        hasTitleHit,
         score,
-        snippet: extractBestSnippet(art.body, tokens),
+        snippet: extractBestSnippet(art.body, matchedTokens.length ? matchedTokens : tokens),
       });
     }
   }
@@ -189,16 +275,69 @@ function searchVault(query, category, limit = 5) {
   return {
     query,
     total_articles: articles.length,
-    matches: scored.slice(0, Math.min(Math.max(Number(limit) || 5, 1), 15)),
+    matches: scored
+      .slice(0, Math.min(Math.max(Number(limit) || 5, 1), 15))
+      .map(({ hasTitleHit: _ignored, ...rest }) => rest),
   };
 }
 
 function verifyClaim(claim) {
   const tokens = tokenize(claim);
-  const results = searchVault(claim, null, 5);
-  const top = results.matches;
+  const articles = loadVaultArticles();
+  const total = articles.length || 1;
+  const docFreq = new Map();
+  for (const tok of tokens) {
+    let df = 0;
+    for (const art of articles) {
+      if (
+        matchesWordSet(art.titleWordSet, art.titleWords, tok) ||
+        matchesWordSet(art.bodyWordSet, art.bodyWords, tok)
+      ) {
+        df += 1;
+      }
+    }
+    docFreq.set(tok, df);
+  }
 
-  if (!tokens.length || !top.length) {
+  const scored = [];
+  for (const art of articles) {
+    let score = 0;
+    let hasTitleHit = false;
+    const matchedTokens = [];
+    for (const tok of tokens) {
+      let hit = false;
+      if (matchesWordSet(art.titleWordSet, art.titleWords, tok)) {
+        score += 16;
+        hasTitleHit = true;
+        hit = true;
+      }
+      if (matchesWordSet(art.bodyWordSet, art.bodyWords, tok)) {
+        const df = docFreq.get(tok) || 1;
+        score += Math.round(4 + Math.log((total + 1) / (df + 1)) * 2);
+        hit = true;
+      }
+      if (matchesWordSet(art.tagWordSet, art.tagWords, tok)) {
+        score += 5;
+        hit = true;
+      }
+      if (hit) matchedTokens.push(tok);
+    }
+    const minTokensOk = tokens.length <= 1 || hasTitleHit || matchedTokens.length >= 2;
+    if (score > 0 && minTokensOk) {
+      scored.push({
+        wikilink: `[[${art.slug}|${art.title}]]`,
+        rel_path: art.rel_path,
+        source_file: art.source_file,
+        snippet: extractBestSnippet(art.body, matchedTokens.length ? matchedTokens : tokens),
+        matched_tokens: matchedTokens,
+        hasTitleHit,
+        score,
+      });
+    }
+  }
+  scored.sort((a, b) => b.score - a.score);
+
+  if (!tokens.length || !scored.length) {
     return {
       claim,
       status: "nicht_belegt",
@@ -209,32 +348,46 @@ function verifyClaim(claim) {
   }
 
   const covered = new Set();
-  for (const m of top.slice(0, 3)) {
+  for (const m of scored.slice(0, 3)) {
     for (const t of m.matched_tokens) covered.add(t);
   }
   const ratio = covered.size / tokens.length;
+  const specificTokens = tokens.filter((t) => t.length >= 6);
+  const missingSpecific = specificTokens.filter((t) => !covered.has(t));
+  const missingSpecificRatio = specificTokens.length ? missingSpecific.length / specificTokens.length : 0;
+  const top = scored[0];
+  const topRatio = top.matched_tokens.length / tokens.length;
+
   let status = "nicht_belegt";
-  let confidence_label = "Nicht ausreichend im Korpus belegt.";
-  if (ratio >= 0.55 && top[0].score >= 12) {
+  let confidence_label = "Keine ausreichenden Belege im Korpus gefunden – mögliche Fangfrage!";
+  if (
+    ratio >= 0.55 &&
+    top.score >= 14 &&
+    (top.hasTitleHit || topRatio >= 0.35) &&
+    missingSpecificRatio <= 0.45
+  ) {
     status = "belegt";
     confidence_label = "Starke Übereinstimmung mit lokalen Vault-Artikeln — bitte genaue Passage prüfen.";
-  } else if (ratio >= 0.25 && top[0].score >= 7) {
+  } else if (
+    ratio >= 0.40 &&
+    (top.hasTitleHit || top.matched_tokens.length >= 2) &&
+    missingSpecificRatio <= 0.45
+  ) {
     status = "teilweise";
     confidence_label = "Teilweise Themenbezug gefunden — Detailaussage gegen Zitat prüfen.";
   }
+
+  const evidence =
+    status === "nicht_belegt"
+      ? (top.hasTitleHit ? scored.slice(0, 2) : [])
+      : scored.slice(0, 3);
 
   return {
     claim,
     status,
     confidence_label,
     matched_token_ratio: Number(ratio.toFixed(2)),
-    evidence: top.slice(0, 3).map((m) => ({
-      wikilink: m.wikilink,
-      rel_path: m.rel_path,
-      source_file: m.source_file,
-      snippet: m.snippet,
-      matched_tokens: m.matched_tokens,
-    })),
+    evidence: evidence.map(({ hasTitleHit: _h, score: _s, ...rest }) => rest),
   };
 }
 

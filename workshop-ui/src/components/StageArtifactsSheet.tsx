@@ -38,7 +38,7 @@ export function StageArtifactsSheet({ stage, arcticPack, reefPack, all12Pack }: 
           <span>Dateien &amp; Kopierpakete ({stage.skills.length + (stage.indexMd ? 2 : 1)})</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="max-w-[540px]">
+      <SheetContent side="right" className="max-w-[580px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{stage.title}</SheetTitle>
           <SheetDescription>
@@ -47,15 +47,23 @@ export function StageArtifactsSheet({ stage, arcticPack, reefPack, all12Pack }: 
         </SheetHeader>
 
         <Tabs defaultValue="agents" className="mt-5">
-          <TabsList className="w-full">
-            <TabsTrigger value="agents">AGENTS.md</TabsTrigger>
+          <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1.5">
+            <TabsTrigger value="agents" className="px-2.5 py-1.5 text-xs">
+              AGENTS.md
+            </TabsTrigger>
             {stage.skills.map((sk) => (
-              <TabsTrigger key={sk.name} value={sk.name}>
+              <TabsTrigger key={sk.name} value={sk.name} className="px-2.5 py-1.5 text-xs">
                 {sk.name}
               </TabsTrigger>
             ))}
-            {stage.indexMd && <TabsTrigger value="index">_index.md</TabsTrigger>}
-            <TabsTrigger value="packs">Artikel-Pakete</TabsTrigger>
+            {stage.indexMd && (
+              <TabsTrigger value="index" className="px-2.5 py-1.5 text-xs">
+                _index.md
+              </TabsTrigger>
+            )}
+            <TabsTrigger value="packs" className="px-2.5 py-1.5 text-xs">
+              Artikel-Pakete
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="agents" className="space-y-3">

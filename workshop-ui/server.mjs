@@ -38,27 +38,38 @@ const MIME_TYPES = {
 
 const STOPWORDS = new Set([
   "aber", "alle", "allem", "allen", "aller", "alles", "also", "auch", "auf", "aus",
-  "bei", "beim", "beide", "beiden", "bis", "bist", "dabei", "dadurch", "dafuer",
-  "dafür", "dagegen", "daher", "damit", "danach", "dann", "darauf", "daraus", "darin",
-  "darum", "dass", "dazu", "dein", "deine", "dem", "den", "denn", "der", "deren",
-  "des", "dessen", "deshalb", "die", "dies", "diese", "diesem", "diesen", "dieser",
-  "dieses", "doch", "dort", "durch", "eine", "einem", "einen", "einer", "eines",
-  "einige", "einmal", "etwa", "etwas", "euch", "euer", "eure", "fuer", "für", "ganz",
-  "gegen", "genau", "gibt", "haben", "hat", "hatte", "hatten", "hier", "hinter",
-  "ihm", "ihn", "ihnen", "ihr", "ihre", "ihrem", "ihren", "ihrer", "immer", "indem",
-  "infolge", "innen", "ins", "ist", "jede", "jedem", "jeden", "jeder", "jedes",
-  "jedoch", "jetzt", "kann", "kein", "keine", "keinem", "keinen", "keiner", "koennen",
-  "können", "konnte", "lassen", "laut", "mehr", "mein", "meine", "mit", "muss",
-  "muessen", "müssen", "nach", "nachdem", "neben", "nein", "nicht", "nichts", "noch",
-  "nun", "nur", "oder", "ohne", "sehr", "sein", "seine", "seinem", "seinen", "seiner",
+  "bei", "beim", "beide", "beiden", "besitzen", "besitzt", "bestehen", "besteht",
+  "bietet", "bieten", "bis", "bist", "bleiben", "bleibt", "bzw", "circa", "dabei",
+  "dadurch", "dafuer", "dafür", "dagegen", "daher", "damit", "danach", "dann",
+  "darauf", "daraus", "darin", "darum", "dass", "dazu", "dein", "deine", "dem",
+  "den", "denn", "der", "deren", "des", "dessen", "deshalb", "die", "dies", "diese",
+  "diesem", "diesen", "dieser", "dieses", "doch", "dort", "durch", "eine", "einem",
+  "einen", "einer", "eines", "einige", "einmal", "enthaelt", "enthalten", "erhoben",
+  "erklaere", "etwa", "etwas", "euch", "euer", "eure", "findet", "finden", "fuer",
+  "für", "ganz", "geben", "gegen", "genau", "gibt", "gilt", "gelten", "haben",
+  "hat", "hatte", "hatten", "haengen", "heisst", "heissen", "heute", "hier",
+  "hierdurch", "hinter", "hoch", "ihm", "ihn", "ihnen", "ihr", "ihre", "ihrem",
+  "ihren", "ihrer", "immer", "indem", "infolge", "innen", "ins", "ist", "jaehrlich",
+  "jaehrlichen", "jede", "jedem", "jeden", "jeder", "jedes", "jedoch", "jetzt",
+  "kann", "kein", "keine", "keinem", "keinen", "keiner", "koennen", "können",
+  "kommen", "kommt", "konnte", "kostet", "kosten", "korpus", "lassen", "laut",
+  "leben", "lebt", "lebte", "lebten", "liegen", "liegt", "machen", "macht", "mehr",
+  "mehrere", "mein", "meine", "mit", "muss", "muessen", "müssen", "nach", "nachdem",
+  "neben", "nein", "nenne", "nennen", "nennt", "nicht", "nichts", "nimmt", "nehmen",
+  "noch", "nun", "nur", "nutzen", "nutzt", "oder", "ohne", "pro", "pruefe", "pruefen",
+  "rund", "sagen", "sagt", "sehr", "sein", "seine", "seinem", "seinen", "seiner",
   "seit", "selbst", "sich", "sie", "sind", "sobald", "sodass", "sofern", "solche",
-  "solchen", "soll", "sollen", "sollte", "sondern", "sonst", "sowie", "ueber", "über",
-  "um", "und", "uns", "unser", "unsere", "unter", "viel", "viele", "vielen", "vom",
-  "von", "vor", "waehrend", "während", "wann", "war", "waren", "warum", "was", "wegen",
+  "solchen", "soll", "sollen", "sollte", "sondern", "sonst", "sowie", "spielen",
+  "spielt", "stehen", "steht", "ueber", "über", "um", "und", "uns", "unser", "unsere",
+  "unter", "vergleiche", "viel", "viele", "vielen", "vom", "von", "vor", "vorkommen",
+  "vorkommt", "waehrend", "während", "wann", "war", "waren", "warum", "was", "wegen",
   "weil", "weit", "weiter", "welche", "welchem", "welchen", "welcher", "welches",
-  "wenn", "wer", "werden", "wie", "wieder", "wieso", "will", "wird", "wir", "wobei",
-  "wofuer", "wofür", "woher", "wohin", "wurde", "wurden", "zudem", "zum", "zur",
-  "zwar", "zwischen", "aktuell", "aktuelle", "werden", "welcher"
+  "weniger", "wenn", "wer", "werden", "weshalb", "wie", "wieder", "wieso", "will",
+  "wird", "wir", "wobei", "wofuer", "wofür", "woher", "wohin", "wurde", "wurden",
+  "zaehlen", "zaehlt", "zeigen", "zeigt", "zudem", "zum", "zur", "zusammen", "zwar",
+  "zwischen", "aktuell", "aktuelle", "aktuellen", "aktueller", "dokument",
+  "dokumente", "dokumenten", "artikel", "artikeln", "datei", "dateien", "frage",
+  "antwort", "stufe", "track", "beleg", "belegt", "quelle", "quellen",
 ]);
 
 function normalize(text) {
@@ -70,10 +81,31 @@ function normalize(text) {
     .replace(/ß/g, "ss");
 }
 
+function stemDe(word) {
+  if (word.length < 6) return word;
+  return word.replace(/(?:ern|em|en|er|es|e|n|s|t)$/, "");
+}
+
+function wordsMatch(word, tok) {
+  if (word === tok) return true;
+  if (tok.length >= 6 && word.length >= 6 && stemDe(word) === stemDe(tok)) return true;
+  if (tok.length >= 5 && word.startsWith(tok) && word.length - tok.length <= 2) return true;
+  if (word.length >= 5 && tok.startsWith(word) && tok.length - word.length <= 2) return true;
+  return false;
+}
+
+function matchesWordSet(wordSet, wordList, tok) {
+  if (wordSet.has(tok)) return true;
+  for (const w of wordList) {
+    if (wordsMatch(w, tok)) return true;
+  }
+  return false;
+}
+
 function tokenize(text) {
   const norm = normalize(text);
   const raw = norm.match(/[a-z0-9]{3,}/g) || [];
-  return [...new Set(raw.filter((t) => !STOPWORDS.has(t)))];
+  return [...new Set(raw.filter((t) => !/^\d+$/.test(t) && !STOPWORDS.has(t)))];
 }
 
 function parseFrontmatter(content) {
@@ -106,6 +138,11 @@ function loadCorpus() {
       const slug = file.replace(/\.md$/, "");
       const raw = fs.readFileSync(path.join(dir, file), "utf8");
       const { meta, body } = parseFrontmatter(raw);
+      const normTitle = normalize(meta.title || slug);
+      const normBody = normalize(body);
+      const titleWords = [...new Set([...(normTitle.match(/[a-z0-9]{2,}/g) || []), ...slug.split("-")])];
+      const bodyWords = [...new Set(normBody.match(/[a-z0-9]{2,}/g) || [])];
+      const tagWords = [...new Set((Array.isArray(meta.tags) ? meta.tags : []).flatMap((t) => normalize(t).match(/[a-z0-9]{2,}/g) || []))];
       articles.push({
         slug,
         title: meta.title || slug,
@@ -115,8 +152,14 @@ function loadCorpus() {
         source_file: meta.source_file || `raw/${slug}.md`,
         rel_path: `wiki/${sub}/${file}`,
         body,
-        normTitle: normalize(meta.title || slug),
-        normBody: normalize(body),
+        normTitle,
+        normBody,
+        titleWords,
+        titleWordSet: new Set(titleWords),
+        bodyWords,
+        bodyWordSet: new Set(bodyWords),
+        tagWords,
+        tagWordSet: new Set(tagWords),
       });
     }
   }
@@ -132,53 +175,96 @@ function extractSnippet(body, tokens) {
     .filter((l) => l && !l.startsWith("#") && !l.startsWith("---") && !l.startsWith("> **Kategorie"));
   let best = lines[0] || "";
   let bestScore = -1;
+  let firstMatchIdx = -1;
   for (const line of lines) {
     const nl = normalize(line);
+    const lineWords = nl.match(/[a-z0-9]{2,}/g) || [];
     let sc = 0;
+    let earliest = Infinity;
     for (const t of tokens) {
-      if (nl.includes(t)) sc += t.length;
+      if (lineWords.some((w) => wordsMatch(w, t))) {
+        sc += t.length;
+        const pos = nl.indexOf(t.slice(0, Math.min(5, t.length)));
+        if (pos >= 0 && pos < earliest) earliest = pos;
+      }
     }
     if (sc > bestScore) {
       bestScore = sc;
       best = line;
+      firstMatchIdx = earliest === Infinity ? -1 : earliest;
     }
   }
-  return best.length > 280 ? best.slice(0, 277) + "..." : best;
+  if (best.length <= 280) return best;
+  const anchor = firstMatchIdx >= 0 ? firstMatchIdx : 0;
+  let start = Math.max(0, anchor - 75);
+  if (start > 0) {
+    const nextSpace = best.indexOf(" ", start);
+    if (nextSpace > 0 && nextSpace < anchor) start = nextSpace + 1;
+  }
+  let end = Math.min(best.length, start + 275);
+  if (end < best.length) {
+    const prevSpace = best.lastIndexOf(" ", end);
+    if (prevSpace > start + 140) end = prevSpace;
+  }
+  return `${start > 0 ? "…" : ""}${best.slice(start, end)}${end < best.length ? "…" : ""}`;
 }
 
 function searchCorpus(query, limit = 5) {
   const tokens = tokenize(query);
   const normQ = normalize(query).trim();
+  const total = CORPUS.length || 1;
+  const docFreq = new Map();
+  for (const tok of tokens) {
+    let df = 0;
+    for (const art of CORPUS) {
+      if (
+        matchesWordSet(art.titleWordSet, art.titleWords, tok) ||
+        matchesWordSet(art.bodyWordSet, art.bodyWords, tok)
+      ) {
+        df += 1;
+      }
+    }
+    docFreq.set(tok, df);
+  }
+
   const scored = [];
   for (const art of CORPUS) {
     let score = 0;
+    let hasTitleHit = false;
     const matchedTokens = [];
-    if (normQ && art.normTitle.includes(normQ)) score += 30;
+    if (normQ && art.normTitle === normQ) {
+      score += 36;
+      hasTitleHit = true;
+    }
     for (const tok of tokens) {
       let hit = false;
-      if (art.normTitle.includes(tok) || art.slug.includes(tok)) {
-        score += 14;
+      if (matchesWordSet(art.titleWordSet, art.titleWords, tok)) {
+        score += 16;
+        hasTitleHit = true;
         hit = true;
       }
-      if (art.normBody.includes(tok)) {
+      if (matchesWordSet(art.bodyWordSet, art.bodyWords, tok)) {
+        const df = docFreq.get(tok) || 1;
+        score += Math.round(4 + Math.log((total + 1) / (df + 1)) * 2);
+        hit = true;
+      }
+      if (matchesWordSet(art.tagWordSet, art.tagWords, tok)) {
         score += 5;
-        hit = true;
-      }
-      if (art.tags.some((t) => normalize(t).includes(tok))) {
-        score += 4;
         hit = true;
       }
       if (hit) matchedTokens.push(tok);
     }
-    if (score > 0) {
+    const minTokensOk = tokens.length <= 1 || hasTitleHit || matchedTokens.length >= 2;
+    if (score > 0 && minTokensOk) {
       scored.push({
         slug: art.slug,
         title: art.title,
         wikilink: `[[${art.slug}|${art.title}]]`,
         rel_path: art.rel_path,
         source_file: art.source_file,
-        snippet: extractSnippet(art.body, tokens),
+        snippet: extractSnippet(art.body, matchedTokens.length ? matchedTokens : tokens),
         matched_tokens: matchedTokens,
+        hasTitleHit,
         score,
       });
     }
@@ -189,22 +275,43 @@ function searchCorpus(query, limit = 5) {
 
 function evaluateDeterministic(question, aiAnswer) {
   const tokens = tokenize(question);
-  const matches = searchCorpus(question, 4);
+  const matches = searchCorpus(question, 5);
   const covered = new Set();
   for (const m of matches.slice(0, 3)) {
     for (const t of m.matched_tokens) covered.add(t);
   }
   const ratio = tokens.length ? covered.size / tokens.length : 0;
+  const specificTokens = tokens.filter((t) => t.length >= 6);
+  const missingSpecific = specificTokens.filter((t) => !covered.has(t));
+  const missingSpecificRatio = specificTokens.length ? missingSpecific.length / specificTokens.length : 0;
+  const top = matches[0];
+  const topRatio = top && tokens.length ? top.matched_tokens.length / tokens.length : 0;
 
   let status = "nicht_belegt";
   let statusLabel = "Nicht im Korpus gefunden – mögliche Fangfrage!";
-  if (matches.length > 0 && ratio >= 0.55 && matches[0].score >= 12) {
+  if (
+    top &&
+    ratio >= 0.55 &&
+    top.score >= 14 &&
+    (top.hasTitleHit || topRatio >= 0.35) &&
+    missingSpecificRatio <= 0.45
+  ) {
     status = "belegt";
     statusLabel = "Starke Abdeckung in den lokalen Artikeln – Belege verfügbar.";
-  } else if (matches.length > 0 && ratio >= 0.25 && matches[0].score >= 7) {
+  } else if (
+    top &&
+    ratio >= 0.40 &&
+    (top.hasTitleHit || top.matched_tokens.length >= 2) &&
+    missingSpecificRatio <= 0.45
+  ) {
     status = "teilweise";
     statusLabel = "Teilweise Themenbezug gefunden – Detailabgleich empfohlen.";
   }
+
+  const evidence =
+    status === "nicht_belegt"
+      ? (top?.hasTitleHit ? matches.slice(0, 2) : [])
+      : matches.slice(0, 3);
 
   const ans = String(aiAnswer || "");
   const answerHasCitation = /(\.md\b|\[\[[^\]]+\]\]|docs\/|raw\/|wiki\/)/i.test(ans);
@@ -218,7 +325,7 @@ function evaluateDeterministic(question, aiAnswer) {
     isLikelyTrap: status === "nicht_belegt",
     answerHasCitation,
     answerHasGuardrailRefusal,
-    evidence: matches.slice(0, 3),
+    evidence: evidence.map(({ hasTitleHit: _ignored, ...rest }) => rest),
     llmProvider: null,
     llmComment: null,
   };

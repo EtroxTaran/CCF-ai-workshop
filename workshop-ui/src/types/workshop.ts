@@ -125,6 +125,7 @@ export interface EvidenceMatch {
   rel_path: string;
   source_file: string;
   snippet: string;
+  matched_tokens?: string[];
   score: number;
 }
 

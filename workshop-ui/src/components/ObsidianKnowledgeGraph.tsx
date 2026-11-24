@@ -10,7 +10,7 @@ import {
   type SimulationLinkDatum,
   type SimulationNodeDatum,
 } from "d3-force";
-import { ArrowRight, Link2, List, Minus, Network, Play, Plus, RotateCcw, Search, Square } from "lucide-react";
+import { ArrowRight, Link2, List, Minus, Network, Play, Plus, RotateCcw, Search, Square, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import type { VaultArticle } from "@/types/workshop";
@@ -54,6 +54,15 @@ const HABITAT_ANCHORS: Record<string, { x: number; y: number }> = {
   Savanne: { x: WIDTH * 0.50, y: HEIGHT * 0.84 },
   Übergreifend: { x: WIDTH * 0.50, y: HEIGHT * 0.48 },
 };
+
+function normSearch(text: string): string {
+  return String(text || "")
+    .toLowerCase()
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss");
+}
 
 function getSlug(endpoint: string | GraphNode): string {
   return typeof endpoint === "string" ? endpoint : endpoint.slug;
@@ -176,7 +185,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
           })
           .strength(0.32)
       )
-      .force("charge", forceManyBody().strength(-90))
+      .force("charge", forceManyBody().strength(-120))
       .force("center", forceCenter(WIDTH / 2, HEIGHT / 2))
       .force(
         "x",
@@ -186,7 +195,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
         "y",
         forceY<GraphNode>((d) => (HABITAT_ANCHORS[d.habitat] || HABITAT_ANCHORS["Übergreifend"]).y).strength(0.08)
       )
-      .force("collide", forceCollide<GraphNode>((d) => nodeBaseRadius(d) + 8))
+      .force("collide", forceCollide<GraphNode>((d) => nodeBaseRadius(d) + 14))
       .stop();
 
     for (let i = 0; i < 150; i += 1) {
@@ -213,16 +222,21 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
   );
 
   const matchingSlugs = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const qRaw = query.trim().toLowerCase();
+    const qNorm = normSearch(query.trim());
     const matched = new Set<string>();
     for (const a of articles) {
       if (category !== "all" && a.category !== category) continue;
       if (
-        !q ||
-        a.title.toLowerCase().includes(q) ||
-        a.habitat.toLowerCase().includes(q) ||
-        a.summary.toLowerCase().includes(q) ||
-        a.tags.some((t) => t.toLowerCase().includes(q))
+        !qRaw ||
+        a.title.toLowerCase().includes(qRaw) ||
+        normSearch(a.title).includes(qNorm) ||
+        a.slug.toLowerCase().includes(qRaw) ||
+        a.habitat.toLowerCase().includes(qRaw) ||
+        normSearch(a.habitat).includes(qNorm) ||
+        a.summary.toLowerCase().includes(qRaw) ||
+        normSearch(a.summary).includes(qNorm) ||
+        a.tags.some((t) => t.toLowerCase().includes(qRaw) || normSearch(t).includes(qNorm))
       ) {
         matched.add(a.slug);
       }
@@ -235,10 +249,60 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
     [articles, matchingSlugs]
   );
 
+  const walkedSlugs = useMemo(
+    () =>
+      ragWalkIdx !== null
+        ? new Set(RAG_WALK_STEPS.slice(0, ragWalkIdx + 1).map((x) => x.slug))
+        : null,
+    [ragWalkIdx]
+  );
+
   const selected = bySlug.get(selectedSlug) ?? articles[0];
   const focusSlug = hoveredSlug || selectedSlug;
   const focusNeighbors = neighborsMap.get(focusSlug) || new Set<string>();
   const isFiltering = query.trim().length > 0 || category !== "all";
+
+  // Greedy 2D bounding-box check prevents dense-cluster text collisions during pan/walk/zoom
+  const visibleLabelSlugs = useMemo(() => {
+    const placed: { x1: number; y1: number; x2: number; y2: number }[] = [];
+    const visible = new Set<string>();
+
+    const priorityScore = (n: GraphNode) => {
+      if (n.slug === hoveredSlug) return 6;
+      if (n.slug === selectedSlug) return 5;
+      if (walkedSlugs?.has(n.slug)) return 4;
+      if (n.category === "lebensraum") return 3;
+      if (focusNeighbors.has(n.slug)) return 2;
+      if (isFiltering && matchingSlugs.has(n.slug) && matchingSlugs.size <= 16) return 1;
+      return 0;
+    };
+
+    const candidates = layoutNodes
+      .map((n) => ({ n, prio: priorityScore(n) }))
+      .filter((c) => c.prio > 0)
+      .sort((a, b) => b.prio - a.prio);
+
+    for (const { n, prio } of candidates) {
+      const nx = dragPositions[n.slug]?.x ?? n.x;
+      const ny = dragPositions[n.slug]?.y ?? n.y;
+      const r = nodeBaseRadius(n) + (n.slug === selectedSlug || n.slug === hoveredSlug ? 2 : 0);
+      const labelW = Math.max(26, n.title.length * 6.3 + 8);
+      const box = { x1: nx + r + 4, y1: ny - 8, x2: nx + r + 4 + labelW, y2: ny + 7 };
+      const collides =
+        prio < 5 &&
+        placed.some((p) => !(box.x2 < p.x1 || box.x1 > p.x2 || box.y2 < p.y1 || box.y1 > p.y2));
+      if (!collides) {
+        visible.add(n.slug);
+        placed.push(box);
+      }
+    }
+    return visible;
+  }, [layoutNodes, dragPositions, selectedSlug, hoveredSlug, walkedSlugs, focusNeighbors, isFiltering, matchingSlugs]);
+
+  function resetFilters() {
+    setQuery("");
+    setCategory("all");
+  }
 
   function selectNode(slug: string) {
     if (!bySlug.has(slug)) return;
@@ -290,17 +354,30 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
             <span>{ragWalkIdx !== null ? "Stoppen" : "RAG-Pfad abspielen"}</span>
           </button>
 
-          <div className="relative min-w-[190px] flex-1 sm:w-56 sm:flex-none">
+          <div className="relative min-w-[210px] flex-1 sm:w-60 sm:flex-none">
             <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[#9FA998]" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Artikel / Habitat suchen…"
-              className="h-8 border-[#232B20] bg-[#0B0F0A] pl-8 text-xs text-[#F2F4EE] placeholder:text-[#737C6D]"
+              className="h-9 border-[#232B20] bg-[#0B0F0A] pl-8 pr-16 text-xs text-[#F2F4EE] placeholder:text-[#737C6D]"
             />
+            <span className="pointer-events-none absolute right-7 top-1/2 -translate-y-1/2 font-mono text-[10px] text-[#9FA998]">
+              {filteredList.length}/{articles.length}
+            </span>
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                aria-label="Suche zurücksetzen"
+                className="absolute right-1.5 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded text-[#9FA998] hover:text-[#F2F4EE]"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </div>
 
-          <div className="no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-[#232B20] bg-[#0B0F0A] p-0.5">
+          <div className="no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-[#232B20] bg-[#0B0F0A] p-1">
             {[
               { id: "all", label: `Alle ${counts.all}` },
               { id: "lebensraum", label: `Räume ${counts.lebensraum}` },
@@ -311,7 +388,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                 key={f.id}
                 type="button"
                 onClick={() => setCategory(f.id)}
-                className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
+                className={`min-h-[34px] shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                   category === f.id
                     ? "bg-[#A9C23F] text-[#0B0F0A]"
                     : "text-[#9FA998] hover:text-[#F2F4EE]"
@@ -322,11 +399,11 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
             ))}
           </div>
 
-          <div className="flex items-center rounded-lg border border-[#232B20] bg-[#0B0F0A] p-0.5">
+          <div className="flex items-center rounded-lg border border-[#232B20] bg-[#0B0F0A] p-1">
             <button
               type="button"
               onClick={() => setViewMode("graph")}
-              className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium ${
+              className={`inline-flex min-h-[34px] items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium ${
                 viewMode === "graph" ? "bg-[#1B2419] text-[#A9C23F]" : "text-[#9FA998]"
               }`}
             >
@@ -336,7 +413,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
             <button
               type="button"
               onClick={() => setViewMode("list")}
-              className={`inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium ${
+              className={`inline-flex min-h-[34px] items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium ${
                 viewMode === "list" ? "bg-[#1B2419] text-[#A9C23F]" : "text-[#9FA998]"
               }`}
             >
@@ -347,219 +424,260 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
         </div>
       </div>
 
-      {/* Main Split: 8-col Interactive Graph/List + 4-col Inspector */}
+      {/* Main Split: 8-col Interactive Graph/List + 4-col Inspector (Both stay mounted for instant toggling!) */}
       <div className="grid lg:grid-cols-12">
         <div className="relative min-w-0 lg:col-span-8">
-          {viewMode === "graph" ? (
-            <div className="relative h-[360px] w-full bg-[radial-gradient(circle_at_50%_45%,rgba(169,194,63,0.07),transparent_65%)] sm:h-[460px] lg:h-[510px]">
-              {/* Legend + Zoom Controls */}
-              <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-2 text-[11px] text-[#9FA998]">
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#232B20] bg-[#111610]/90 px-2.5 py-0.5">
-                  <span className="h-2 w-2 rounded-full bg-[#A9C23F]" />
-                  Lebensraum
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#232B20] bg-[#111610]/90 px-2.5 py-0.5">
-                  <span className="h-2 w-2 rounded-full bg-[#34D399]" />
-                  Konzept
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full border border-[#232B20] bg-[#111610]/90 px-2.5 py-0.5">
-                  <span className="h-2 w-2 rounded-full bg-[#CBD5C0]" />
-                  Tierart
-                </span>
-              </div>
-
-              <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-lg border border-[#232B20] bg-[#111610]/90 p-1">
-                <button
-                  type="button"
-                  onClick={() => setZoom((z) => Math.max(0.85, Number((z - 0.2).toFixed(2))))}
-                  className="rounded p-1.5 text-[#9FA998] hover:bg-[#1B2419] hover:text-[#F2F4EE]"
-                  title="Herauszoomen"
-                >
-                  <Minus className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setZoom(1)}
-                  className="rounded p-1.5 text-[#9FA998] hover:bg-[#1B2419] hover:text-[#F2F4EE]"
-                  title="Zoom zurücksetzen"
-                >
-                  <RotateCcw className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setZoom((z) => Math.min(2.2, Number((z + 0.2).toFixed(2))))}
-                  className="rounded p-1.5 text-[#9FA998] hover:bg-[#1B2419] hover:text-[#F2F4EE]"
-                  title="Heranzoomen"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              </div>
-
-              <svg
-                ref={svgRef}
-                viewBox={`${viewX} ${viewY} ${viewW} ${viewH}`}
-                className="h-full w-full select-none touch-none"
-                role="img"
-                aria-label="Interaktiver Obsidian Wissens-Graph"
-                onPointerMove={(e) => {
-                  const slug = draggingSlugRef.current;
-                  if (!slug) return;
-                  const pt = clientToSvg(e.clientX, e.clientY);
-                  if (!pt) return;
-                  movedDuringDragRef.current = true;
-                  setDragPositions((prev) => ({ ...prev, [slug]: pt }));
-                }}
-                onPointerUp={() => {
-                  draggingSlugRef.current = null;
-                }}
-                onPointerLeave={() => {
-                  draggingSlugRef.current = null;
-                }}
-              >
-                <defs>
-                  <filter id="v7-lime-glow" x="-40%" y="-40%" width="180%" height="180%">
-                    <feGaussianBlur stdDeviation="3.2" result="blur" />
-                    <feMerge>
-                      <feMergeNode in="blur" />
-                      <feMergeNode in="SourceGraphic" />
-                    </feMerge>
-                  </filter>
-                </defs>
-                {/* Edges */}
-                <g>
-                  {layoutLinks.map((link, idx) => {
-                    const s = link.source as GraphNode;
-                    const t = link.target as GraphNode;
-                    const sx = dragPositions[s.slug]?.x ?? s.x;
-                    const sy = dragPositions[s.slug]?.y ?? s.y;
-                    const tx = dragPositions[t.slug]?.x ?? t.x;
-                    const ty = dragPositions[t.slug]?.y ?? t.y;
-
-                    const walkedSlugs =
-                      ragWalkIdx !== null
-                        ? new Set(RAG_WALK_STEPS.slice(0, ragWalkIdx + 1).map((x) => x.slug))
-                        : null;
-                    const inRagWalk = walkedSlugs !== null && walkedSlugs.has(s.slug) && walkedSlugs.has(t.slug);
-                    const touchesFocus = s.slug === focusSlug || t.slug === focusSlug;
-                    const matchesFilter =
-                      !isFiltering || (matchingSlugs.has(s.slug) && matchingSlugs.has(t.slug));
-                    let stroke = "rgba(159, 169, 152, 0.20)";
-                    let strokeWidth = 0.9;
-                    let opacity = matchesFilter ? 0.85 : 0.08;
-
-                    if (inRagWalk || touchesFocus) {
-                      stroke = "#A9C23F";
-                      strokeWidth = inRagWalk ? 2.2 : 1.8;
-                      opacity = 0.95;
-                    } else if (hoveredSlug || ragWalkIdx !== null) {
-                      opacity = 0.07;
-                    }
-
-                    return (
-                      <line
-                        key={idx}
-                        x1={sx}
-                        y1={sy}
-                        x2={tx}
-                        y2={ty}
-                        stroke={stroke}
-                        strokeWidth={strokeWidth}
-                        opacity={opacity}
-                        filter={inRagWalk ? "url(#v7-lime-glow)" : undefined}
-                        style={{ transition: "opacity 160ms ease, stroke 160ms ease" }}
-                      />
-                    );
-                  })}
-                </g>
-
-                {/* Nodes */}
-                <g>
-                  {layoutNodes.map((node) => {
-                    const nx = dragPositions[node.slug]?.x ?? node.x;
-                    const ny = dragPositions[node.slug]?.y ?? node.y;
-                    const walkedSlugs =
-                      ragWalkIdx !== null
-                        ? new Set(RAG_WALK_STEPS.slice(0, ragWalkIdx + 1).map((x) => x.slug))
-                        : null;
-                    const isWalked = walkedSlugs !== null && walkedSlugs.has(node.slug);
-                    const isSelected = node.slug === selectedSlug;
-                    const isHovered = node.slug === hoveredSlug;
-                    const isNeighbor = focusNeighbors.has(node.slug);
-                    const matchesFilter = matchingSlugs.has(node.slug);
-
-                    const dimByWalk = ragWalkIdx !== null && !isWalked && !isNeighbor;
-                    const dimByHover = hoveredSlug !== null && !isHovered && !isNeighbor;
-                    const dimByFilter = isFiltering && !matchesFilter;
-                    const opacity = dimByFilter ? 0.1 : dimByWalk ? 0.14 : dimByHover ? 0.16 : 1;
-
-                    const r = nodeBaseRadius(node) + (isSelected || isHovered ? 2 : 0);
-                    const showLabel =
-                      isSelected ||
-                      isWalked ||
-                      isHovered ||
-                      isNeighbor ||
-                      node.category === "lebensraum" ||
-                      (isFiltering && matchesFilter && matchingSlugs.size <= 16);
-
-                    return (
-                      <g
-                        key={node.slug}
-                        transform={`translate(${nx}, ${ny})`}
-                        onMouseEnter={() => setHoveredSlug(node.slug)}
-                        onMouseLeave={() => setHoveredSlug(null)}
-                        onPointerDown={(e) => {
-                          e.stopPropagation();
-                          draggingSlugRef.current = node.slug;
-                          movedDuringDragRef.current = false;
-                        }}
-                        onClick={() => {
-                          if (movedDuringDragRef.current) return;
-                          setRagWalkIdx(null);
-                          selectNode(node.slug);
-                        }}
-                        style={{ cursor: "grab", opacity, transition: "opacity 160ms ease" }}
-                      >
-                        {(isSelected || isWalked || node.category === "lebensraum") && (
-                          <circle
-                            r={r + 4.5}
-                            fill="none"
-                            stroke="#A9C23F"
-                            strokeOpacity={isSelected || isWalked ? 0.9 : 0.25}
-                            strokeWidth={isSelected || isWalked ? 2 : 1}
-                            filter={isSelected || isWalked ? "url(#v7-lime-glow)" : undefined}
-                          />
-                        )}
-                        <circle
-                          r={r}
-                          fill={isSelected || isWalked ? "#A9C23F" : nodeColor(node.category)}
-                        />
-                        {showLabel && (
-                          <text
-                            x={r + 5}
-                            y={3.5}
-                            fill={isSelected || isHovered || isWalked ? "#FFFFFF" : "#D3DACD"}
-                            fontSize={node.category === "lebensraum" ? 11.5 : 10}
-                            fontWeight={isSelected || isWalked || node.category === "lebensraum" ? 700 : 500}
-                            fontFamily="Inter, system-ui, sans-serif"
-                            style={{ pointerEvents: "none" }}
-                          >
-                            {node.title}
-                          </text>
-                        )}
-                      </g>
-                    );
-                  })}
-                </g>
-              </svg>
-
-              {ragWalkIdx !== null && RAG_WALK_STEPS[ragWalkIdx] && (
-                <div className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[calc(100%-8.5rem)] rounded-xl border border-[#A9C23F]/50 bg-[#111610]/95 px-3 py-2 text-xs font-medium text-[#F2F4EE] shadow-lg">
-                  {RAG_WALK_STEPS[ragWalkIdx].note}
-                </div>
-              )}
+          <div
+            className={
+              viewMode === "graph"
+                ? "relative h-[360px] w-full bg-[radial-gradient(circle_at_50%_45%,rgba(169,194,63,0.07),transparent_65%)] sm:h-[460px] lg:h-[510px]"
+                : "hidden"
+            }
+          >
+            {/* Legend + Zoom Controls */}
+            <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-2 text-[11px] text-[#9FA998]">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#232B20] bg-[#111610]/90 px-2.5 py-0.5">
+                <span className="h-2 w-2 rounded-full bg-[#A9C23F]" />
+                Lebensraum
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#232B20] bg-[#111610]/90 px-2.5 py-0.5">
+                <span className="h-2 w-2 rounded-full bg-[#34D399]" />
+                Konzept
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#232B20] bg-[#111610]/90 px-2.5 py-0.5">
+                <span className="h-2 w-2 rounded-full bg-[#CBD5C0]" />
+                Tierart
+              </span>
             </div>
-          ) : (
-            <div className="h-[360px] overflow-y-auto p-3 sm:h-[460px] lg:h-[510px]">
+
+            <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-lg border border-[#232B20] bg-[#111610]/90 p-1">
+              <button
+                type="button"
+                onClick={() => setZoom((z) => Math.max(0.85, Number((z - 0.2).toFixed(2))))}
+                className="inline-flex h-9 w-9 items-center justify-center rounded text-[#9FA998] hover:bg-[#1B2419] hover:text-[#F2F4EE]"
+                title="Herauszoomen"
+                aria-label="Herauszoomen"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoom(1)}
+                className="inline-flex h-9 w-9 items-center justify-center rounded text-[#9FA998] hover:bg-[#1B2419] hover:text-[#F2F4EE]"
+                title="Zoom zurücksetzen"
+                aria-label="Zoom zurücksetzen"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setZoom((z) => Math.min(2.2, Number((z + 0.2).toFixed(2))))}
+                className="inline-flex h-9 w-9 items-center justify-center rounded text-[#9FA998] hover:bg-[#1B2419] hover:text-[#F2F4EE]"
+                title="Heranzoomen"
+                aria-label="Heranzoomen"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+
+            <svg
+              ref={svgRef}
+              viewBox={`${viewX} ${viewY} ${viewW} ${viewH}`}
+              className="h-full w-full select-none touch-none"
+              role="img"
+              aria-label="Interaktiver Obsidian Wissens-Graph"
+              onPointerMove={(e) => {
+                const slug = draggingSlugRef.current;
+                if (!slug) return;
+                const pt = clientToSvg(e.clientX, e.clientY);
+                if (!pt) return;
+                movedDuringDragRef.current = true;
+                setDragPositions((prev) => ({ ...prev, [slug]: pt }));
+              }}
+              onPointerUp={() => {
+                draggingSlugRef.current = null;
+              }}
+              onPointerLeave={() => {
+                draggingSlugRef.current = null;
+              }}
+            >
+              <defs>
+                <filter id="v7-lime-glow" x="-40%" y="-40%" width="180%" height="180%">
+                  <feGaussianBlur stdDeviation="3.2" result="blur" />
+                  <feMerge>
+                    <feMergeNode in="blur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              </defs>
+              {/* Edges */}
+              <g>
+                {layoutLinks.map((link, idx) => {
+                  const s = link.source as GraphNode;
+                  const t = link.target as GraphNode;
+                  const sx = dragPositions[s.slug]?.x ?? s.x;
+                  const sy = dragPositions[s.slug]?.y ?? s.y;
+                  const tx = dragPositions[t.slug]?.x ?? t.x;
+                  const ty = dragPositions[t.slug]?.y ?? t.y;
+
+                  const inRagWalk = walkedSlugs !== null && walkedSlugs.has(s.slug) && walkedSlugs.has(t.slug);
+                  const touchesFocus = s.slug === focusSlug || t.slug === focusSlug;
+                  const matchesFilter =
+                    !isFiltering || (matchingSlugs.has(s.slug) && matchingSlugs.has(t.slug));
+                  let stroke = "rgba(159, 169, 152, 0.20)";
+                  let strokeWidth = 0.9;
+                  let opacity = matchesFilter ? 0.85 : 0.08;
+
+                  if (inRagWalk || touchesFocus) {
+                    stroke = "#A9C23F";
+                    strokeWidth = inRagWalk ? 2.2 : 1.8;
+                    opacity = 0.95;
+                  } else if (hoveredSlug || ragWalkIdx !== null) {
+                    opacity = 0.07;
+                  }
+
+                  return (
+                    <line
+                      key={idx}
+                      x1={sx}
+                      y1={sy}
+                      x2={tx}
+                      y2={ty}
+                      stroke={stroke}
+                      strokeWidth={strokeWidth}
+                      opacity={opacity}
+                      filter={inRagWalk ? "url(#v7-lime-glow)" : undefined}
+                      style={{ transition: "opacity 160ms ease, stroke 160ms ease" }}
+                    />
+                  );
+                })}
+              </g>
+
+              {/* Nodes */}
+              <g>
+                {layoutNodes.map((node) => {
+                  const nx = dragPositions[node.slug]?.x ?? node.x;
+                  const ny = dragPositions[node.slug]?.y ?? node.y;
+                  const isWalked = walkedSlugs !== null && walkedSlugs.has(node.slug);
+                  const isSelected = node.slug === selectedSlug;
+                  const isHovered = node.slug === hoveredSlug;
+                  const isNeighbor = focusNeighbors.has(node.slug);
+                  const matchesFilter = matchingSlugs.has(node.slug);
+
+                  const dimByWalk = ragWalkIdx !== null && !isWalked && !isNeighbor;
+                  const dimByHover = hoveredSlug !== null && !isHovered && !isNeighbor;
+                  const dimByFilter = isFiltering && !matchesFilter;
+                  const opacity = dimByFilter ? 0.1 : dimByWalk ? 0.14 : dimByHover ? 0.16 : 1;
+
+                  const r = nodeBaseRadius(node) + (isSelected || isHovered ? 2 : 0);
+                  const showLabel = visibleLabelSlugs.has(node.slug);
+
+                  return (
+                    <g
+                      key={node.slug}
+                      transform={`translate(${nx}, ${ny})`}
+                      onMouseEnter={() => setHoveredSlug(node.slug)}
+                      onMouseLeave={() => setHoveredSlug(null)}
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        draggingSlugRef.current = node.slug;
+                        movedDuringDragRef.current = false;
+                      }}
+                      onClick={() => {
+                        if (movedDuringDragRef.current) return;
+                        setRagWalkIdx(null);
+                        selectNode(node.slug);
+                      }}
+                      style={{ cursor: "grab", opacity, transition: "opacity 160ms ease" }}
+                    >
+                      {(isSelected || isWalked || node.category === "lebensraum") && (
+                        <circle
+                          r={r + 4.5}
+                          fill="none"
+                          stroke="#A9C23F"
+                          strokeOpacity={isSelected || isWalked ? 0.9 : 0.25}
+                          strokeWidth={isSelected || isWalked ? 2 : 1}
+                          filter={isSelected || isWalked ? "url(#v7-lime-glow)" : undefined}
+                        />
+                      )}
+                      <circle
+                        r={r}
+                        fill={isSelected || isWalked ? "#A9C23F" : nodeColor(node.category)}
+                      />
+                      {showLabel && (
+                        <text
+                          x={r + 5}
+                          y={3.5}
+                          fill={isSelected || isHovered || isWalked ? "#FFFFFF" : "#D3DACD"}
+                          fontSize={node.category === "lebensraum" ? 11.5 : 10}
+                          fontWeight={isSelected || isWalked || node.category === "lebensraum" ? 700 : 500}
+                          fontFamily="Inter, system-ui, sans-serif"
+                          style={{
+                            pointerEvents: "none",
+                            paintOrder: "stroke",
+                            stroke: "#0B0F0A",
+                            strokeWidth: 3.5,
+                            strokeLinejoin: "round",
+                          }}
+                        >
+                          {node.title}
+                        </text>
+                      )}
+                    </g>
+                  );
+                })}
+              </g>
+            </svg>
+
+            {isFiltering && matchingSlugs.size === 0 && (
+              <div className="absolute inset-0 z-10 flex items-center justify-center p-4">
+                <div className="rounded-2xl border border-[#232B20] bg-[#111610]/95 px-5 py-4 text-center shadow-xl">
+                  <div className="font-display text-sm font-bold text-[#F2F4EE]">
+                    0 Treffer im Wissens-Graph
+                  </div>
+                  <p className="mt-1 text-xs text-[#9FA998]">
+                    Keine Artikel für „{query || category}“ gefunden (mögliche Fangfrage!).
+                  </p>
+                  <button
+                    type="button"
+                    onClick={resetFilters}
+                    className="mt-3 rounded-lg bg-[#A9C23F] px-3 py-1.5 text-xs font-semibold text-[#0B0F0A]"
+                  >
+                    Filter zurücksetzen
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {ragWalkIdx !== null && RAG_WALK_STEPS[ragWalkIdx] && (
+              <div className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[calc(100%-8.5rem)] rounded-xl border border-[#A9C23F]/50 bg-[#111610]/95 px-3 py-2 text-xs font-medium text-[#F2F4EE] shadow-lg">
+                {RAG_WALK_STEPS[ragWalkIdx].note}
+              </div>
+            )}
+          </div>
+
+          <div
+            className={
+              viewMode === "list"
+                ? "h-[360px] overflow-y-auto p-3 sm:h-[460px] lg:h-[510px]"
+                : "hidden"
+            }
+          >
+            {filteredList.length === 0 ? (
+              <div className="flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#232B20] p-6 text-center">
+                <div className="font-display text-sm font-bold text-[#F2F4EE]">0 Treffer gefunden</div>
+                <p className="max-w-sm text-xs text-[#9FA998]">
+                  Kein Artikel im 68-Dateien-Vault passt zu „{query || category}“.
+                </p>
+                <button
+                  type="button"
+                  onClick={resetFilters}
+                  className="mt-1 rounded-lg bg-[#A9C23F] px-3 py-1.5 text-xs font-semibold text-[#0B0F0A]"
+                >
+                  Filter zurücksetzen
+                </button>
+              </div>
+            ) : (
               <div className="grid gap-1.5 sm:grid-cols-2">
                 {filteredList.map((art) => {
                   const isSel = art.slug === selected.slug;
@@ -585,8 +703,8 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                   );
                 })}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Right 4-col Obsidian Article Inspector */}
@@ -656,9 +774,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                   <div className="text-[#9FA998]">Status</div>
                   <div className="font-medium text-[#F2F4EE]">{selected.status}</div>
                   <div className="text-[#9FA998]">Quelle</div>
-                  <div className="truncate font-mono text-[#A9C23F]" title={selected.source_file}>
-                    {selected.source_file}
-                  </div>
+                  <div className="break-all font-mono text-[#A9C23F]">{selected.source_file}</div>
                   <div className="text-[#9FA998]">Tags</div>
                   <div className="font-mono text-[#CBD5C0]">{selected.tags.join(" · ")}</div>
                 </div>
