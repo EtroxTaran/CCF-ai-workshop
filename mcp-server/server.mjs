@@ -377,10 +377,13 @@ function verifyClaim(claim) {
     confidence_label = "Teilweise Themenbezug gefunden — Detailaussage gegen Zitat prüfen.";
   }
 
-  const evidence =
+  const rawEvidence =
     status === "nicht_belegt"
       ? (top.hasTitleHit ? scored.slice(0, 2) : [])
       : scored.slice(0, 3);
+  const evidence = rawEvidence.filter(
+    (m, idx) => idx === 0 || m.hasTitleHit || m.score >= top.score * 0.45
+  );
 
   return {
     claim,

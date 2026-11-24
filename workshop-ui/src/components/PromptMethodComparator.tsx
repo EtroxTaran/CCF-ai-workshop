@@ -12,6 +12,7 @@ interface PromptMethodComparatorProps {
   track: "A" | "B";
   arcticAndReefBundle: string;
   onShareMethod: (methodName: string, promptTask: string) => void;
+  onCopyPrompt?: () => void;
 }
 
 interface OutputSimulationProps {
@@ -134,6 +135,7 @@ export function PromptMethodComparator({
   track,
   arcticAndReefBundle,
   onShareMethod,
+  onCopyPrompt,
 }: PromptMethodComparatorProps) {
   const [selectedId, setSelectedId] = useState<string>(methods[1]?.id || methods[0]?.id);
   const [hoveredPart, setHoveredPart] = useState<string | null>(null);
@@ -142,6 +144,11 @@ export function PromptMethodComparator({
   const active = useMemo(
     () => methods.find((m) => m.id === selectedId) || methods[0],
     [methods, selectedId]
+  );
+
+  const combinedTrackAPack = useMemo(
+    () => `${arcticAndReefBundle}\n\n---\n\nMEIN AUFTRAG (ANHAND DER TEXTE OBEN):\n${active.prompt}`,
+    [arcticAndReefBundle, active.prompt]
   );
 
   const activeHighlight = pinnedPart ?? hoveredPart;
@@ -159,6 +166,14 @@ export function PromptMethodComparator({
 
   return (
     <div className="space-y-5">
+      {track === "A" && (
+        <div className="rounded-2xl border border-brand-lime/40 bg-secondary/45 px-4 py-3 text-xs leading-relaxed text-foreground">
+          <strong className="text-brand-ink">Kurzanleitung für deinen Browser-Chat (z. B. ChatGPT, Claude, Gemini): </strong>
+          1. Öffne deinen KI-Chat in einem neuen Tab → 2. Wähle unten eine Schreibweise und klicke auf{" "}
+          <strong>„Texte + Prompt kopieren“</strong> → 3. Mit <code>Strg+V</code> (Mac: <code>⌘+V</code>) dort einfügen &amp; absenden.
+        </div>
+      )}
+
       {/* Shared Benchmark Task Callout */}
       <div className="flex flex-col gap-3 rounded-2xl border bg-secondary/40 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0 space-y-1">
@@ -173,8 +188,8 @@ export function PromptMethodComparator({
           <div className="shrink-0">
             <CopyButton
               text={arcticAndReefBundle}
-              label="Kontext-Dateien kopieren"
-              toastMessage="Arktis- & Korallen-Dateien kopiert"
+              label="Nur Hintergrund-Texte kopieren"
+              toastMessage="Hintergrund-Texte (Arktis & Korallen) in Zwischenablage kopiert"
               variant="secondary"
             />
           </div>
@@ -235,12 +250,24 @@ export function PromptMethodComparator({
                 </div>
                 <p className="text-sm text-muted-foreground">{active.bestFor}</p>
               </div>
-              <CopyButton
-                text={active.prompt}
-                label="Prompt kopieren"
-                toastMessage={`${active.name} kopiert`}
-                variant="default"
-              />
+              <div className="flex flex-wrap items-center gap-2">
+                {track === "A" && (
+                  <CopyButton
+                    text={combinedTrackAPack}
+                    label="Texte + Prompt kopieren"
+                    toastMessage={`Texte + ${active.name} in Zwischenablage kopiert`}
+                    variant="default"
+                    onCopy={onCopyPrompt}
+                  />
+                )}
+                <CopyButton
+                  text={active.prompt}
+                  label={track === "A" ? "Nur Prompt kopieren" : "Prompt kopieren"}
+                  toastMessage={`${active.name} in Zwischenablage kopiert`}
+                  variant={track === "A" ? "outline" : "default"}
+                  onCopy={onCopyPrompt}
+                />
+              </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-1.5">
@@ -336,7 +363,7 @@ export function PromptMethodComparator({
                   onClick={() => onShareMethod(active.name, task)}
                 >
                   <Send className="h-3.5 w-3.5" />
-                  <span>Ergebnis an Beamer teilen</span>
+                  <span>Optional: Ergebnis im Raum teilen</span>
                 </Button>
               </div>
             </div>

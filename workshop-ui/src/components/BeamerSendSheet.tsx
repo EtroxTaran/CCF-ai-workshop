@@ -161,11 +161,11 @@ export function BeamerSendSheet({
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <Send className="h-4 w-4 text-brand-ink" />
-            An Beamer-Leinwand senden
+            Ergebnis auf der Raum-Leinwand teilen
           </SheetTitle>
           <SheetDescription>
-            Eure Frage erscheint sofort auf <code>/beamer</code> und wird automatisch gegen alle 68
-            Artikel geprüft.
+            Optional: Eure Frage oder euer Aha-Moment erscheint als Karte auf der gemeinsamen
+            Raum-Leinwand — dein eigener Bildschirm bleibt unverändert.
           </SheetDescription>
         </SheetHeader>
 
@@ -268,14 +268,18 @@ export function BeamerSendSheet({
                       ? "success"
                       : lastSubmitted.evaluation.status === "teilweise"
                         ? "warning"
-                        : "danger"
+                        : lastSubmitted.evaluation.status === "notiz"
+                          ? "secondary"
+                          : "danger"
                   }
                 >
                   {lastSubmitted.evaluation.status === "belegt"
                     ? "Im Korpus belegt"
                     : lastSubmitted.evaluation.status === "teilweise"
                       ? "Teilweise belegt"
-                      : "Nicht im Korpus (Fangfrage!)"}
+                      : lastSubmitted.evaluation.status === "notiz"
+                        ? "Workshop-Erkenntnis"
+                        : "Nicht im Korpus (Fangfrage!)"}
                 </Badge>
                 {lastSubmitted.evaluation.evidence.slice(0, 2).map((ev) => (
                   <Badge key={ev.slug} variant="outline">
@@ -297,13 +301,15 @@ export function BeamerSendSheet({
             <AccordionTrigger className="text-xs text-muted-foreground">
               <span className="flex items-center gap-1.5">
                 <Wrench className="h-3.5 w-3.5" />
-                Offline-Fallback, Server-URL &amp; Track B MCP
+                {track === "B"
+                  ? "Erweiterte Optionen (JSON-Export, Server-URL & Track B CLI)"
+                  : "Erweiterte Optionen (JSON-Export & Server-URL)"}
               </span>
             </AccordionTrigger>
             <AccordionContent className="space-y-3 pt-1">
               <div className="space-y-1">
                 <label className="text-[11px] font-medium text-muted-foreground">
-                  Beamer-Endpunkt-URL
+                  Raum-Server-URL
                 </label>
                 <Input
                   value={serverUrl}
@@ -315,7 +321,7 @@ export function BeamerSendSheet({
               <div className="flex flex-wrap gap-2">
                 <Button type="button" size="sm" variant="outline" onClick={downloadJson}>
                   <FolderGit2 className="h-3.5 w-3.5" />
-                  <span>Als JSON speichern</span>
+                  <span>Als Datei speichern</span>
                 </Button>
                 {githubRepoSlug && (
                   <Button type="button" size="sm" variant="outline" onClick={openGithubIssue}>
@@ -325,16 +331,18 @@ export function BeamerSendSheet({
                 )}
               </div>
 
-              <div className="space-y-1.5 rounded-xl border bg-muted/40 p-3 text-xs">
-                <div className="font-semibold">Direkt über Track B Agent / CLI:</div>
-                <p className="text-[11px] text-muted-foreground">
-                  Sage deinem Agenten: <code>„Nutze send_to_beamer für Team {teamName}“</code> oder:
-                </p>
-                <pre className="whitespace-pre-wrap break-all rounded border bg-card p-2 font-mono text-[11px]">
-                  {personalizedCliCommand}
-                </pre>
-                <CopyButton text={personalizedCliCommand} label="CLI-Befehl kopieren" />
-              </div>
+              {track === "B" && (
+                <div className="space-y-1.5 rounded-xl border bg-muted/40 p-3 text-xs">
+                  <div className="font-semibold">Direkt über Track B Agent / Terminal:</div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Sage deinem Agenten: <code>„Nutze send_to_beamer für Team {teamName}“</code> oder:
+                  </p>
+                  <pre className="whitespace-pre-wrap break-all rounded border bg-card p-2 font-mono text-[11px]">
+                    {personalizedCliCommand}
+                  </pre>
+                  <CopyButton text={personalizedCliCommand} label="CLI-Befehl kopieren" />
+                </div>
+              )}
             </AccordionContent>
           </AccordionItem>
         </Accordion>

@@ -130,7 +130,7 @@ export interface EvidenceMatch {
 }
 
 export interface SubmissionEvaluation {
-  status: "belegt" | "teilweise" | "nicht_belegt";
+  status: "belegt" | "teilweise" | "nicht_belegt" | "notiz";
   statusLabel: string;
   matchedRatio: number;
   isLikelyTrap: boolean;

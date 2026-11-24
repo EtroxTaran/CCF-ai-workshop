@@ -1034,7 +1034,9 @@ export function BeamerApp() {
                           ? "success"
                           : ev.status === "teilweise"
                             ? "warning"
-                            : "danger";
+                            : ev.status === "notiz"
+                              ? "secondary"
+                              : "danger";
                       return (
                         <div
                           key={sub.id}
@@ -1095,7 +1097,7 @@ export function BeamerApp() {
 
                           <div className="flex flex-wrap items-center gap-2 border-t pt-3">
                             <Badge variant={statusVar}>
-                              {ev.status === "belegt" ? (
+                              {ev.status === "belegt" || ev.status === "notiz" ? (
                                 <CheckCircle2 className="h-3.5 w-3.5" />
                               ) : (
                                 <AlertTriangle className="h-3.5 w-3.5" />
@@ -1104,7 +1106,9 @@ export function BeamerApp() {
                                 ? "Im Korpus belegt"
                                 : ev.status === "teilweise"
                                   ? "Teilweise belegt"
-                                  : "Nicht im Korpus (Fangfrage!)"}
+                                  : ev.status === "notiz"
+                                    ? "Workshop-Erkenntnis"
+                                    : "Nicht im Korpus (Fangfrage!)"}
                             </Badge>
                             {ev.evidence[0] && (
                               <Badge variant="outline" className="font-mono">
@@ -1177,13 +1181,17 @@ export function BeamerApp() {
                       ? "bg-emerald-400"
                       : ev.status === "teilweise"
                         ? "bg-amber-400"
-                        : "bg-rose-400";
+                        : ev.status === "notiz"
+                          ? "bg-brand-lime"
+                          : "bg-rose-400";
                   const statusText =
                     ev.status === "belegt"
                       ? "Belegt"
                       : ev.status === "teilweise"
                         ? "Teilweise"
-                        : "Fangfrage!";
+                        : ev.status === "notiz"
+                          ? "Erkenntnis"
+                          : "Fangfrage!";
                   return (
                     <motion.div
                       layout
@@ -1380,7 +1388,9 @@ export function BeamerApp() {
                           ? "success"
                           : spotlight.evaluation.status === "teilweise"
                             ? "warning"
-                            : "danger"
+                            : spotlight.evaluation.status === "notiz"
+                              ? "secondary"
+                              : "danger"
                       }
                     >
                       {spotlight.evaluation.statusLabel}

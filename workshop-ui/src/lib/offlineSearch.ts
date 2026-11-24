@@ -282,10 +282,13 @@ export function offlineVerifyClaim(
     label = "Teilweise Themenbezug gefunden – Detailabgleich empfohlen.";
   }
 
-  const evidenceRaw =
+  const rawEvidence =
     status === "nicht_belegt"
       ? (top?.hasTitleHit ? matches.slice(0, 2) : [])
       : matches.slice(0, 3);
+  const evidenceRaw = rawEvidence.filter(
+    (m, idx) => idx === 0 || m.hasTitleHit || (top && m.score >= top.score * 0.45)
+  );
 
   return {
     status,

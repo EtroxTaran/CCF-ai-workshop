@@ -29,7 +29,13 @@ export function App() {
 
   return (
     <>
-      <Suspense fallback={<div className="min-h-dvh bg-background" />}>
+      <Suspense
+        fallback={
+          <div className="flex min-h-dvh items-center justify-center bg-background p-6 text-sm text-muted-foreground">
+            Prompt-Werkstatt wird geladen…
+          </div>
+        }
+      >
         {isBeamer ? <BeamerApp /> : <ParticipantApp />}
       </Suspense>
       <Toaster

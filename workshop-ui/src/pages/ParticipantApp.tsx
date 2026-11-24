@@ -14,6 +14,7 @@ import {
   Monitor,
   Network,
   Plug,
+  RotateCcw,
   Send,
   ShieldCheck,
   Sparkles,
@@ -62,6 +63,9 @@ interface PersistedUiState {
   activeStageIdx: number;
 }
 
+const STORAGE_KEY = "v7-ccf-workshop-state-v2";
+const SESSION_KEY = "v7-ccf-workshop-session-v1";
+
 function readInitialUiState(): PersistedUiState {
   const defaults: PersistedUiState = {
     step: "start",
@@ -78,15 +82,19 @@ function readInitialUiState(): PersistedUiState {
       if (parsed.track === "A" || parsed.track === "B") defaults.track = parsed.track;
       if (typeof parsed.teamName === "string") defaults.teamName = parsed.teamName;
       if (parsed.checked && typeof parsed.checked === "object") defaults.checked = parsed.checked;
-      if (typeof parsed.step === "string" && VALID_STEPS.has(parsed.step as StepId)) {
-        defaults.step = parsed.step as StepId;
+    }
+    const sessionSaved = sessionStorage.getItem(SESSION_KEY);
+    if (sessionSaved) {
+      const parsedSession = JSON.parse(sessionSaved);
+      if (typeof parsedSession.step === "string" && VALID_STEPS.has(parsedSession.step as StepId)) {
+        defaults.step = parsedSession.step as StepId;
       }
       if (
-        typeof parsed.activeStageIdx === "number" &&
-        parsed.activeStageIdx >= 0 &&
-        parsed.activeStageIdx < data.stages.length
+        typeof parsedSession.activeStageIdx === "number" &&
+        parsedSession.activeStageIdx >= 0 &&
+        parsedSession.activeStageIdx < data.stages.length
       ) {
-        defaults.activeStageIdx = parsed.activeStageIdx;
+        defaults.activeStageIdx = parsedSession.activeStageIdx;
       }
     }
   } catch {
@@ -127,17 +135,15 @@ const STEPS: { id: StepId; num: string; label: string; short: string; icon: type
 ];
 
 const CHECKLIST_ITEMS = [
-  { id: "chk-setup", label: "Track (A oder B) gewählt & Teamnamen notiert" },
-  { id: "chk-methods", label: "Prompt-Methoden (Zero-Shot vs. CO-STAR/Few-Shot/RISEN) getestet" },
-  { id: "chk-priming", label: "System-Prompt / Priming vs. User-Prompt verglichen" },
-  { id: "chk-s1", label: "Stufe 1 (Chaos): Fragen 1–3 getestet & Lücken beobachtet" },
-  { id: "chk-s2", label: "Stufe 2 (Harness): Guardrails & Fangfrage 3 geprüft" },
-  { id: "chk-s3", label: "Stufe 3 (Vault): _index.md & Wissens-Graph für Frage 2 genutzt" },
-  { id: "chk-mission", label: "Mindestens 1 Wahl-Mission oder MCP-Tool ausprobiert" },
-  { id: "chk-beamer", label: "Frage oder Aha-Moment an den Beamer gesendet" },
+  { id: "chk-setup", label: "Track (Chat oder CLI) gewählt & Teamnamen notiert" },
+  { id: "chk-methods", label: "Prompt-Methoden (Standard vs. CO-STAR/Few-Shot/RISEN) getestet" },
+  { id: "chk-priming", label: "Regel-Ebene (Chat-Basis-Regeln) ausprobiert" },
+  { id: "chk-s1", label: "Stufe 1 (Ohne Regeln): Fragen 1–3 getestet & Lücken bemerkt" },
+  { id: "chk-s2", label: "Stufe 2 (Klare Regeln): Regeltext & Fangfrage 3 geprüft" },
+  { id: "chk-s3", label: "Stufe 3 (Wissensnetz): Inhaltsverzeichnis & Graph für Frage 2 genutzt" },
+  { id: "chk-mission", label: "Live-Prüftools (Step 04) oder eine Wahl-Mission (Step 05) getestet" },
+  { id: "chk-beamer", label: "Frage oder Ergebnis auf der Raum-Leinwand geteilt" },
 ];
-
-const STORAGE_KEY = "v7-ccf-workshop-state-v2";
 
 export function ParticipantApp() {
   const [initialState] = useState<PersistedUiState>(() => readInitialUiState());
@@ -171,10 +177,8 @@ export function ParticipantApp() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ track, teamName, checked, step, activeStageIdx })
-      );
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ track, teamName, checked }));
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ step, activeStageIdx }));
     } catch {
       // ignore
     }
@@ -239,19 +243,49 @@ export function ParticipantApp() {
   );
 
   const trackAPacks = useMemo(() => {
+    const formatArticle = (a: (typeof data.starterArticles)[number]) =>
+      track === "A"
+        ? `=== ARTIKEL: ${a.title} ===\n${a.content}`
+        : `=== DATEI: docs/${a.slug}.md ===\n${a.content}`;
     const pick = (slugs: string[]) =>
       data.starterArticles
         .filter((a) => slugs.includes(a.slug))
-        .map((a) => `=== DATEI: docs/${a.slug}.md ===\n${a.content}`)
+        .map(formatArticle)
         .join("\n\n");
     return {
       arctic: pick(["eisbaer", "arktis", "ringelrobbe", "klimawandel"]),
       reef: pick(["anemonenfische", "seeanemonen", "symbiose", "steinkorallen", "korallenbleiche", "korallenriff"]),
-      all12: data.starterArticles.map((a) => `=== DATEI: docs/${a.slug}.md ===\n${a.content}`).join("\n\n"),
+      all12: data.starterArticles.map(formatArticle).join("\n\n"),
     };
-  }, []);
+  }, [track]);
+
+  function markChecked(id: string) {
+    setChecked((prev) => (prev[id] ? prev : { ...prev, [id]: true }));
+  }
+
+  function resetProgress() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem("v7-ccf-workshop-state-v1");
+      sessionStorage.removeItem(SESSION_KEY);
+    } catch {
+      // ignore
+    }
+    setTrack("A");
+    setTeamName("Tisch 1");
+    setChecked({});
+    setActiveStageIdx(0);
+    setStep("start");
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/beamer")) {
+      window.history.replaceState(null, "", "#start");
+    }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   function goToStep(next: StepId) {
+    if (next === "stages" && (step === "start" || step === "methods")) {
+      setActiveStageIdx(0);
+    }
     setStep(next);
     if (typeof window !== "undefined" && !window.location.pathname.startsWith("/beamer")) {
       window.history.replaceState(null, "", `#${next}`);
@@ -279,6 +313,7 @@ export function ParticipantApp() {
   async function runMcpSearch(customQuery?: string) {
     const q = (customQuery ?? mcpQuery).trim();
     if (customQuery !== undefined) setMcpQuery(customQuery);
+    markChecked("chk-mission");
     animatePipelinePulse();
     try {
       const res = await fetch("/api/tools/search", {
@@ -300,6 +335,7 @@ export function ParticipantApp() {
   async function runMcpVerify(customClaim?: string) {
     const c = (customClaim ?? verifyClaim).trim();
     if (customClaim !== undefined) setVerifyClaim(customClaim);
+    markChecked("chk-mission");
     animatePipelinePulse();
     try {
       const res = await fetch("/api/tools/verify", {
@@ -333,40 +369,46 @@ export function ParticipantApp() {
       {/* Slim Single-Row Sticky Header (56px) */}
       <header className="sticky top-0 z-40 h-14 border-b bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex h-full max-w-[1320px] items-center justify-between gap-2 px-2.5 sm:px-4">
-          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
-            <Virtual7Logo compact className="sm:hidden" />
-            <Virtual7Logo className="hidden h-7 sm:block" />
-            <Separator orientation="vertical" className="hidden h-5 sm:block" />
+          <div className="flex min-w-0 items-center gap-1.5 lg:gap-2">
+            <Virtual7Logo compact className="lg:hidden" />
+            <Virtual7Logo className="hidden h-7 lg:block" />
+            <Separator orientation="vertical" className="hidden h-5 lg:block" />
             <span className="whitespace-nowrap font-display text-sm font-bold tracking-tight">
-              <span className="sm:hidden">CCF</span>
-              <span className="hidden sm:inline">Prompt-Werkstatt</span>
+              <span className="lg:hidden">CCF</span>
+              <span className="hidden lg:inline">Prompt-Werkstatt</span>
             </span>
           </div>
 
-          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             {/* Compact Track Segmented Switch */}
             <div className="inline-flex rounded-lg border bg-muted p-0.5 text-xs">
               <button
                 type="button"
-                onClick={() => setTrack("A")}
-                className={`min-h-[38px] min-w-[34px] rounded-md px-2.5 py-1 font-medium transition-colors ${
+                onClick={() => {
+                  setTrack("A");
+                  markChecked("chk-setup");
+                }}
+                className={`min-h-[38px] min-w-[34px] rounded-md px-2 py-1 font-medium transition-colors lg:px-2.5 ${
                   track === "A" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                 }`}
-                title="Track A: Browser & Web-Chat"
+                title="Track A: Browser & Web-Chat (ohne Installation)"
               >
-                <span className="sm:hidden">A</span>
-                <span className="hidden sm:inline">Track A · Chat</span>
+                <span className="lg:hidden">Chat</span>
+                <span className="hidden lg:inline">Track A · Chat</span>
               </button>
               <button
                 type="button"
-                onClick={() => setTrack("B")}
-                className={`min-h-[38px] min-w-[34px] rounded-md px-2.5 py-1 font-medium transition-colors ${
+                onClick={() => {
+                  setTrack("B");
+                  markChecked("chk-setup");
+                }}
+                className={`min-h-[38px] min-w-[34px] rounded-md px-2 py-1 font-medium transition-colors lg:px-2.5 ${
                   track === "B" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                 }`}
-                title="Track B: Terminal, IDE & Agent"
+                title="Track B: Terminal, IDE & CLI-Agent"
               >
-                <span className="sm:hidden">B</span>
-                <span className="hidden sm:inline">Track B · CLI</span>
+                <span className="lg:hidden">CLI</span>
+                <span className="hidden lg:inline">Track B · CLI</span>
               </button>
             </div>
 
@@ -377,11 +419,12 @@ export function ParticipantApp() {
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="num-tabular h-10 gap-1.5 px-2.5 text-xs"
-                  title="Fortschritt & Team-Einstellungen"
+                  className="num-tabular h-10 gap-1.5 px-2 text-xs sm:px-2.5"
+                  title="Deine Workshop-Checkliste öffnen & Fortschritt zurücksetzen"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5 text-brand-ink" />
                   <span>
+                    <span className="hidden sm:inline">To-do </span>
                     {completedCount}/{CHECKLIST_ITEMS.length}
                   </span>
                 </Button>
@@ -390,7 +433,8 @@ export function ParticipantApp() {
                 <SheetHeader>
                   <SheetTitle>Euer Fortschritt ({progressPct}%)</SheetTitle>
                   <SheetDescription>
-                    Wird automatisch im Browser gespeichert. Teamname gilt für den Beamer-Feed.
+                    Hakt sich beim Kopieren &amp; Testen automatisch ab (oder manuell). Der Teamname
+                    gilt für geteilte Beiträge auf der Raum-Leinwand.
                   </SheetDescription>
                 </SheetHeader>
                 <div className="mt-5 space-y-5">
@@ -421,6 +465,17 @@ export function ParticipantApp() {
                       </label>
                     ))}
                   </div>
+                  <Separator />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full gap-2 text-muted-foreground"
+                    onClick={resetProgress}
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    <span>Fortschritt zurücksetzen</span>
+                  </Button>
                 </div>
               </SheetContent>
             </Sheet>
@@ -429,18 +484,19 @@ export function ParticipantApp() {
             <Button
               type="button"
               size="sm"
-              className="h-10 gap-1.5 px-2.5 text-xs sm:px-3"
+              className="h-10 gap-1.5 px-2 text-xs sm:px-3"
+              title="Optional: Frage oder Aha-Moment auf der Raum-Leinwand teilen"
               onClick={() => openBeamerSheet()}
             >
               <Send className="h-3.5 w-3.5" />
-              <span className="sm:hidden">Beamer</span>
-              <span className="hidden sm:inline">An Beamer</span>
+              <span className="sm:hidden">Teilen</span>
+              <span className="hidden sm:inline">Ergebnis teilen</span>
             </Button>
 
             <a
               href="/beamer"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
-              title="Zur Beamer-Ansicht wechseln"
+              className="inline-flex h-10 w-9 items-center justify-center rounded-lg border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground sm:w-10"
+              title="Raum-Leinwand ansehen (Beamer-Ansicht)"
               aria-label="Zur Beamer-Ansicht wechseln"
             >
               <Monitor className="h-3.5 w-3.5" />
@@ -536,9 +592,9 @@ export function ParticipantApp() {
                 {step === "start" && (
                   <div className="space-y-9">
                     {/* Signature virtual7 Dark Keynote Hero Card */}
-                    <section className="stage-atmosphere relative overflow-hidden rounded-3xl border border-[#232B20] bg-[#0B0F0A] p-6 text-[#F2F4EE] shadow-xl sm:p-9">
+                    <section className="stage-atmosphere relative overflow-hidden rounded-3xl border border-[#232B20] bg-[#0B0F0A] p-5 text-[#F2F4EE] shadow-xl sm:p-8">
                       <StageBackdrop className="absolute -right-24 -top-20 h-[400px] w-[400px] opacity-65" />
-                      <div className="relative z-10 space-y-5">
+                      <div className="relative z-10 space-y-4 sm:space-y-5">
                         <div className="inline-flex items-center gap-2 rounded-full border border-[#A9C23F]/35 bg-[#A9C23F]/15 px-3 py-1 text-xs font-semibold text-[#A9C23F]">
                           <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
                           <span>
@@ -547,24 +603,23 @@ export function ParticipantApp() {
                           </span>
                         </div>
 
-                        <h1 className="font-display text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                        <h1 className="font-display text-2xl font-extrabold tracking-tight text-white sm:text-4xl">
                           Vom ungefilterten Chat zum{" "}
                           <span className="text-[#A9C23F]">strukturierten KI-System.</span>
                         </h1>
 
                         <p className="editorial-measure text-sm leading-relaxed text-[#D3DACD] sm:text-base">
-                          Direkte Praxis auf Basis eurer CCF-Umfrage (n = 47): erlebe in 5 klaren
-                          Etappen, wie klare Prompt-Methodik, System-Regeln, Leitplanken (Guardrails),
-                          verknüpftes Nachschlagen (Markdown-RAG) und Werkzeug-Anbindung (MCP) aus
-                          vagen Antworten verlässliche Ergebnisse machen.
+                          Probiere in 5 kurzen Schritten aus, wie aus vagen KI-Antworten
+                          verlässliche, belegte Ergebnisse werden — ganz ohne technisches Vorwissen.
+                          Alle Texte liegen als 1-Klick-Kopierpaket bereit.
                         </p>
 
-                        <div className="grid grid-cols-2 gap-3 pt-2 sm:grid-cols-4">
+                        <div className="grid grid-cols-2 gap-3 pt-1 sm:grid-cols-4">
                           {[
-                            { val: "57 %", lbl: "Prompting-Training gewünscht" },
-                            { val: "62 %", lbl: "Erste Agent-Praxis heute" },
-                            { val: "66 %", lbl: "Klarheit zu RAG schaffen" },
-                            { val: "68", lbl: "Öffentliche Wiki-Artikel" },
+                            { val: "57 %", lbl: "Prompting-Praxis gewünscht" },
+                            { val: "62 %", lbl: "Erste KI-Workflows heute" },
+                            { val: "66 %", lbl: "Quellen & Fakten prüfen" },
+                            { val: "68", lbl: "Öffentliche Wissens-Artikel" },
                           ].map((kpi) => (
                             <div
                               key={kpi.lbl}
@@ -584,12 +639,15 @@ export function ParticipantApp() {
 
                     <section className="space-y-3">
                       <div className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                        1 · Wähle dein Arbeitswerkzeug (gleiches Lernziel für alle)
+                        1 · Wähle dein Arbeitswerkzeug (Standard: Browser-Chat ohne Installation)
                       </div>
                       <div className="grid gap-4 sm:grid-cols-2">
                         <button
                           type="button"
-                          onClick={() => setTrack("A")}
+                          onClick={() => {
+                            setTrack("A");
+                            markChecked("chk-setup");
+                          }}
                           className={`flex flex-col justify-between gap-3 rounded-2xl border p-5 text-left transition-all ${
                             track === "A"
                               ? "border-primary bg-secondary/45 ring-1 ring-primary"
@@ -608,14 +666,17 @@ export function ParticipantApp() {
                             )}
                           </div>
                           <p className="text-sm leading-relaxed text-muted-foreground">
-                            ChatGPT, Claude oder Gemini im Browser. Du nutzt 1-Klick-Kopierpakete für
-                            Prompts, Regeln und Starter-Artikel direkt aus dieser Web-App.
+                            ChatGPT, Claude oder Copilot im Browser. Keine Installation nötig:
+                            Du kopierst fertige Aufgaben und Übungstexte mit 1 Klick aus dieser App.
                           </p>
                         </button>
 
                         <button
                           type="button"
-                          onClick={() => setTrack("B")}
+                          onClick={() => {
+                            setTrack("B");
+                            markChecked("chk-setup");
+                          }}
                           className={`flex flex-col justify-between gap-3 rounded-2xl border p-5 text-left transition-all ${
                             track === "B"
                               ? "border-primary bg-secondary/45 ring-1 ring-primary"
@@ -634,8 +695,8 @@ export function ParticipantApp() {
                             )}
                           </div>
                           <p className="text-sm leading-relaxed text-muted-foreground">
-                            Claude Code, Codex, Gemini CLI oder OpenCode. Du öffnest die drei
-                            Projekt-Ordner nacheinander lokal und bindest die Werkzeug-Schnittstelle (MCP) ein.
+                            Für Entwickler: Claude Code, Codex, Gemini CLI oder OpenCode im
+                            Terminal mit echten Projektordnern und lokalen Prüftools (MCP).
                           </p>
                         </button>
                       </div>
@@ -714,8 +775,9 @@ export function ParticipantApp() {
                       methods={data.promptMethods}
                       track={track}
                       arcticAndReefBundle={`${trackAPacks.arctic}\n\n${trackAPacks.reef}`}
+                      onCopyPrompt={() => markChecked("chk-methods")}
                       onShareMethod={(methodName, promptTask) => {
-                        setChecked((prev) => ({ ...prev, "chk-methods": true }));
+                        markChecked("chk-methods");
                         openBeamerSheet({
                           stage: "Prompt-Labor",
                           method: methodName,
@@ -731,6 +793,7 @@ export function ParticipantApp() {
                       primingTemplate={data.trackAPrimingTemplate}
                       track={track}
                       trackBAgentsTemplate={data.stages[1]?.agentsMd}
+                      onCopyTemplate={() => markChecked("chk-priming")}
                     />
                   </div>
                 )}
@@ -746,8 +809,9 @@ export function ParticipantApp() {
                         Stufe 1 → Stufe 2 → Stufe 3
                       </h1>
                       <p className="editorial-measure text-sm leading-relaxed text-muted-foreground">
-                        Stelle dieselben 4 Fragen nacheinander in allen drei Stufen und erlebe den
-                        Unterschied zwischen Chaos, Harness und Markdown-RAG.
+                        {track === "A"
+                          ? "Stelle dieselben 4 Fragen nacheinander in drei frischen Chats und erlebe direkt, wie aus bloßem Raten verlässliche Antworten mit Quellen werden."
+                          : "Stelle dieselben 4 Fragen nacheinander in allen drei Stufen und erlebe den Unterschied zwischen Chaos, Harness und Markdown-RAG."}
                       </p>
                     </div>
 
@@ -761,6 +825,18 @@ export function ParticipantApp() {
                             : idx === 1
                               ? "bg-amber-500"
                               : "bg-brand-lime";
+                        const beginnerBadge =
+                          idx === 0
+                            ? "Ohne Regeln"
+                            : idx === 1
+                              ? "Klare Chat-Regeln"
+                              : "Vernetztes Wissen";
+                        const beginnerSummary =
+                          idx === 0
+                            ? "Alle Texte liegen lose bereit, aber die KI hat keine festen Regeln — ideal, um typische KI-Fehler zu sehen."
+                            : idx === 1
+                              ? "Klare Regeln am Chat-Start verbieten Raten und erzwingen ehrliche Hinweise bei fehlenden Fakten."
+                              : "Ein Inhaltsverzeichnis verknüpft verwandte Artikel, sodass die KI Querverbindungen sicher findet.";
                         return (
                           <button
                             key={st.id}
@@ -778,7 +854,7 @@ export function ParticipantApp() {
                                 {st.title.split(" · ")[0]}
                               </span>
                               <Badge variant="outline" className="text-[11px]">
-                                {st.badge}
+                                {track === "A" ? beginnerBadge : st.badge}
                               </Badge>
                             </div>
                             <StageMiniDiagram
@@ -787,15 +863,17 @@ export function ParticipantApp() {
                             <div className="text-xs font-semibold text-foreground">
                               {st.title.split(" · ")[1]}
                             </div>
-                            <p className="text-xs text-muted-foreground">{st.summary}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {track === "A" ? beginnerSummary : st.summary}
+                            </p>
                           </button>
                         );
                       })}
                     </div>
 
-                    {/* Calm Track-Aware Execution Strip (Raw Markdown lives cleanly in Slide-Over Drawer!) */}
-                    <div className="flex flex-col gap-4 rounded-2xl border bg-card p-5 sm:flex-row sm:items-center sm:justify-between">
-                      <div className="min-w-0 space-y-1">
+                    {/* Calm Track-Aware Execution Strip */}
+                    <div className="flex flex-col gap-4 rounded-2xl border bg-card p-5 xl:flex-row xl:items-center xl:justify-between">
+                      <div className="min-w-0 flex-1 space-y-1">
                         <div className="text-xs font-semibold uppercase tracking-wider text-brand-ink">
                           {track === "A"
                             ? `Track A · ${currentStage.title}`
@@ -804,10 +882,10 @@ export function ParticipantApp() {
                         <p className="text-sm text-muted-foreground">
                           {track === "A"
                             ? currentStage.id === "stufe-1"
-                              ? "1. Neuen Browser-Chat öffnen (noch OHNE Leitplanken!) → 2. Arktis-Artikelpaket kopieren → 3. Testfragen 1–3 stellen."
+                              ? "1. Neuen Browser-Chat öffnen (bewusst noch OHNE Regeln!) → 2. Arktis-Texte kopieren & einfügen → 3. Die Testfragen 1–4 unten kopieren und stellen."
                               : currentStage.id === "stufe-2"
-                                ? "1. Neuen Chat öffnen → 2. AGENTS.md als System-Regel einfügen → 3. Artikel-Paket + Testfragen 1–3 senden."
-                                : "1. Neuen Chat öffnen → 2. AGENTS.md + _index.md einfügen → 3. Korallenriff-Artikel & Querverbindung (Frage 2) testen."
+                                ? "1. Neuen Chat öffnen → 2. Zuerst die Chat-Regeln kopieren & senden → 3. Danach Arktis-Texte kopieren und Testfragen 1–4 stellen (achte besonders auf Fangfrage 3 & Frage 4!)."
+                                : "1. Neuen Chat öffnen → 2. Inhaltsverzeichnis + Regeln kopieren & senden → 3. Korallenriff-Texte kopieren und alle Testfragen 1–4 (inkl. Querverbindung Frage 2) prüfen."
                             : `Öffne ${currentStage.folder}/ als Arbeitsverzeichnis in Claude Code, Codex, Gemini CLI oder OpenCode.`}
                         </p>
                       </div>
@@ -817,27 +895,55 @@ export function ParticipantApp() {
                           currentStage.id === "stufe-1" ? (
                             <CopyButton
                               text={trackAPacks.arctic}
-                              label="Arktis-Paket kopieren"
+                              label="1 · Arktis-Texte kopieren"
                               variant="default"
+                              onCopy={() => markChecked("chk-s1")}
                             />
                           ) : currentStage.id === "stufe-2" ? (
-                            <CopyButton
-                              text={currentStage.agentsMd}
-                              label="AGENTS.md kopieren"
-                              variant="default"
-                            />
+                            <>
+                              <CopyButton
+                                text={data.trackAPrimingTemplate}
+                                label="1 · Chat-Regeln kopieren"
+                                variant="default"
+                                onCopy={() => markChecked("chk-s2")}
+                              />
+                              <CopyButton
+                                text={trackAPacks.arctic}
+                                label="2 · Arktis-Texte kopieren"
+                                variant="secondary"
+                                onCopy={() => markChecked("chk-s2")}
+                              />
+                            </>
                           ) : (
-                            <CopyButton
-                              text={currentStage.indexMd || currentStage.agentsMd}
-                              label="_index.md kopieren"
-                              variant="default"
-                            />
+                            <>
+                              <CopyButton
+                                text={`${data.trackAPrimingTemplate}\n\n---\n\n${currentStage.indexMd || ""}`}
+                                label="1 · Inhaltsverzeichnis + Regeln kopieren"
+                                variant="default"
+                                onCopy={() => markChecked("chk-s3")}
+                              />
+                              <CopyButton
+                                text={trackAPacks.reef}
+                                label="2 · Korallenriff-Texte kopieren"
+                                variant="secondary"
+                                onCopy={() => markChecked("chk-s3")}
+                              />
+                            </>
                           )
                         ) : (
                           <CopyButton
                             text={`cd ${currentStage.folder}`}
                             label={`cd ${currentStage.folder}`}
                             variant="default"
+                            onCopy={() =>
+                              markChecked(
+                                currentStage.id === "stufe-1"
+                                  ? "chk-s1"
+                                  : currentStage.id === "stufe-2"
+                                    ? "chk-s2"
+                                    : "chk-s3"
+                              )
+                            }
                           />
                         )}
                         <StageArtifactsSheet
@@ -845,6 +951,7 @@ export function ParticipantApp() {
                           arcticPack={trackAPacks.arctic}
                           reefPack={trackAPacks.reef}
                           all12Pack={trackAPacks.all12}
+                          track={track}
                         />
                       </div>
                     </div>
@@ -858,11 +965,20 @@ export function ParticipantApp() {
                         {data.testQuestions.map((q) => {
                           const isTrackAQ4 = q.number === 4 && track === "A";
                           const displayQuestion = isTrackAQ4
-                            ? "Ersetze in deinen kopierten Eisbär-Notizen im Chat kurz ‚42 Zähne‘ durch ‚38 Zähne‘ ODER ergänze im Chat-Priming eine neue Formatpflicht (z. B. 3-spaltige Risiko-Tabelle) und prüfe, ob die KI strikt deinen Vorgaben statt ihrem Vorwissen folgt."
+                            ? "Starte einen neuen Chat mit deinen Chat-Regeln aus Stufe 2 und sende diese Nachricht: ‚Hier ist mein einziger gültiger Text: Ausgewachsene Eisbären haben genau 38 Zähne. — Frage: Wie viele Zähne hat ein ausgewachsener Eisbär laut meinem Text?‘"
                             : q.question;
                           const displayWatch = isTrackAQ4
-                            ? "Beweist den Unterschied zwischen allgemeinem KI-Vorwissen und deinem explizit gesetzten Chat-Kontext."
+                            ? "Prüfe, ob die KI strikt ‚38‘ aus deiner Vorgabe übernimmt oder heimlich auf ‚42‘ aus ihrem Training korrigiert."
                             : q.whatToWatch;
+                          const displaySolution = isTrackAQ4
+                            ? "Mit deinen Chat-Regeln aus Stufe 2 übernimmt die KI exakt ‚38 Zähne‘ aus deinem Text — ein leerer Standard-Chat hätte oft ‚42‘ aus dem allgemeinen Wissen geantwortet."
+                            : q.solutionSummary;
+                          const stageCheckId =
+                            currentStage.id === "stufe-1"
+                              ? "chk-s1"
+                              : currentStage.id === "stufe-2"
+                                ? "chk-s2"
+                                : "chk-s3";
                           return (
                             <div
                               key={q.id}
@@ -880,7 +996,12 @@ export function ParticipantApp() {
                                       {q.type}
                                     </span>
                                   </div>
-                                  <CopyButton text={displayQuestion} label="Kopieren" className="shrink-0" />
+                                  <CopyButton
+                                    text={displayQuestion}
+                                    label="Kopieren"
+                                    className="shrink-0"
+                                    onCopy={() => markChecked(stageCheckId)}
+                                  />
                                 </div>
 
                                 <p className="text-[15px] font-medium leading-snug text-foreground">
@@ -900,7 +1021,7 @@ export function ParticipantApp() {
                                       Verifizierte Lösung (nach dem Testen öffnen)
                                     </AccordionTrigger>
                                     <AccordionContent className="rounded-xl bg-secondary/40 p-3 text-xs leading-relaxed text-foreground">
-                                      {renderInlineCode(q.solutionSummary)}
+                                      {renderInlineCode(displaySolution)}
                                     </AccordionContent>
                                   </AccordionItem>
                                 </Accordion>
@@ -924,7 +1045,7 @@ export function ParticipantApp() {
                                     }
                                   >
                                     <Send className="h-3.5 w-3.5" />
-                                    <span>Beobachtung an Beamer</span>
+                                    <span>Beobachtung teilen</span>
                                   </Button>
                                 </div>
                               </div>
@@ -941,8 +1062,18 @@ export function ParticipantApp() {
                           Warum Stufe 3 gewinnt: Der Wissens-Graph hinter dem Vault
                         </h2>
                         <p className="editorial-measure text-sm text-muted-foreground">
-                          Erkunde alle 68 Artikel interaktiv — jeder Klick auf einen Knoten oder ein{" "}
-                          <code>[[Wikilink]]</code> zeigt exakt, wie der Agent Beziehungen verfolgt.
+                          {track === "A" ? (
+                            <>
+                              <strong>Nur zum interaktiven Erkunden</strong> (kein externes Tool nötig):
+                              Klicke auf „KI-Suchpfad abspielen“ oder auf einen beliebigen Kreis, um
+                              zu sehen, wie alle 68 Themenartikel miteinander verknüpft sind.
+                            </>
+                          ) : (
+                            <>
+                              Erkunde alle 68 Artikel interaktiv — jeder Klick auf einen Knoten oder ein{" "}
+                              <code>[[Wikilink]]</code> zeigt exakt, wie der Agent Beziehungen verfolgt.
+                            </>
+                          )}
                         </p>
                       </div>
                       <ObsidianKnowledgeGraph articles={data.vaultArticles} />
@@ -961,19 +1092,51 @@ export function ParticipantApp() {
                         Werkzeuge &amp; Model Context Protocol (MCP)
                       </h1>
                       <p className="editorial-measure text-sm leading-relaxed text-muted-foreground">
-                        MCP funktioniert wie ein USB-C-Anschluss für KI: Jede kompatible KI greift
-                        über einheitliche Befehle direkt auf unsere 68 Artikel, den Faktencheck und
-                        den Beamer zu.
+                        {track === "A"
+                          ? "MCP funktioniert wie ein USB-C-Anschluss für KI: Statt Texte manuell einzukopieren, fragt die KI direkt Prüfdienste an. Hier auf der Seite kannst du beides sofort per Klick live ausprobieren — ganz ohne Einrichtung."
+                          : "MCP funktioniert wie ein USB-C-Anschluss für KI: Jede kompatible KI greift über einheitliche Befehle direkt auf unsere 68 Artikel, den Faktencheck und den Beamer zu."}
                       </p>
                     </div>
+
+                    {track === "A" && (
+                      <div className="rounded-2xl border border-brand-lime/45 bg-secondary/45 p-4 text-sm">
+                        <span className="font-semibold text-foreground">
+                          Kein Setup für Track A nötig:{" "}
+                        </span>
+                        <span className="text-muted-foreground">
+                          Klicke unten einfach einmal auf „Tool ausführen“ und bei „Fakten prüfen“
+                          auf „Fangfrage testen“ — danach kannst du direkt weiter zu Schritt 05.
+                        </span>
+                      </div>
+                    )}
 
                     {/* Interactive Animated 4-Node Protocol Pipeline */}
                     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                       {[
-                        { hop: 1, icon: Bot, title: "1 · KI-Oberfläche", desc: "Web-Chat, CLI oder diese App" },
-                        { hop: 2, icon: Network, title: "2 · MCP-Protokoll", desc: "Einheitliches Datenformat (JSON-RPC)" },
-                        { hop: 3, icon: Cpu, title: "3 · Werkzeug-Server", desc: "mcp-server/server.mjs (3 Tools)" },
-                        { hop: 4, icon: Monitor, title: "4 · Wissensbasis & Beamer", desc: "Suche, Prüfung & Live-Post" },
+                        {
+                          hop: 1,
+                          icon: Bot,
+                          title: "1 · Deine Frage",
+                          desc: track === "A" ? "Browser-Chat oder diese App" : "Web-Chat, CLI oder diese App",
+                        },
+                        {
+                          hop: 2,
+                          icon: Network,
+                          title: track === "A" ? "2 · Einheitliche Schnittstelle" : "2 · MCP-Protokoll",
+                          desc: track === "A" ? "Standardisiertes Frage-Antwort-Format" : "Einheitliches Datenformat (JSON-RPC)",
+                        },
+                        {
+                          hop: 3,
+                          icon: Cpu,
+                          title: track === "A" ? "3 · Werkzeug-Server" : "3 · MCP-Server",
+                          desc: track === "A" ? "Lokaler Prüf-Dienst (3 Tools)" : "mcp-server/server.mjs (3 Tools)",
+                        },
+                        {
+                          hop: 4,
+                          icon: Monitor,
+                          title: "4 · 68 Artikel & Leinwand",
+                          desc: "Suche, Faktencheck & Live-Teilen",
+                        },
                       ].map((node) => {
                         const Icon = node.icon;
                         const lit = mcpActiveHop === node.hop;
@@ -1043,17 +1206,21 @@ export function ParticipantApp() {
                         <TabsList className="grid h-auto w-full grid-cols-1 gap-1 p-1 sm:inline-flex sm:w-auto sm:flex-wrap">
                           <TabsTrigger value="search" className="justify-start gap-1.5 px-3 py-2 text-xs sm:text-sm">
                             <Wrench className="h-3.5 w-3.5 shrink-0" />
-                            <span>Vault durchsuchen</span>
-                            <code className="hidden text-[11px] opacity-70 sm:inline">
-                              search_wildlife_vault
-                            </code>
+                            <span>{track === "A" ? "Wissensbasis durchsuchen" : "Vault durchsuchen"}</span>
+                            {track === "B" && (
+                              <code className="hidden text-[11px] opacity-70 sm:inline">
+                                search_wildlife_vault
+                              </code>
+                            )}
                           </TabsTrigger>
                           <TabsTrigger value="verify" className="justify-start gap-1.5 px-3 py-2 text-xs sm:text-sm">
                             <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
                             <span>Fakten prüfen</span>
-                            <code className="hidden text-[11px] opacity-70 sm:inline">
-                              verify_claim_against_corpus
-                            </code>
+                            {track === "B" && (
+                              <code className="hidden text-[11px] opacity-70 sm:inline">
+                                verify_claim_against_corpus
+                              </code>
+                            )}
                           </TabsTrigger>
                         </TabsList>
 
@@ -1104,15 +1271,19 @@ export function ParticipantApp() {
                                         <span className="font-display text-sm font-bold text-foreground">
                                           {parsed.title}
                                         </span>
-                                        <Badge variant="outline" className="font-mono text-[11px] text-brand-ink">
-                                          [[{parsed.slug}]]
-                                        </Badge>
+                                        {track === "B" && (
+                                          <Badge variant="outline" className="font-mono text-[11px] text-brand-ink">
+                                            [[{parsed.slug}]]
+                                          </Badge>
+                                        )}
                                       </div>
                                       <Badge variant="outline">Relevanz {m.score}</Badge>
                                     </div>
-                                    <div className="break-all font-mono text-[11px] text-muted-foreground">
-                                      {m.rel_path}
-                                    </div>
+                                    {track === "B" && (
+                                      <div className="break-all font-mono text-[11px] text-muted-foreground">
+                                        {m.rel_path}
+                                      </div>
+                                    )}
                                     <p className="leading-relaxed text-foreground/90">{m.snippet}</p>
                                     {m.matched_tokens && m.matched_tokens.length > 0 && (
                                       <div className="flex flex-wrap items-center gap-1 pt-0.5">
@@ -1190,9 +1361,11 @@ export function ParticipantApp() {
                                       <span className="font-display text-sm font-bold text-foreground">
                                         {parsed.title}
                                       </span>
-                                      <Badge variant="outline" className="font-mono text-[11px] text-brand-ink">
-                                        [[{parsed.slug}]]
-                                      </Badge>
+                                      {track === "B" && (
+                                        <Badge variant="outline" className="font-mono text-[11px] text-brand-ink">
+                                          [[{parsed.slug}]]
+                                        </Badge>
+                                      )}
                                     </div>
                                     <p className="leading-relaxed text-muted-foreground">{ev.snippet}</p>
                                   </div>
@@ -1210,7 +1383,11 @@ export function ParticipantApp() {
                         <AccordionTrigger className="font-display text-sm font-semibold">
                           <span className="flex items-center gap-2 text-left">
                             <FileCode2 className="h-4 w-4 shrink-0 text-brand-ink" />
-                            <span>MCP-Konfiguration für Track B anzeigen (5 Clients)</span>
+                            <span>
+                              {track === "A"
+                                ? "Nur für Track B (Entwickler): MCP-Konfiguration für 5 CLI-Clients"
+                                : "MCP-Konfiguration für Track B anzeigen (5 Clients)"}
+                            </span>
                           </span>
                         </AccordionTrigger>
                         <AccordionContent className="min-w-0 pb-4">
@@ -1267,88 +1444,218 @@ export function ParticipantApp() {
                   <div className="space-y-8">
                     <div className="space-y-2">
                       <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
-                        Schritt 05 · Freie Wahl-Missionen
+                        Schritt 05 · Freie Wahl-Missionen &amp; Abschluss
                       </div>
                       <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
                         Für jeden etwas: Wähle deine Bonus-Mission
                       </h1>
                       <p className="editorial-measure text-sm leading-relaxed text-muted-foreground">
-                        Ob Faktenprüfung, strukturierte Daten, klares Management-Briefing oder eigenes
-                        MCP-Gimmick — wählt nach Lust und Laune und schickt euer Ergebnis an den Beamer!
+                        {track === "A"
+                          ? "Suche dir 1–2 kleine Praxistests für deinen Browser-Chat aus. Alle benötigten Texte und Regeln werden automatisch mitkopiert — danach kannst du dein Ergebnis direkt teilen."
+                          : "Ob Faktenprüfung, strukturierte Daten, klares Management-Briefing oder eigenes MCP-Gimmick — wählt nach Lust und Laune und schickt euer Ergebnis an den Beamer!"}
                       </p>
                     </div>
 
                     <div className="grid gap-5 md:grid-cols-2">
-                      {data.missions.map((m) => (
-                        <div
-                          key={m.id}
-                          className="flex flex-col justify-between gap-4 rounded-2xl border bg-card p-6"
-                        >
-                          <div className="space-y-3">
-                            <div className="flex flex-wrap items-center justify-between gap-2">
-                              <span className="text-xs font-semibold uppercase tracking-wider text-brand-ink">
-                                {m.tag}
-                              </span>
-                            </div>
-                            <h3 className="font-display text-lg font-bold">{m.title}</h3>
-                            <p className="text-sm leading-relaxed text-muted-foreground">
-                              {renderInlineCode(m.description)}
-                            </p>
-                            <pre className="whitespace-pre-wrap break-words rounded-xl border bg-muted/35 p-3.5 font-mono text-xs leading-relaxed">
-                              {m.prompt}
-                            </pre>
-                          </div>
+                      {data.missions.map((m) => {
+                        const trackAConfig =
+                          m.id === "m1-audit"
+                            ? {
+                                title: m.title,
+                                description:
+                                  "Prüfe eine typische KI-Antwort streng anhand von Check-Regeln gegen den echten Eisbär-Text und decke erfundene Fakten auf.",
+                                displayPrompt:
+                                  "Prüfe jede Teilaussage strikt gegen meinen beigefügten Eisbär-Artikel:\n„Eisbären haben weiße Haut unter ihrem dichten weißen Fell, wiegen bis zu 800 kg, fressen am liebsten Pinguine und ihre Haare leiten UV-Licht wie Glasfaserkabel direkt auf die Haut.“\nMarkiere jeden Teilpunkt mit [BELEGT], [WIDERSPRÜCHLICH] oder [NICHT BELEGT] inkl. kurzem Textbeleg!",
+                                bundlePrefix: `${data.trackAPrimingTemplate}\n\n---\n\n`,
+                                bundleSuffix: `\n\n---\n\n${trackAPacks.arctic}`,
+                              }
+                            : m.id === "m2-data"
+                              ? {
+                                  title: m.title,
+                                  description:
+                                    "Verwandle die Artikel zu Eisbär, Ringelrobbe und Anemonenfisch in eine übersichtliche Vergleichstabelle — ohne Daten zu erfinden.",
+                                  displayPrompt:
+                                    "Erstelle aus den angehängten Artikeln eine übersichtliche Tabelle für Eisbär, Ringelrobbe und Anemonenfische.\nSpalten: Tierart | Lebensraum | Besonderes Merkmal | Wichtige Zahl aus Text.\nWichtig: Erfinde nichts hinzu! Fehlt ein Wert, schreibe exakt [Nicht in Quelle].",
+                                  bundlePrefix: "",
+                                  bundleSuffix: `\n\n---\n\n${trackAPacks.arctic}\n\n${trackAPacks.reef}`,
+                                }
+                              : m.id === "m3-briefing"
+                                ? {
+                                    title: m.title,
+                                    description:
+                                      "Formuliere ein kurzes Management-Briefing zu den Folgen der Korallenbleiche — inklusive transparenter Lückenliste.",
+                                    displayPrompt:
+                                      "Context: Kurze Entscheidungsvorlage für eine Cluster-Runde.\nObjective: Fasse die Folgen der Korallenbleiche und von Steinkorallen-Schäden anhand der beigefügten Korallenriff-Artikel zusammen.\nAudience: Teamleitung & Management.\nResponse: Max. 5 prägnante Bulletpoints mit belegten Fakten/Zahlen + separater Absatz „Was in diesen Texten fehlt“.",
+                                    bundlePrefix: `${data.trackAPrimingTemplate}\n\n---\n\n`,
+                                    bundleSuffix: `\n\n---\n\n${trackAPacks.reef}`,
+                                  }
+                                : {
+                                    title: "Mission D · Eigene Top-3-Regeln & Raum-Check",
+                                    description:
+                                      "Erstelle deine persönliche 3-Punkte-Checkliste für bessere KI-Antworten im Alltag und teile dein bestes Ergebnis im Raum.",
+                                    displayPrompt:
+                                      "Fasse auf Basis unseres Workshops die 3 wichtigsten Regeln für verlässlichere KI-Antworten im Arbeitsalltag zusammen — maximal 1 klarer Satz pro Regel, leicht verständlich für Kolleginnen und Kollegen ohne IT-Hintergrund.\nWende die 3 Regeln anschließend auf eine kurze Beispielfrage aus meinem Job an.",
+                                    bundlePrefix: "",
+                                    bundleSuffix: "",
+                                  };
 
-                          <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
-                            <CopyButton text={m.prompt} label="Prompt kopieren" />
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              className="text-brand-ink"
-                              onClick={() => {
-                                setChecked((prev) => ({ ...prev, "chk-mission": true }));
-                                openBeamerSheet({
-                                  stage: "Wahl-Mission",
-                                  method: "Frei / MCP",
-                                  question: `${m.title}: ${m.description}`,
-                                });
-                              }}
-                            >
-                              <Send className="h-3.5 w-3.5" />
-                              <span>An Beamer teilen</span>
-                            </Button>
+                        const shownTitle = track === "A" ? trackAConfig.title : m.title;
+                        const shownDescription = track === "A" ? trackAConfig.description : m.description;
+                        const shownPrompt = track === "A" ? trackAConfig.displayPrompt : m.prompt;
+                        const copyPayload =
+                          track === "A"
+                            ? `${trackAConfig.bundlePrefix}${trackAConfig.displayPrompt}${trackAConfig.bundleSuffix}`
+                            : m.prompt;
+                        const copyLabel =
+                          track === "A"
+                            ? trackAConfig.bundleSuffix
+                              ? "Texte + Mission kopieren"
+                              : "Mission kopieren"
+                            : "Prompt kopieren";
+
+                        return (
+                          <div
+                            key={m.id}
+                            className="flex flex-col justify-between gap-4 rounded-2xl border bg-card p-6"
+                          >
+                            <div className="space-y-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="text-xs font-semibold uppercase tracking-wider text-brand-ink">
+                                  {m.tag}
+                                </span>
+                                {track === "A" && trackAConfig.bundleSuffix && (
+                                  <Badge variant="outline" className="text-[11px]">
+                                    Texte werden mitkopiert
+                                  </Badge>
+                                )}
+                              </div>
+                              <h3 className="font-display text-lg font-bold">{shownTitle}</h3>
+                              <p className="text-sm leading-relaxed text-muted-foreground">
+                                {renderInlineCode(shownDescription)}
+                              </p>
+                              <pre className="whitespace-pre-wrap break-words rounded-xl border bg-muted/35 p-3.5 font-mono text-xs leading-relaxed">
+                                {shownPrompt}
+                              </pre>
+                            </div>
+
+                            <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+                              <CopyButton
+                                text={copyPayload}
+                                label={copyLabel}
+                                onCopy={() => markChecked("chk-mission")}
+                              />
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                className="text-brand-ink"
+                                onClick={() => {
+                                  markChecked("chk-mission");
+                                  openBeamerSheet({
+                                    stage: "Wahl-Mission",
+                                    method: track === "A" ? "CO-STAR" : "MCP / Frei",
+                                    question: `${shownTitle}: ${shownDescription}`,
+                                  });
+                                }}
+                              >
+                                <Send className="h-3.5 w-3.5" />
+                                <span>Ergebnis teilen</span>
+                              </Button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {/* Workshop Completion & Takeaways Card */}
+                    <section className="rounded-2xl border border-brand-lime/45 bg-secondary/35 p-5 sm:p-6">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="space-y-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant={completedCount >= 6 ? "success" : "outline"}>
+                              {completedCount >= 6
+                                ? "Glückwunsch – Workshop durchlaufen!"
+                                : `Dein Stand: ${completedCount}/${CHECKLIST_ITEMS.length} Häkchen`}
+                            </Badge>
+                            <span className="num-tabular text-xs font-semibold text-brand-ink">
+                              {progressPct}% abgeschlossen
+                            </span>
+                          </div>
+                          <h2 className="font-display text-lg font-bold text-foreground">
+                            Was du aus allen 5 Schritten mitnimmst
+                          </h2>
+                          <p className="editorial-measure text-sm text-muted-foreground">
+                            Gute KI-Ergebnisse entstehen durch klare Aufträge (CO-STAR/RISEN),
+                            verbindliche Chat-Regeln gegen Raten und saubere Quellen mit
+                            Querverbindungen — egal ob im Browser oder im Terminal.
+                          </p>
+                          <div className="h-2 w-full max-w-md overflow-hidden rounded-full bg-background/80">
+                            <div
+                              className="h-full rounded-full bg-brand-lime transition-all duration-300"
+                              style={{ width: `${progressPct}%` }}
+                            />
                           </div>
                         </div>
-                      ))}
-                    </div>
+                        <div className="flex shrink-0 flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            onClick={() =>
+                              openBeamerSheet({
+                                stage: "Wahl-Mission",
+                                method: track === "A" ? "CO-STAR" : "MCP / Frei",
+                              })
+                            }
+                          >
+                            <Send className="h-4 w-4" />
+                            <span>Ergebnis teilen</span>
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => goToStep("start")}
+                          >
+                            Zurück zum Start
+                          </Button>
+                        </div>
+                      </div>
+                    </section>
                   </div>
                 )}
               </motion.div>
             </AnimatePresence>
 
             {/* Step Footer Navigation */}
-            <footer className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t pt-6">
-              {prevStep ? (
-                <Button type="button" variant="outline" onClick={() => goToStep(prevStep.id)}>
-                  <ArrowLeft className="h-4 w-4" />
-                  <span>Zurück: {prevStep.label}</span>
-                </Button>
-              ) : (
-                <div />
-              )}
-              {nextStep ? (
-                <Button type="button" onClick={() => goToStep(nextStep.id)}>
-                  <span>Weiter: {nextStep.label}</span>
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              ) : (
-                <Button type="button" onClick={() => openBeamerSheet()}>
-                  <Send className="h-4 w-4" />
-                  <span>Abschluss-Learning an Beamer senden</span>
-                </Button>
-              )}
-            </footer>
+            {step !== "start" && (
+              <footer className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t pt-6">
+                {prevStep ? (
+                  <Button type="button" variant="outline" onClick={() => goToStep(prevStep.id)}>
+                    <ArrowLeft className="h-4 w-4" />
+                    <span>Zurück: {prevStep.label}</span>
+                  </Button>
+                ) : (
+                  <div />
+                )}
+                {nextStep ? (
+                  <Button type="button" onClick={() => goToStep(nextStep.id)}>
+                    <span>Weiter: {nextStep.label}</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    onClick={() =>
+                      openBeamerSheet({
+                        stage: "Wahl-Mission",
+                        method: track === "A" ? "CO-STAR" : "MCP / Frei",
+                      })
+                    }
+                  >
+                    <Send className="h-4 w-4" />
+                    <span>Abschluss-Learning teilen</span>
+                  </Button>
+                )}
+              </footer>
+            )}
           </div>
         </main>
       </div>

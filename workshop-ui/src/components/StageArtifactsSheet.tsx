@@ -17,6 +17,7 @@ interface StageArtifactsSheetProps {
   arcticPack: string;
   reefPack: string;
   all12Pack: string;
+  track?: "A" | "B";
 }
 
 function downloadMd(filename: string, content: string) {
@@ -29,27 +30,46 @@ function downloadMd(filename: string, content: string) {
   URL.revokeObjectURL(url);
 }
 
-export function StageArtifactsSheet({ stage, arcticPack, reefPack, all12Pack }: StageArtifactsSheetProps) {
+export function StageArtifactsSheet({
+  stage,
+  arcticPack,
+  reefPack,
+  all12Pack,
+  track = "A",
+}: StageArtifactsSheetProps) {
   return (
     <Sheet>
       <SheetTrigger asChild>
         <Button type="button" size="sm" variant="outline">
           <FileText className="h-3.5 w-3.5" />
-          <span>Dateien &amp; Kopierpakete ({stage.skills.length + (stage.indexMd ? 2 : 1)})</span>
+          <span>
+            {track === "A"
+              ? `Alle Texte & Regeln (${stage.skills.length + (stage.indexMd ? 2 : 1)})`
+              : `Dateien & Kopierpakete (${stage.skills.length + (stage.indexMd ? 2 : 1)})`}
+          </span>
         </Button>
       </SheetTrigger>
       <SheetContent side="right" className="max-w-[580px] overflow-y-auto">
         <SheetHeader>
           <SheetTitle>{stage.title}</SheetTitle>
           <SheetDescription>
-            Direkter Blick in <code>{stage.folder}/</code> inkl. Track-A-Kopierpaketen.
+            {track === "A" ? (
+              "Fertige Text-Pakete zum Kopieren sowie optional die zugehörigen KI-Regeln."
+            ) : (
+              <>
+                Direkter Blick in <code>{stage.folder}/</code> inkl. Track-A-Kopierpaketen.
+              </>
+            )}
           </SheetDescription>
         </SheetHeader>
 
-        <Tabs defaultValue="agents" className="mt-5">
+        <Tabs defaultValue={track === "A" ? "packs" : "agents"} className="mt-5">
           <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1.5">
+            <TabsTrigger value="packs" className="px-2.5 py-1.5 text-xs">
+              Artikel-Pakete
+            </TabsTrigger>
             <TabsTrigger value="agents" className="px-2.5 py-1.5 text-xs">
-              AGENTS.md
+              {track === "A" ? "Regel-Vorlage" : "AGENTS.md"}
             </TabsTrigger>
             {stage.skills.map((sk) => (
               <TabsTrigger key={sk.name} value={sk.name} className="px-2.5 py-1.5 text-xs">
@@ -58,12 +78,9 @@ export function StageArtifactsSheet({ stage, arcticPack, reefPack, all12Pack }: 
             ))}
             {stage.indexMd && (
               <TabsTrigger value="index" className="px-2.5 py-1.5 text-xs">
-                _index.md
+                {track === "A" ? "Inhaltsverzeichnis" : "_index.md"}
               </TabsTrigger>
             )}
-            <TabsTrigger value="packs" className="px-2.5 py-1.5 text-xs">
-              Artikel-Pakete
-            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="agents" className="space-y-3">

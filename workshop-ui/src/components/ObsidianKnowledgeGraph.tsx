@@ -325,10 +325,10 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
           </div>
           <div className="min-w-0">
             <div className="font-display text-sm font-bold text-[#F2F4EE] sm:text-base">
-              Obsidian Wissens-Graph · {articles.length} Artikel &amp; {layoutLinks.length} Verknüpfungen
+              Interaktive Wissenskarte · {articles.length} Artikel &amp; {layoutLinks.length} Querverweise
             </div>
             <div className="text-xs text-[#9FA998]">
-              Hover hebt Nachbarn hervor · Klick springt über <code>[[Wikilinks]]</code>
+              Klick auf einen Kreis folgt Verknüpfungen · Ziehen bewegt Knoten
             </div>
           </div>
         </div>
@@ -344,14 +344,14 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                 setRagWalkIdx(0);
               }
             }}
-            className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+            className={`inline-flex min-h-[38px] items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
               ragWalkIdx !== null
                 ? "border-[#A9C23F] bg-[#A9C23F] text-[#0B0F0A]"
                 : "border-[#232B20] bg-[#1B2419] text-[#A9C23F] hover:border-[#A9C23F]"
             }`}
           >
             {ragWalkIdx !== null ? <Square className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-            <span>{ragWalkIdx !== null ? "Stoppen" : "RAG-Pfad abspielen"}</span>
+            <span>{ragWalkIdx !== null ? "Stoppen" : "KI-Suchpfad abspielen"}</span>
           </button>
 
           <div className="relative min-w-[210px] flex-1 sm:w-60 sm:flex-none">
@@ -746,14 +746,14 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
             <div className="rounded-xl border border-[#232B20] bg-[#0B0F0A] p-3 text-xs">
               <div className="mb-2 flex items-center justify-between">
                 <span className="font-mono text-[10px] uppercase tracking-wider text-[#9FA998]">
-                  Frontmatter-Metadaten
+                  Steckbrief (Metadaten)
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowRawYaml((s) => !s)}
                   className="font-mono text-[10px] text-[#A9C23F] hover:underline"
                 >
-                  {showRawYaml ? "Strukturiert" : "Raw YAML"}
+                  {showRawYaml ? "Übersicht" : "Quelltext (YAML)"}
                 </button>
               </div>
               {showRawYaml ? (
@@ -784,11 +784,11 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
             <p className="text-xs leading-relaxed text-[#D3DACD]">{selected.summary}</p>
           </div>
 
-          {/* Concise Clickable [[Wikilinks]] */}
+          {/* Concise Clickable Links */}
           <div className="space-y-2 border-t border-[#232B20] pt-3">
             <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#9FA998]">
               <Link2 className="h-3.5 w-3.5 text-[#A9C23F]" />
-              Verknüpfte [[Wikilinks]]
+              Verknüpfte Artikel (Querverweise)
             </div>
             <div className="flex flex-wrap gap-1.5">
               {selected.related.map((relSlug) => {

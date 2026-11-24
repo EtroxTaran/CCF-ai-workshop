@@ -8,6 +8,7 @@ interface CopyButtonProps extends Omit<ButtonProps, "onClick"> {
   label?: string;
   copiedLabel?: string;
   toastMessage?: string;
+  onCopy?: () => void;
 }
 
 export function CopyButton({
@@ -15,6 +16,7 @@ export function CopyButton({
   label = "Kopieren",
   copiedLabel = "Kopiert",
   toastMessage,
+  onCopy,
   variant = "outline",
   size = "sm",
   ...rest
@@ -35,6 +37,7 @@ export function CopyButton({
       document.body.removeChild(ta);
     }
     setCopied(true);
+    onCopy?.();
     const cleaned = label.replace(/\s*kopieren$/i, "").trim();
     toast.success(
       toastMessage || (cleaned ? `${cleaned} in Zwischenablage kopiert` : "In Zwischenablage kopiert")

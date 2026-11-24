@@ -308,10 +308,13 @@ function evaluateDeterministic(question, aiAnswer) {
     statusLabel = "Teilweise Themenbezug gefunden – Detailabgleich empfohlen.";
   }
 
-  const evidence =
+  const rawEvidence =
     status === "nicht_belegt"
       ? (top?.hasTitleHit ? matches.slice(0, 2) : [])
       : matches.slice(0, 3);
+  const evidence = rawEvidence.filter(
+    (m, idx) => idx === 0 || m.hasTitleHit || (top && m.score >= top.score * 0.45)
+  );
 
   const ans = String(aiAnswer || "");
   const answerHasCitation = /(\.md\b|\[\[[^\]]+\]\]|docs\/|raw\/|wiki\/)/i.test(ans);
@@ -504,9 +507,20 @@ async function addSubmission(raw, persistFile = false) {
   if (state.seenIds.has(id)) return null;
   state.seenIds.add(id);
 
+  const stage = String(raw.stage || "Stufe 2");
   const question = String(raw.question || "").trim();
   const aiAnswer = String(raw.ai_answer || "").trim();
   const evaluation = evaluateDeterministic(question, aiAnswer);
+  if (
+    (stage === "Wahl-Mission" || stage === "Prompt-Labor") &&
+    evaluation.status === "nicht_belegt" &&
+    evaluation.evidence.length === 0 &&
+    evaluation.matchedRatio === 0
+  ) {
+    evaluation.status = "notiz";
+    evaluation.statusLabel = "Freie Workshop-Erkenntnis / Beobachtung";
+    evaluation.isLikelyTrap = false;
+  }
   await runOptionalLlmEvaluation(question, aiAnswer, evaluation);
 
   const item = {
@@ -514,7 +528,7 @@ async function addSubmission(raw, persistFile = false) {
     created_at: raw.created_at || new Date().toISOString(),
     team: String(raw.team || "Unbekanntes Team").trim(),
     track: String(raw.track || "Track A"),
-    stage: String(raw.stage || "Stufe 2"),
+    stage,
     method: String(raw.method || "Frei"),
     question,
     ai_answer: aiAnswer,

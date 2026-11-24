@@ -19,6 +19,7 @@ interface ArchitectureLayerStackProps {
   primingTemplate: string;
   track?: "A" | "B";
   trackBAgentsTemplate?: string;
+  onCopyTemplate?: () => void;
 }
 
 export function ArchitectureLayerStack({
@@ -26,6 +27,7 @@ export function ArchitectureLayerStack({
   primingTemplate,
   track = "A",
   trackBAgentsTemplate,
+  onCopyTemplate,
 }: ArchitectureLayerStackProps) {
   const [activeIdx, setActiveIdx] = useState<number>(2); // Default: System-Prompt / AGENTS.md
   const active = layers[activeIdx] || layers[0];
@@ -38,47 +40,50 @@ export function ArchitectureLayerStack({
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
             <Layers className="h-3.5 w-3.5" />
-            Steuerungs-Architektur
+            Teil 2 · Dauerhafte Basis-Regeln (Steuerungs-Ebenen)
           </div>
           <h3 className="text-xl font-bold tracking-tight">
-            Vom User-Prompt zum verlässlichen KI-System
+            {isTrackB
+              ? "Vom User-Prompt zur System-Regel (AGENTS.md)"
+              : "Zweites Experiment (im neuen Chat): Basis-Regeln am Chat-Start"}
           </h3>
           <p className="editorial-measure text-sm text-muted-foreground">
-            Wähle eine Ebene, um zu sehen, wie Browser-Priming, dauerhafte System-Regeln (AGENTS.md),
-            Leitplanken und Werkzeuge (MCP) zusammenspielen.
+            {isTrackB
+              ? "Wähle eine Ebene, um zu sehen, wie System-Regeln (AGENTS.md), Leitplanken und Werkzeuge (MCP) zusammenspielen."
+              : "Im ersten Test musstest du Regeln jedes Mal neu dazuschreiben. Kopiere für einen neuen Chat zuerst diese Basis-Regeln als Start-Nachricht — ab dann gelten Quellenpflicht und Struktur automatisch."}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <CopyButton
             text={activeTemplate}
-            label={isTrackB ? "AGENTS.md (Stufe 2) kopieren" : "Track A Priming kopieren"}
-            toastMessage={isTrackB ? "AGENTS.md (Stufe 2) in Zwischenablage kopiert" : "Priming-Vorlage in Zwischenablage kopiert"}
+            label={isTrackB ? "AGENTS.md (Stufe 2) kopieren" : "1 · Chat-Basis-Regeln kopieren"}
+            toastMessage={isTrackB ? "AGENTS.md (Stufe 2) in Zwischenablage kopiert" : "Chat-Basis-Regeln in Zwischenablage kopiert"}
             variant="secondary"
+            onCopy={onCopyTemplate}
           />
           <Sheet>
             <SheetTrigger asChild>
               <Button type="button" size="sm" variant="outline">
                 <Eye className="h-3.5 w-3.5" />
-                <span>{isTrackB ? "System-Regel ansehen" : "Vorlage ansehen"}</span>
+                <span>{isTrackB ? "System-Regel ansehen" : "Regeltext ansehen"}</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="overflow-y-auto">
               <SheetHeader>
                 <SheetTitle>
-                  {isTrackB ? "Track B · AGENTS.md System-Regel (Stufe 2)" : "Track A Priming-Vorlage"}
+                  {isTrackB ? "Track B · AGENTS.md System-Regel (Stufe 2)" : "Chat-Basis-Regeln (am Chat-Start senden)"}
                 </SheetTitle>
                 <SheetDescription>
                   {isTrackB ? (
                     <>
                       Diese Datei steuert deinen CLI-Agenten automatisch im Ordner{" "}
-                      <code>stufe-2-skills-guardrails/</code>. Für Browser-Chats nutzt Track A alternativ
-                      eine Priming-Nachricht.
+                      <code>stufe-2-skills-guardrails/</code>.
                     </>
                   ) : (
                     <>
-                      Als erste Nachricht im Browser-Chat oder als Custom Instruction einfügen. In Track B
-                      übernimmt <code>AGENTS.md</code> diese Rolle automatisch.
+                      Öffne einen neuen Chat in ChatGPT, Claude oder Gemini, füge zuerst diesen Text ein
+                      und sende danach deine Texte und Fragen.
                     </>
                   )}
                 </SheetDescription>
@@ -86,8 +91,9 @@ export function ArchitectureLayerStack({
               <div className="mt-5 space-y-4">
                 <CopyButton
                   text={activeTemplate}
-                  label={isTrackB ? "AGENTS.md kopieren" : "Vollständiges Priming kopieren"}
+                  label={isTrackB ? "AGENTS.md kopieren" : "Basis-Regeln kopieren"}
                   variant="default"
+                  onCopy={onCopyTemplate}
                 />
                 <pre className="whitespace-pre-wrap break-words rounded-xl border bg-muted/40 p-4 font-mono text-xs leading-relaxed">
                   {activeTemplate}
