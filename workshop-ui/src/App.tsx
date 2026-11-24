@@ -1,7 +1,10 @@
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { Toaster } from "sonner";
-import { BeamerApp } from "@/pages/BeamerApp";
-import { ParticipantApp } from "@/pages/ParticipantApp";
+
+const BeamerApp = lazy(() => import("@/pages/BeamerApp").then((m) => ({ default: m.BeamerApp })));
+const ParticipantApp = lazy(() =>
+  import("@/pages/ParticipantApp").then((m) => ({ default: m.ParticipantApp }))
+);
 
 function detectIsBeamer(): boolean {
   if (typeof window === "undefined") return false;
@@ -26,7 +29,9 @@ export function App() {
 
   return (
     <>
-      {isBeamer ? <BeamerApp /> : <ParticipantApp />}
+      <Suspense fallback={<div className="min-h-dvh bg-background" />}>
+        {isBeamer ? <BeamerApp /> : <ParticipantApp />}
+      </Suspense>
       <Toaster
         position="bottom-right"
         richColors

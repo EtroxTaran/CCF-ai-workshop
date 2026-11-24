@@ -388,7 +388,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                 key={f.id}
                 type="button"
                 onClick={() => setCategory(f.id)}
-                className={`min-h-[34px] shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`min-h-[38px] shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
                   category === f.id
                     ? "bg-[#A9C23F] text-[#0B0F0A]"
                     : "text-[#9FA998] hover:text-[#F2F4EE]"
@@ -403,7 +403,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
             <button
               type="button"
               onClick={() => setViewMode("graph")}
-              className={`inline-flex min-h-[34px] items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium ${
+              className={`inline-flex min-h-[38px] items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium ${
                 viewMode === "graph" ? "bg-[#1B2419] text-[#A9C23F]" : "text-[#9FA998]"
               }`}
             >
@@ -413,7 +413,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
             <button
               type="button"
               onClick={() => setViewMode("list")}
-              className={`inline-flex min-h-[34px] items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium ${
+              className={`inline-flex min-h-[38px] items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium ${
                 viewMode === "list" ? "bg-[#1B2419] text-[#A9C23F]" : "text-[#9FA998]"
               }`}
             >
@@ -454,7 +454,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
               <button
                 type="button"
                 onClick={() => setZoom((z) => Math.max(0.85, Number((z - 0.2).toFixed(2))))}
-                className="inline-flex h-9 w-9 items-center justify-center rounded text-[#9FA998] hover:bg-[#1B2419] hover:text-[#F2F4EE]"
+                className="inline-flex h-10 w-10 items-center justify-center rounded text-[#9FA998] hover:bg-[#1B2419] hover:text-[#F2F4EE]"
                 title="Herauszoomen"
                 aria-label="Herauszoomen"
               >
@@ -463,7 +463,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
               <button
                 type="button"
                 onClick={() => setZoom(1)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded text-[#9FA998] hover:bg-[#1B2419] hover:text-[#F2F4EE]"
+                className="inline-flex h-10 w-10 items-center justify-center rounded text-[#9FA998] hover:bg-[#1B2419] hover:text-[#F2F4EE]"
                 title="Zoom zurücksetzen"
                 aria-label="Zoom zurücksetzen"
               >
@@ -472,7 +472,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
               <button
                 type="button"
                 onClick={() => setZoom((z) => Math.min(2.2, Number((z + 0.2).toFixed(2))))}
-                className="inline-flex h-9 w-9 items-center justify-center rounded text-[#9FA998] hover:bg-[#1B2419] hover:text-[#F2F4EE]"
+                className="inline-flex h-10 w-10 items-center justify-center rounded text-[#9FA998] hover:bg-[#1B2419] hover:text-[#F2F4EE]"
                 title="Heranzoomen"
                 aria-label="Heranzoomen"
               >
@@ -717,7 +717,6 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                 const n = bySlug.get(step);
                 return (
                   <span key={`${step}-${i}`} className="inline-flex shrink-0 items-center gap-1">
-                    {i > 0 && <ArrowRight className="h-3 w-3 text-[#586B12]" />}
                     <button
                       type="button"
                       onClick={() => setSelectedSlug(step)}
@@ -725,6 +724,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                     >
                       {n?.title || step}
                     </button>
+                    {i < trail.length - 1 && <ArrowRight className="h-3 w-3 text-[#586B12]" />}
                   </span>
                 );
               })}

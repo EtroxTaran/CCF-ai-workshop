@@ -46,11 +46,58 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { offlineSearchVault, offlineVerifyClaim } from "@/lib/offlineSearch";
 import type { EvidenceMatch, StageState, WorkshopDataset } from "@/types/workshop";
 
 const data = rawData as unknown as WorkshopDataset;
 
 type StepId = "start" | "methods" | "stages" | "mcp" | "missions";
+const VALID_STEPS = new Set<StepId>(["start", "methods", "stages", "mcp", "missions"]);
+
+interface PersistedUiState {
+  step: StepId;
+  track: "A" | "B";
+  teamName: string;
+  checked: Record<string, boolean>;
+  activeStageIdx: number;
+}
+
+function readInitialUiState(): PersistedUiState {
+  const defaults: PersistedUiState = {
+    step: "start",
+    track: "A",
+    teamName: "Tisch 1",
+    checked: {},
+    activeStageIdx: 0,
+  };
+  if (typeof window === "undefined") return defaults;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("v7-ccf-workshop-state-v1");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (parsed.track === "A" || parsed.track === "B") defaults.track = parsed.track;
+      if (typeof parsed.teamName === "string") defaults.teamName = parsed.teamName;
+      if (parsed.checked && typeof parsed.checked === "object") defaults.checked = parsed.checked;
+      if (typeof parsed.step === "string" && VALID_STEPS.has(parsed.step as StepId)) {
+        defaults.step = parsed.step as StepId;
+      }
+      if (
+        typeof parsed.activeStageIdx === "number" &&
+        parsed.activeStageIdx >= 0 &&
+        parsed.activeStageIdx < data.stages.length
+      ) {
+        defaults.activeStageIdx = parsed.activeStageIdx;
+      }
+    }
+  } catch {
+    // ignore storage errors
+  }
+  const hashStep = window.location.hash.replace(/^#/, "") as StepId;
+  if (VALID_STEPS.has(hashStep)) {
+    defaults.step = hashStep;
+  }
+  return defaults;
+}
 
 function renderInlineCode(text: string) {
   const parts = String(text || "").split(/(`[^`]+`)/g);
@@ -93,11 +140,12 @@ const CHECKLIST_ITEMS = [
 const STORAGE_KEY = "v7-ccf-workshop-state-v2";
 
 export function ParticipantApp() {
-  const [step, setStep] = useState<StepId>("start");
-  const [track, setTrack] = useState<"A" | "B">("A");
-  const [teamName, setTeamName] = useState<string>("Tisch 1");
-  const [checked, setChecked] = useState<Record<string, boolean>>({});
-  const [activeStageIdx, setActiveStageIdx] = useState<number>(0);
+  const [initialState] = useState<PersistedUiState>(() => readInitialUiState());
+  const [step, setStep] = useState<StepId>(initialState.step);
+  const [track, setTrack] = useState<"A" | "B">(initialState.track);
+  const [teamName, setTeamName] = useState<string>(initialState.teamName);
+  const [checked, setChecked] = useState<Record<string, boolean>>(initialState.checked);
+  const [activeStageIdx, setActiveStageIdx] = useState<number>(initialState.activeStageIdx);
 
   // Live synced Beamer stage companion
   const [liveStage, setLiveStage] = useState<StageState | null>(null);
@@ -123,25 +171,23 @@ export function ParticipantApp() {
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("v7-ccf-workshop-state-v1");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.track === "A" || parsed.track === "B") setTrack(parsed.track);
-        if (typeof parsed.teamName === "string") setTeamName(parsed.teamName);
-        if (parsed.checked && typeof parsed.checked === "object") setChecked(parsed.checked);
-      }
-    } catch {
-      // ignore storage errors
-    }
-  }, []);
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ track, teamName, checked }));
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ track, teamName, checked, step, activeStageIdx })
+      );
     } catch {
       // ignore
     }
-  }, [track, teamName, checked]);
+  }, [track, teamName, checked, step, activeStageIdx]);
+
+  useEffect(() => {
+    function onHashChange() {
+      const hashStep = window.location.hash.replace(/^#/, "") as StepId;
+      if (VALID_STEPS.has(hashStep)) setStep(hashStep);
+    }
+    window.addEventListener("hashchange", onHashChange);
+    return () => window.removeEventListener("hashchange", onHashChange);
+  }, []);
 
   useEffect(() => {
     fetch("/api/health")
@@ -207,6 +253,9 @@ export function ParticipantApp() {
 
   function goToStep(next: StepId) {
     setStep(next);
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/beamer")) {
+      window.history.replaceState(null, "", `#${next}`);
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -245,25 +294,7 @@ export function ParticipantApp() {
     } catch {
       // local fallback
     }
-    const qTokens = q.toLowerCase().split(/\s+/).filter((t) => t.length >= 3);
-    const localMatches: EvidenceMatch[] = data.vaultArticles
-      .map((a) => {
-        const hay = `${a.title} ${a.habitat} ${a.summary} ${a.tags.join(" ")}`.toLowerCase();
-        const score = qTokens.reduce((acc, t) => acc + (hay.includes(t) ? 10 : 0), 0);
-        return {
-          slug: a.slug,
-          title: a.title,
-          wikilink: `[[${a.slug}|${a.title}]]`,
-          rel_path: `wiki/${a.category === "lebensraum" ? "lebensraeume" : a.category === "tierart" ? "tierarten" : "konzepte"}/${a.slug}.md`,
-          source_file: a.source_file,
-          snippet: a.summary,
-          score,
-        };
-      })
-      .filter((m) => m.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 5);
-    setMcpResults(localMatches);
+    setMcpResults(offlineSearchVault(q, data.vaultArticles, data.starterArticles, 5));
   }
 
   async function runMcpVerify(customClaim?: string) {
@@ -288,36 +319,7 @@ export function ParticipantApp() {
     } catch {
       // fallback
     }
-    const tokens = c
-      .toLowerCase()
-      .replace(/[^a-z0-9äöüß\s]/g, " ")
-      .split(/\s+/)
-      .filter((t) => t.length >= 4);
-    const hits = data.starterArticles
-      .map((a) => {
-        const hay = a.content.toLowerCase();
-        const count = tokens.filter((t) => hay.includes(t)).length;
-        return {
-          slug: a.slug,
-          title: a.title,
-          wikilink: `[[${a.slug}|${a.title}]]`,
-          rel_path: `docs/${a.slug}.md`,
-          source_file: `raw/${a.slug}.md`,
-          snippet: a.content.split("\n").find((l) => l.trim() && !l.startsWith("#")) || "",
-          score: count,
-        };
-      })
-      .filter((m) => m.score > 0)
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 3);
-    setVerifyOutput({
-      status: hits.length > 0 && hits[0].score >= 2 ? "belegt" : "nicht_belegt",
-      label:
-        hits.length > 0 && hits[0].score >= 2
-          ? "Starke Übereinstimmung im Starter-Korpus."
-          : "Keine eindeutigen Belege gefunden (mögliche Fangfrage).",
-      evidence: hits,
-    });
+    setVerifyOutput(offlineVerifyClaim(c, data.vaultArticles, data.starterArticles));
   }
 
   const stepIndex = STEPS.findIndex((s) => s.id === step);
@@ -330,7 +332,7 @@ export function ParticipantApp() {
     <div className="min-h-dvh bg-background text-foreground">
       {/* Slim Single-Row Sticky Header (56px) */}
       <header className="sticky top-0 z-40 h-14 border-b bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-full max-w-[1320px] items-center justify-between gap-2 px-3 sm:px-4">
+        <div className="mx-auto flex h-full max-w-[1320px] items-center justify-between gap-2 px-2.5 sm:px-4">
           <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
             <Virtual7Logo compact className="sm:hidden" />
             <Virtual7Logo className="hidden h-7 sm:block" />
@@ -347,7 +349,7 @@ export function ParticipantApp() {
               <button
                 type="button"
                 onClick={() => setTrack("A")}
-                className={`min-h-[34px] min-w-[30px] rounded-md px-2.5 py-1 font-medium transition-colors ${
+                className={`min-h-[38px] min-w-[34px] rounded-md px-2.5 py-1 font-medium transition-colors ${
                   track === "A" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                 }`}
                 title="Track A: Browser & Web-Chat"
@@ -358,7 +360,7 @@ export function ParticipantApp() {
               <button
                 type="button"
                 onClick={() => setTrack("B")}
-                className={`min-h-[34px] min-w-[30px] rounded-md px-2.5 py-1 font-medium transition-colors ${
+                className={`min-h-[38px] min-w-[34px] rounded-md px-2.5 py-1 font-medium transition-colors ${
                   track === "B" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
                 }`}
                 title="Track B: Terminal, IDE & Agent"
@@ -375,7 +377,7 @@ export function ParticipantApp() {
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="num-tabular h-9 gap-1.5 px-2.5 text-xs"
+                  className="num-tabular h-10 gap-1.5 px-2.5 text-xs"
                   title="Fortschritt & Team-Einstellungen"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5 text-brand-ink" />
@@ -427,7 +429,7 @@ export function ParticipantApp() {
             <Button
               type="button"
               size="sm"
-              className="h-9 gap-1.5 px-2.5 text-xs sm:px-3"
+              className="h-10 gap-1.5 px-2.5 text-xs sm:px-3"
               onClick={() => openBeamerSheet()}
             >
               <Send className="h-3.5 w-3.5" />
@@ -437,7 +439,7 @@ export function ParticipantApp() {
 
             <a
               href="/beamer"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               title="Zur Beamer-Ansicht wechseln"
               aria-label="Zur Beamer-Ansicht wechseln"
             >
