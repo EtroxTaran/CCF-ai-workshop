@@ -1,21 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
-  Bot,
   Check,
   CheckCircle2,
   Compass,
-  Cpu,
+  Eye,
   FileCode2,
+  FolderOpen,
+  Globe,
+  HelpCircle,
   Layers,
   Monitor,
   Network,
-  Plug,
   RotateCcw,
-  Send,
   ShieldCheck,
   Sparkles,
   Terminal,
@@ -23,7 +23,6 @@ import {
 } from "lucide-react";
 import rawData from "@/data/workshopData.json";
 import { ArchitectureLayerStack } from "@/components/ArchitectureLayerStack";
-import { BeamerSendSheet, type BeamerPrefill } from "@/components/BeamerSendSheet";
 import { CopyButton } from "@/components/CopyButton";
 import { ObsidianKnowledgeGraph } from "@/components/ObsidianKnowledgeGraph";
 import { PromptMethodComparator } from "@/components/PromptMethodComparator";
@@ -31,11 +30,26 @@ import { StageArtifactsSheet } from "@/components/StageArtifactsSheet";
 import { StageBackdrop } from "@/components/StageBackdrop";
 import { StageMiniDiagram } from "@/components/StageMiniDiagram";
 import { Virtual7Logo } from "@/components/Virtual7Logo";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { GuardrailShieldAnimatic } from "@/components/guidance/GuardrailShieldAnimatic";
+import { HeroBeforeAfterAnimatic } from "@/components/guidance/HeroBeforeAfterAnimatic";
+import { McpPacketAnimatic } from "@/components/guidance/McpPacketAnimatic";
+import {
+  ONBOARDING_STORAGE_KEY,
+  OnboardingTour,
+} from "@/components/guidance/OnboardingTour";
+import { ToolHotspotGuide } from "@/components/guidance/ToolHotspotGuide";
+import { Stage3AgentWalkPlayer } from "@/components/guidance/WalkthroughPlayers";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
@@ -48,46 +62,71 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { offlineSearchVault, offlineVerifyClaim } from "@/lib/offlineSearch";
-import type { EvidenceMatch, StageState, WorkshopDataset } from "@/types/workshop";
+import type {
+  EvidenceMatch,
+  ToolMode,
+  VerifyClaimResult,
+  WorkshopDataset,
+  WorkshopStepId,
+} from "@/types/workshop";
 
 const data = rawData as unknown as WorkshopDataset;
 
-type StepId = "start" | "methods" | "stages" | "mcp" | "missions";
-const VALID_STEPS = new Set<StepId>(["start", "methods", "stages", "mcp", "missions"]);
+const VALID_STEPS = new Set<WorkshopStepId>(["start", "methods", "stages", "paths"]);
+const VALID_MODES = new Set<ToolMode>(["web", "desktop", "agent"]);
 
 interface PersistedUiState {
-  step: StepId;
-  track: "A" | "B";
-  teamName: string;
+  step: WorkshopStepId;
+  toolMode: ToolMode;
   checked: Record<string, boolean>;
+  reflections: Record<string, boolean>;
+  showAllQuestions: boolean;
   activeStageIdx: number;
 }
 
-const STORAGE_KEY = "v7-ccf-workshop-state-v2";
-const SESSION_KEY = "v7-ccf-workshop-session-v1";
+const STORAGE_KEY = "v7-ccf-workshop-state-v3";
+const SESSION_KEY = "v7-ccf-workshop-session-v2";
+
+function parseHashStep(): WorkshopStepId | null {
+  if (typeof window === "undefined") return null;
+  const rawHash = window.location.hash;
+  if (!rawHash || rawHash === "#" || rawHash === "#/") return null;
+  if (/^#\/beamer(?:[/?#]|$)/.test(rawHash)) return null;
+  const normalized = rawHash.replace(/^#\/?/, "") as WorkshopStepId;
+  return VALID_STEPS.has(normalized) ? normalized : null;
+}
 
 function readInitialUiState(): PersistedUiState {
   const defaults: PersistedUiState = {
     step: "start",
-    track: "A",
-    teamName: "Tisch 1",
+    toolMode: "web",
     checked: {},
+    reflections: {},
+    showAllQuestions: false,
     activeStageIdx: 0,
   };
   if (typeof window === "undefined") return defaults;
   try {
-    const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem("v7-ccf-workshop-state-v1");
+    const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed.track === "A" || parsed.track === "B") defaults.track = parsed.track;
-      if (typeof parsed.teamName === "string") defaults.teamName = parsed.teamName;
+      if (VALID_MODES.has(parsed.toolMode)) defaults.toolMode = parsed.toolMode;
       if (parsed.checked && typeof parsed.checked === "object") defaults.checked = parsed.checked;
+      if (parsed.reflections && typeof parsed.reflections === "object") {
+        defaults.reflections = parsed.reflections;
+      }
+      if (typeof parsed.showAllQuestions === "boolean") {
+        defaults.showAllQuestions = parsed.showAllQuestions;
+      }
     }
     const sessionSaved = sessionStorage.getItem(SESSION_KEY);
     if (sessionSaved) {
       const parsedSession = JSON.parse(sessionSaved);
-      if (typeof parsedSession.step === "string" && VALID_STEPS.has(parsedSession.step as StepId)) {
-        defaults.step = parsedSession.step as StepId;
+      if (
+        typeof parsedSession.step === "string" &&
+        VALID_STEPS.has(parsedSession.step as WorkshopStepId)
+      ) {
+        defaults.step = parsedSession.step as WorkshopStepId;
       }
       if (
         typeof parsedSession.activeStageIdx === "number" &&
@@ -100,8 +139,8 @@ function readInitialUiState(): PersistedUiState {
   } catch {
     // ignore storage errors
   }
-  const hashStep = window.location.hash.replace(/^#/, "") as StepId;
-  if (VALID_STEPS.has(hashStep)) {
+  const hashStep = parseHashStep();
+  if (hashStep) {
     defaults.step = hashStep;
   }
   return defaults;
@@ -126,127 +165,134 @@ function parseWikilink(raw: string, fallbackSlug: string, fallbackTitle?: string
   return { slug: fallbackSlug, title: fallbackTitle || fallbackSlug };
 }
 
-const STEPS: { id: StepId; num: string; label: string; short: string; icon: typeof Compass }[] = [
-  { id: "start", num: "01", label: "Start & Track", short: "Start", icon: Compass },
-  { id: "methods", num: "02", label: "Methoden & Ebenen", short: "Methoden", icon: Layers },
-  { id: "stages", num: "03", label: "Stufen 1 → 2 → 3", short: "Stufen", icon: BookOpen },
-  { id: "mcp", num: "04", label: "Tools & MCP", short: "MCP", icon: Plug },
-  { id: "missions", num: "05", label: "Wahl-Missionen", short: "Missionen", icon: Sparkles },
+const STEP_ICONS: Record<WorkshopStepId, typeof Compass> = {
+  start: Compass,
+  methods: Layers,
+  stages: BookOpen,
+  paths: Sparkles,
+};
+
+const MODE_ICONS: Record<ToolMode, typeof Globe> = {
+  web: Globe,
+  desktop: FolderOpen,
+  agent: Terminal,
+};
+
+const CHECKLIST_ITEMS: { id: string; stepId: WorkshopStepId; label: string }[] = [
+  { id: "chk-setup", stepId: "start", label: "Werkzeug-Hilfe (Web-Chat, Desktop & Ordner oder Code-Agent) gewählt" },
+  { id: "chk-methods", stepId: "methods", label: "Prompt-Methoden (Zero-Shot vs. CO-STAR/Few-Shot/RISEN) verglichen" },
+  { id: "chk-rules", stepId: "methods", label: "Steuerungs-Ebenen & Kontext-Tank getestet" },
+  { id: "chk-stages", stepId: "stages", label: "3-Stufen-Experiment inkl. Fangfrage 3 & 38-Zähne-Check getestet" },
+  { id: "chk-reflect", stepId: "stages", label: "Eigene Beobachtung per Reflexions-Pill festgehalten" },
+  { id: "chk-path", stepId: "paths", label: "Praxis-Pfad oder 68-Artikel-Faktenprüfer ausprobiert" },
+  { id: "chk-transfer", stepId: "paths", label: "CCF-Transfer-Brücke für die eigene Rolle angesehen" },
 ];
 
-const CHECKLIST_ITEMS = [
-  { id: "chk-setup", label: "Track (Chat oder CLI) gewählt & Teamnamen notiert" },
-  { id: "chk-methods", label: "Prompt-Methoden (Standard vs. CO-STAR/Few-Shot/RISEN) getestet" },
-  { id: "chk-priming", label: "Regel-Ebene (Chat-Basis-Regeln) ausprobiert" },
-  { id: "chk-s1", label: "Stufe 1 (Ohne Regeln): Fragen 1–3 getestet & Lücken bemerkt" },
-  { id: "chk-s2", label: "Stufe 2 (Klare Regeln): Regeltext & Fangfrage 3 geprüft" },
-  { id: "chk-s3", label: "Stufe 3 (Wissensnetz): Inhaltsverzeichnis & Graph für Frage 2 genutzt" },
-  { id: "chk-mission", label: "Live-Prüftools (Step 04) oder eine Wahl-Mission (Step 05) getestet" },
-  { id: "chk-beamer", label: "Frage oder Ergebnis auf der Raum-Leinwand geteilt" },
+const REFLECTION_PILLS: { id: string; label: string; hint: string }[] = [
+  {
+    id: "ref-guessed",
+    label: "KI hat geraten",
+    hint: "In Stufe 1 ohne Regeln hat das Modell fehlende Fakten einfach ergänzt.",
+  },
+  {
+    id: "ref-rejected",
+    label: "Regel hat abgelehnt",
+    hint: "In Stufe 2/3 hat der Guardrail Fangfrage 3 (Schneeleopard) sauber abgefangen.",
+  },
+  {
+    id: "ref-linked",
+    label: "Belege sauber verknüpft",
+    hint: "In Stufe 3 wurden Querverweise und Dateinamen transparent mitgeliefert.",
+  },
 ];
 
 export function ParticipantApp() {
+  const prefersReduced = useReducedMotion();
   const [initialState] = useState<PersistedUiState>(() => readInitialUiState());
-  const [step, setStep] = useState<StepId>(initialState.step);
-  const [track, setTrack] = useState<"A" | "B">(initialState.track);
-  const [teamName, setTeamName] = useState<string>(initialState.teamName);
+  const [step, setStep] = useState<WorkshopStepId>(initialState.step);
+  const [toolMode, setToolMode] = useState<ToolMode>(initialState.toolMode);
   const [checked, setChecked] = useState<Record<string, boolean>>(initialState.checked);
+  const [reflections, setReflections] = useState<Record<string, boolean>>(initialState.reflections);
+  const [showAllQuestions, setShowAllQuestions] = useState<boolean>(
+    initialState.showAllQuestions
+  );
   const [activeStageIdx, setActiveStageIdx] = useState<number>(initialState.activeStageIdx);
 
-  // Live synced Beamer stage companion
-  const [liveStage, setLiveStage] = useState<StageState | null>(null);
-  const [syncedSec, setSyncedSec] = useState<number>(600);
+  const [checklistOpen, setChecklistOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(false);
+  const [showGraphEarly, setShowGraphEarly] = useState(false);
+  const [graphSelectedSlug, setGraphSelectedSlug] = useState<string | undefined>(undefined);
+  const [q4SimulatedMutated, setQ4SimulatedMutated] = useState(true);
+  const [activePathId, setActivePathId] = useState<string>(data.praxisPaths[0]?.id || "pfad-recherche");
 
-  // Send-to-Beamer global drawer
-  const [sendOpen, setSendOpen] = useState(false);
-  const [sendPrefill, setSendPrefill] = useState<BeamerPrefill | null>(null);
-  const [githubRepoSlug, setGithubRepoSlug] = useState("");
-
-  // MCP Playground state
+  // Step 04 In-Browser 68-Article Search & Claim Verifier state
+  const [labTab, setLabTab] = useState<"search" | "verify">("search");
   const [mcpQuery, setMcpQuery] = useState("Anemonenfische Seeanemonen Symbiose");
   const [mcpResults, setMcpResults] = useState<EvidenceMatch[] | null>(null);
   const [verifyClaim, setVerifyClaim] = useState(
     "Eisbärentalg enthält kein Squalen und verhindert dadurch das Gefrieren des Fells."
   );
-  const [verifyOutput, setVerifyOutput] = useState<{
-    status: string;
-    label: string;
-    evidence: EvidenceMatch[];
-  } | null>(null);
+  const [verifyOutput, setVerifyOutput] = useState<VerifyClaimResult | null>(null);
   const [mcpActiveHop, setMcpActiveHop] = useState<number>(0);
 
+  // Persist state in localStorage + sessionStorage
   useEffect(() => {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ track, teamName, checked }));
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({ toolMode, checked, reflections, showAllQuestions })
+      );
       sessionStorage.setItem(SESSION_KEY, JSON.stringify({ step, activeStageIdx }));
     } catch {
-      // ignore
+      // ignore storage errors
     }
-  }, [track, teamName, checked, step, activeStageIdx]);
+  }, [toolMode, checked, reflections, showAllQuestions, step, activeStageIdx]);
 
+  // First-visit OnboardingTour auto-open
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      if (localStorage.getItem(ONBOARDING_STORAGE_KEY) === "1") return;
+    } catch {
+      return;
+    }
+    if (step !== "start") return;
+    const t = window.setTimeout(() => setTourOpen(true), 450);
+    return () => window.clearTimeout(t);
+  }, [step]);
+
+  // Hash synchronization
   useEffect(() => {
     function onHashChange() {
-      const hashStep = window.location.hash.replace(/^#/, "") as StepId;
-      if (VALID_STEPS.has(hashStep)) setStep(hashStep);
+      const rawHash = window.location.hash;
+      if (/^#\/beamer(?:[/?#]|$)/.test(rawHash)) return;
+      if (!rawHash || rawHash === "#" || rawHash === "#/") {
+        setStep("start");
+        return;
+      }
+      const parsed = parseHashStep();
+      if (parsed) setStep(parsed);
     }
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
   }, []);
 
-  useEffect(() => {
-    fetch("/api/health")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((h) => {
-        if (h?.githubRepo) setGithubRepoSlug(h.githubRepo);
-      })
-      .catch(() => undefined);
-
-    const es = new EventSource("/api/events");
-    es.addEventListener("stage", (ev) => {
-      try {
-        const st = JSON.parse((ev as MessageEvent).data) as StageState;
-        setLiveStage(st);
-        setSyncedSec(st.secondsLeft);
-      } catch {
-        // ignore
-      }
-    });
-    return () => es.close();
-  }, []);
-
-  useEffect(() => {
-    if (!liveStage?.running) return;
-    const id = window.setInterval(() => {
-      setSyncedSec((s) => (s > 0 ? s - 1 : 0));
-    }, 1000);
-    return () => window.clearInterval(id);
-  }, [liveStage?.running, liveStage?.updatedAt]);
-
-  function mapPhaseToStep(phaseIdx: number): { step: StepId; stageIdx?: number } {
-    if (phaseIdx <= 1) return { step: "start" };
-    if (phaseIdx === 2) return { step: "methods" };
-    if (phaseIdx === 3) return { step: "stages", stageIdx: 1 };
-    if (phaseIdx === 4) return { step: "stages", stageIdx: 2 };
-    return { step: "missions" };
-  }
-
-  function formatCompactTime(sec: number): string {
-    const safe = Math.max(0, Math.floor(sec));
-    const m = Math.floor(safe / 60);
-    const s = safe % 60;
-    return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-  }
-
-  const completedCount = useMemo(
-    () => CHECKLIST_ITEMS.filter((item) => checked[item.id]).length,
-    [checked]
+  const methodsExpressPack = useMemo(
+    () =>
+      data.expressPackages.find((p) => p.id === "methods") || data.expressPackages[0],
+    []
+  );
+  const stagesExpressPack = useMemo(
+    () =>
+      data.expressPackages.find((p) => p.id === "stages-arctic-reef") ||
+      data.expressPackages[1] ||
+      data.expressPackages[0],
+    []
   );
 
-  const trackAPacks = useMemo(() => {
+  const stagePacks = useMemo(() => {
     const formatArticle = (a: (typeof data.starterArticles)[number]) =>
-      track === "A"
-        ? `=== ARTIKEL: ${a.title} ===\n${a.content}`
-        : `=== DATEI: docs/${a.slug}.md ===\n${a.content}`;
+      `=== ${a.title} (${a.slug}.md) ===\n${a.content}\n[Quelle: ${a.slug}.md]`;
     const pick = (slugs: string[]) =>
       data.starterArticles
         .filter((a) => slugs.includes(a.slug))
@@ -254,115 +300,142 @@ export function ParticipantApp() {
         .join("\n\n");
     return {
       arctic: pick(["eisbaer", "arktis", "ringelrobbe", "klimawandel"]),
-      reef: pick(["anemonenfische", "seeanemonen", "symbiose", "steinkorallen", "korallenbleiche", "korallenriff"]),
+      reef: pick([
+        "anemonenfische",
+        "seeanemonen",
+        "symbiose",
+        "steinkorallen",
+        "korallenbleiche",
+        "korallenriff",
+      ]),
       all12: data.starterArticles.map(formatArticle).join("\n\n"),
     };
-  }, [track]);
+  }, []);
+
+  const completedCount = useMemo(
+    () => CHECKLIST_ITEMS.filter((item) => checked[item.id]).length,
+    [checked]
+  );
+  const progressPct = Math.round((completedCount / CHECKLIST_ITEMS.length) * 100);
 
   function markChecked(id: string) {
     setChecked((prev) => (prev[id] ? prev : { ...prev, [id]: true }));
-  }
-
-  function resetProgress() {
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-      localStorage.removeItem("v7-ccf-workshop-state-v1");
-      sessionStorage.removeItem(SESSION_KEY);
-    } catch {
-      // ignore
-    }
-    setTrack("A");
-    setTeamName("Tisch 1");
-    setChecked({});
-    setActiveStageIdx(0);
-    setStep("start");
-    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/beamer")) {
-      window.history.replaceState(null, "", "#start");
-    }
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function goToStep(next: StepId) {
-    if (next === "stages" && (step === "start" || step === "methods")) {
-      setActiveStageIdx(0);
-    }
-    setStep(next);
-    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/beamer")) {
-      window.history.replaceState(null, "", `#${next}`);
-    }
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function openBeamerSheet(prefill?: BeamerPrefill) {
-    setSendPrefill(prefill || null);
-    setSendOpen(true);
   }
 
   function toggleCheck(id: string) {
     setChecked((prev) => ({ ...prev, [id]: !prev[id] }));
   }
 
-  function animatePipelinePulse() {
-    setMcpActiveHop(1);
-    window.setTimeout(() => setMcpActiveHop(2), 180);
-    window.setTimeout(() => setMcpActiveHop(3), 360);
-    window.setTimeout(() => setMcpActiveHop(4), 540);
-    window.setTimeout(() => setMcpActiveHop(0), 1400);
+  function toggleReflection(id: string) {
+    setReflections((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      if (Object.values(next).some(Boolean)) {
+        markChecked("chk-reflect");
+      }
+      return next;
+    });
   }
 
-  async function runMcpSearch(customQuery?: string) {
+  function goToStep(next: WorkshopStepId) {
+    // Never clobber activeStageIdx when navigating between steps
+    setStep(next);
+    if (
+      typeof window !== "undefined" &&
+      !/^#\/beamer(?:[/?#]|$)/.test(window.location.hash) &&
+      !window.location.pathname.startsWith("/beamer")
+    ) {
+      const targetHash = next === "start" ? "#/" : `#/${next}`;
+      window.history.replaceState(null, "", targetHash);
+    }
+    window.scrollTo({ top: 0, behavior: prefersReduced ? "auto" : "smooth" });
+  }
+
+  function resetProgress() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      sessionStorage.removeItem(SESSION_KEY);
+    } catch {
+      // ignore
+    }
+    setToolMode("web");
+    setChecked({});
+    setReflections({});
+    setShowAllQuestions(false);
+    setActiveStageIdx(0);
+    setShowGraphEarly(false);
+    setStep("start");
+    if (
+      typeof window !== "undefined" &&
+      !window.location.pathname.startsWith("/beamer")
+    ) {
+      window.history.replaceState(null, "", "#/");
+    }
+    window.scrollTo({ top: 0, behavior: prefersReduced ? "auto" : "smooth" });
+  }
+
+  function animatePipelinePulse() {
+    if (prefersReduced) {
+      setMcpActiveHop(4);
+      return;
+    }
+    setMcpActiveHop(1);
+    window.setTimeout(() => setMcpActiveHop(2), 160);
+    window.setTimeout(() => setMcpActiveHop(3), 320);
+    window.setTimeout(() => setMcpActiveHop(4), 480);
+    window.setTimeout(() => setMcpActiveHop(0), 1500);
+  }
+
+  function runOfflineSearch(customQuery?: string) {
     const q = (customQuery ?? mcpQuery).trim();
     if (customQuery !== undefined) setMcpQuery(customQuery);
-    markChecked("chk-mission");
+    setLabTab("search");
+    markChecked("chk-path");
     animatePipelinePulse();
-    try {
-      const res = await fetch("/api/tools/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: q, limit: 5 }),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        setMcpResults(json.matches || []);
-        return;
-      }
-    } catch {
-      // local fallback
-    }
     setMcpResults(offlineSearchVault(q, data.vaultArticles, data.starterArticles, 5));
   }
 
-  async function runMcpVerify(customClaim?: string) {
+  function runOfflineVerify(customClaim?: string) {
     const c = (customClaim ?? verifyClaim).trim();
     if (customClaim !== undefined) setVerifyClaim(customClaim);
-    markChecked("chk-mission");
+    setLabTab("verify");
+    markChecked("chk-path");
     animatePipelinePulse();
-    try {
-      const res = await fetch("/api/tools/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ claim: c }),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        setVerifyOutput({
-          status: json.status,
-          label: json.statusLabel || json.confidence_label,
-          evidence: json.evidence || [],
-        });
-        return;
-      }
-    } catch {
-      // fallback
-    }
     setVerifyOutput(offlineVerifyClaim(c, data.vaultArticles, data.starterArticles));
   }
 
-  const stepIndex = STEPS.findIndex((s) => s.id === step);
-  const prevStep = stepIndex > 0 ? STEPS[stepIndex - 1] : null;
-  const nextStep = stepIndex < STEPS.length - 1 ? STEPS[stepIndex + 1] : null;
-  const currentStage = data.stages[activeStageIdx];
-  const progressPct = Math.round((completedCount / CHECKLIST_ITEMS.length) * 100);
+  const currentStage = data.stages[activeStageIdx] || data.stages[0];
+  const currentModeNote = currentStage.modeNotes[toolMode];
+  const currentToolModeSpec =
+    data.toolModes.find((m) => m.id === toolMode) || data.toolModes[0];
+  const stepIndex = data.steps.findIndex((s) => s.id === step);
+  const prevStep = stepIndex > 0 ? data.steps[stepIndex - 1] : null;
+  const nextStep = stepIndex < data.steps.length - 1 ? data.steps[stepIndex + 1] : null;
+
+  const visibleQuestions = useMemo(() => {
+    if (showAllQuestions) return data.testQuestions;
+    const byId = new Map(data.testQuestions.map((q) => [q.id, q]));
+    const focused = currentStage.focusQuestionIds
+      .map((id) => byId.get(id))
+      .filter((q): q is (typeof data.testQuestions)[number] => Boolean(q));
+    return focused.length > 0 ? focused : data.testQuestions.slice(0, 2);
+  }, [showAllQuestions, currentStage]);
+
+  const stageWebCopyPayload = useMemo(() => {
+    if (currentStage.id === "stufe-1") {
+      return stagesExpressPack.content;
+    }
+    if (currentStage.id === "stufe-2") {
+      return `${data.chatRulesTemplate}\n\n---\n\n${stagesExpressPack.content}`;
+    }
+    return `${data.chatRulesTemplate}\n\n---\n\n${currentStage.indexMd || ""}\n\n---\n\n${stagesExpressPack.content}`;
+  }, [currentStage, stagesExpressPack]);
+
+  const activePraxisPath =
+    data.praxisPaths.find((p) => p.id === activePathId) || data.praxisPaths[0];
+  const q4Spec = data.testQuestions.find((q) => q.id === "q4") || data.testQuestions[3];
+
+  const ahaSteps = data.steps.filter((s) => s.phaseGroup === "aha-kern");
+  const praxisSteps = data.steps.filter((s) => s.phaseGroup === "praxis-pfad");
 
   return (
     <div className="min-h-dvh bg-background text-foreground">
@@ -375,52 +448,69 @@ export function ParticipantApp() {
             <Separator orientation="vertical" className="hidden h-5 lg:block" />
             <span className="whitespace-nowrap font-display text-sm font-bold tracking-tight">
               <span className="lg:hidden">CCF</span>
-              <span className="hidden lg:inline">Prompt-Werkstatt</span>
+              <span className="hidden lg:inline">Workshop-App</span>
             </span>
           </div>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            {/* Compact Track Segmented Switch */}
-            <div className="inline-flex rounded-lg border bg-muted p-0.5 text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  setTrack("A");
-                  markChecked("chk-setup");
-                }}
-                className={`min-h-[38px] min-w-[34px] rounded-md px-2 py-1 font-medium transition-colors lg:px-2.5 ${
-                  track === "A" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-                }`}
-                title="Track A: Browser & Web-Chat (ohne Installation)"
-              >
-                <span className="lg:hidden">Chat</span>
-                <span className="hidden lg:inline">Track A · Chat</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setTrack("B");
-                  markChecked("chk-setup");
-                }}
-                className={`min-h-[38px] min-w-[34px] rounded-md px-2 py-1 font-medium transition-colors lg:px-2.5 ${
-                  track === "B" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-                }`}
-                title="Track B: Terminal, IDE & CLI-Agent"
-              >
-                <span className="lg:hidden">CLI</span>
-                <span className="hidden lg:inline">Track B · CLI</span>
-              </button>
+            {/* 3-way Werkzeug-Hilfe Switch */}
+            <div
+              data-tour="tool-mode"
+              role="group"
+              aria-label="Werkzeug-Hilfe"
+              className="inline-flex rounded-lg border bg-muted p-0.5 text-xs"
+            >
+              {data.toolModes.map((mode) => {
+                const isActive = toolMode === mode.id;
+                const shortTiny =
+                  mode.id === "web" ? "Web" : mode.id === "desktop" ? "Ordner" : "Agent";
+                return (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    aria-pressed={isActive}
+                    onClick={() => {
+                      setToolMode(mode.id);
+                      markChecked("chk-setup");
+                    }}
+                    title={`${mode.label} (${mode.badge})`}
+                    className={`min-h-[36px] rounded-md px-2 py-1 font-medium transition-colors sm:px-2.5 ${
+                      isActive
+                        ? "bg-card text-foreground shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <span className="md:hidden">{shortTiny}</span>
+                    <span className="hidden md:inline">{mode.shortLabel}</span>
+                  </button>
+                );
+              })}
             </div>
 
-            {/* Checklist & Team Drawer Trigger */}
-            <Sheet>
+            {/* Tour Trigger (?) */}
+            <Button
+              type="button"
+              size="icon"
+              variant="outline"
+              className="h-9 w-9 shrink-0"
+              onClick={() => setTourOpen(true)}
+              aria-label="Orientierungstour öffnen"
+              title="Kurze Orientierungstour (?)"
+            >
+              <HelpCircle className="h-4 w-4 text-brand-ink" />
+            </Button>
+
+            {/* Checklist Drawer Trigger */}
+            <Sheet open={checklistOpen} onOpenChange={setChecklistOpen}>
               <SheetTrigger asChild>
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
-                  className="num-tabular h-10 gap-1.5 px-2 text-xs sm:px-2.5"
-                  title="Deine Workshop-Checkliste öffnen & Fortschritt zurücksetzen"
+                  data-tour="checklist-trigger"
+                  className="num-tabular h-9 gap-1.5 px-2 text-xs sm:px-2.5"
+                  aria-label={`Fortschritt & Checkliste öffnen (${completedCount} von ${CHECKLIST_ITEMS.length})`}
+                  title="Fortschritt & Checkliste öffnen"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5 text-brand-ink" />
                   <span>
@@ -431,40 +521,54 @@ export function ParticipantApp() {
               </SheetTrigger>
               <SheetContent side="right" className="overflow-y-auto">
                 <SheetHeader>
-                  <SheetTitle>Euer Fortschritt ({progressPct}%)</SheetTitle>
+                  <SheetTitle>Dein Fortschritt ({progressPct}%)</SheetTitle>
                   <SheetDescription>
-                    Hakt sich beim Kopieren &amp; Testen automatisch ab (oder manuell). Der Teamname
-                    gilt für geteilte Beiträge auf der Raum-Leinwand.
+                    Hake Erkenntnisse direkt ab oder springe per Klick zum passenden Schritt.
                   </SheetDescription>
                 </SheetHeader>
                 <div className="mt-5 space-y-5">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                      Team / Tisch
-                    </label>
-                    <Input
-                      value={teamName}
-                      onChange={(e) => setTeamName(e.target.value)}
-                      placeholder="z. B. Tisch 1"
-                    />
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs font-medium">
+                      <span>Abschlussgrad</span>
+                      <span className="num-tabular font-mono text-brand-ink">{progressPct} %</span>
+                    </div>
+                    <Progress value={progressPct} />
                   </div>
+
                   <div className="space-y-2">
                     {CHECKLIST_ITEMS.map((item) => (
-                      <label
+                      <div
                         key={item.id}
-                        className="flex cursor-pointer items-start gap-3 rounded-xl border p-3 text-sm hover:bg-muted/40"
+                        className="flex items-start justify-between gap-2 rounded-xl border p-3 text-sm hover:bg-muted/40"
                       >
-                        <Checkbox
-                          checked={!!checked[item.id]}
-                          onCheckedChange={() => toggleCheck(item.id)}
-                          className="mt-0.5"
-                        />
-                        <span className={checked[item.id] ? "line-through text-muted-foreground" : ""}>
-                          {item.label}
-                        </span>
-                      </label>
+                        <label className="flex flex-1 cursor-pointer items-start gap-3">
+                          <Checkbox
+                            checked={!!checked[item.id]}
+                            onCheckedChange={() => toggleCheck(item.id)}
+                            className="mt-0.5"
+                          />
+                          <span
+                            className={
+                              checked[item.id] ? "line-through text-muted-foreground" : ""
+                            }
+                          >
+                            {item.label}
+                          </span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            goToStep(item.stepId);
+                            setChecklistOpen(false);
+                          }}
+                          className="shrink-0 rounded-md border bg-card px-2 py-1 font-mono text-[11px] font-semibold text-brand-ink hover:bg-secondary"
+                        >
+                          Öffnen →
+                        </button>
+                      </div>
                     ))}
                   </div>
+
                   <Separator />
                   <Button
                     type="button"
@@ -480,67 +584,84 @@ export function ParticipantApp() {
               </SheetContent>
             </Sheet>
 
-            {/* Global Send to Beamer CTA */}
-            <Button
-              type="button"
-              size="sm"
-              className="h-10 gap-1.5 px-2 text-xs sm:px-3"
-              title="Optional: Frage oder Aha-Moment auf der Raum-Leinwand teilen"
-              onClick={() => openBeamerSheet()}
-            >
-              <Send className="h-3.5 w-3.5" />
-              <span className="sm:hidden">Teilen</span>
-              <span className="hidden sm:inline">Ergebnis teilen</span>
-            </Button>
-
+            {/* Trainer-Bühne Link (#/beamer) */}
             <a
-              href="/beamer"
-              className="inline-flex h-10 w-9 items-center justify-center rounded-lg border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground sm:w-10"
-              title="Raum-Leinwand ansehen (Beamer-Ansicht)"
-              aria-label="Zur Beamer-Ansicht wechseln"
+              href="#/beamer"
+              data-tour="beamer-link"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+              title="Zur Trainer-Bühne (#/beamer)"
+              aria-label="Zur Trainer-Bühne wechseln"
             >
-              <Monitor className="h-3.5 w-3.5" />
+              <Monitor className="h-4 w-4" />
             </a>
           </div>
         </div>
       </header>
 
-      {/* Main Responsive Shell: Left Step-Rail (lg+) + Calm Guided Canvas */}
+      {/* Main Responsive Shell: Left Step-Rail (lg+) + Guided Canvas */}
       <div className="mx-auto flex max-w-[1320px]">
-        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-[256px] shrink-0 flex-col justify-between border-r px-4 py-8 lg:flex">
-          <nav aria-label="Workshop-Schritte" className="space-y-1.5">
-            <div className="px-3 pb-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-              Lernpfad (11:00–12:00)
+        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-[264px] shrink-0 flex-col justify-between border-r px-4 py-8 lg:flex">
+          <nav
+            data-tour="step-nav"
+            aria-label="Workshop-Schritte"
+            className="space-y-5"
+          >
+            <div className="space-y-1.5">
+              <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                15 Min. gemeinsamer Aha-Kern
+              </div>
+              {ahaSteps.map((s) => {
+                const Icon = STEP_ICONS[s.id];
+                const isActive = s.id === step;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => goToStep(s.id)}
+                    className={`flex w-full items-center gap-3 rounded-xl border-l-2 px-3 py-2.5 text-left text-sm transition-all ${
+                      isActive
+                        ? "border-l-primary bg-secondary/70 font-semibold text-foreground"
+                        : "border-l-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-brand-ink" : ""}`} />
+                    <span className="min-w-0 flex-1 truncate">{s.label}</span>
+                  </button>
+                );
+              })}
             </div>
-            {STEPS.map((s) => {
-              const Icon = s.icon;
-              const isActive = s.id === step;
-              return (
-                <button
-                  key={s.id}
-                  type="button"
-                  onClick={() => goToStep(s.id)}
-                  className={`flex w-full items-center gap-3 rounded-xl border-l-2 px-3 py-2.5 text-left text-sm transition-all ${
-                    isActive
-                      ? "border-l-primary bg-secondary/70 font-semibold text-foreground"
-                      : "border-l-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground"
-                  }`}
-                >
-                  <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-brand-ink" : ""}`} />
-                  <div className="min-w-0 flex-1">
-                    <span className="num-tabular mr-1.5 font-mono text-xs opacity-60">{s.num}</span>
-                    <span className="truncate">{s.label}</span>
-                  </div>
-                </button>
-              );
-            })}
+
+            <div className="space-y-1.5">
+              <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                30 Min. freier Praxis-Pfad
+              </div>
+              {praxisSteps.map((s) => {
+                const Icon = STEP_ICONS[s.id];
+                const isActive = s.id === step;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => goToStep(s.id)}
+                    className={`flex w-full items-center gap-3 rounded-xl border-l-2 px-3 py-2.5 text-left text-sm transition-all ${
+                      isActive
+                        ? "border-l-primary bg-secondary/70 font-semibold text-foreground"
+                        : "border-l-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+                    }`}
+                  >
+                    <Icon className={`h-4 w-4 shrink-0 ${isActive ? "text-brand-ink" : ""}`} />
+                    <span className="min-w-0 flex-1 truncate">{s.label}</span>
+                  </button>
+                );
+              })}
+            </div>
           </nav>
 
           <div className="space-y-2 rounded-xl border bg-card p-3.5 text-xs">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-foreground">{teamName || "Mein Team"}</span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-semibold text-foreground">Werkzeug-Hilfe</span>
               <Badge variant="secondary" className="text-[10px]">
-                Track {track}
+                {currentToolModeSpec.shortLabel}
               </Badge>
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
@@ -552,200 +673,209 @@ export function ParticipantApp() {
 
         {/* Focused Editorial Content Canvas */}
         <main className="min-w-0 flex-1 px-4 pb-28 pt-6 sm:px-8 lg:px-12 lg:py-10">
-          <div className="mx-auto max-w-[920px]">
-            {liveStage?.beamerActive && data.phases[liveStage.phaseIdx] && (
-              <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-brand-lime/40 bg-secondary/50 px-4 py-2.5 text-xs">
-                <div className="flex min-w-0 flex-wrap items-center gap-2">
-                  <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-brand-lime" />
-                  <span className="font-semibold text-foreground">
-                    Live auf dem Beamer: Phase {data.phases[liveStage.phaseIdx].number} ·{" "}
-                    {data.phases[liveStage.phaseIdx].title}
-                  </span>
-                  <span className="num-tabular whitespace-nowrap rounded-md bg-card px-2 py-0.5 font-mono font-semibold text-brand-ink">
-                    Restzeit {formatCompactTime(syncedSec)}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const target = mapPhaseToStep(liveStage.phaseIdx);
-                    if (typeof target.stageIdx === "number") setActiveStageIdx(target.stageIdx);
-                    goToStep(target.step);
-                  }}
-                  className="shrink-0 font-semibold text-brand-ink hover:underline"
-                >
-                  Zur aktuellen Etappe →
-                </button>
-              </div>
-            )}
-
+          <div className="mx-auto max-w-[940px]">
             <AnimatePresence mode="wait">
               <motion.div
                 key={step}
-                initial={{ opacity: 0, y: 8 }}
+                initial={prefersReduced ? false : { opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                transition={{ duration: 0.16 }}
-                className="space-y-10"
+                exit={prefersReduced ? undefined : { opacity: 0, y: -6 }}
+                transition={{ duration: prefersReduced ? 0 : 0.16 }}
+                className="space-y-9"
               >
-                {/* STEP 0: START & TRACK */}
+                {/* STEP 01: EINSTIEG & WERKZEUG-HILFE */}
                 {step === "start" && (
-                  <div className="space-y-9">
-                    {/* Signature virtual7 Dark Keynote Hero Card */}
+                  <div className="space-y-8">
+                    {/* Signature virtual7 Dark Keynote Hero + HeroBeforeAfterAnimatic */}
                     <section className="stage-atmosphere relative overflow-hidden rounded-3xl border border-[#232B20] bg-[#0B0F0A] p-5 text-[#F2F4EE] shadow-xl sm:p-8">
                       <StageBackdrop className="absolute -right-24 -top-20 h-[400px] w-[400px] opacity-65" />
-                      <div className="relative z-10 space-y-4 sm:space-y-5">
-                        <div className="inline-flex items-center gap-2 rounded-full border border-[#A9C23F]/35 bg-[#A9C23F]/15 px-3 py-1 text-xs font-semibold text-[#A9C23F]">
-                          <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                          <span>
-                            virtual7 CCF Clustertag · 11:00–12:00 ·{" "}
-                            <span className="whitespace-nowrap">100&nbsp;% öffentliche Daten</span>
-                          </span>
+                      <div className="relative z-10 grid gap-6 lg:grid-cols-12 lg:items-center">
+                        <div className="space-y-4 lg:col-span-7">
+                          <div className="inline-flex flex-wrap items-center gap-2 rounded-full border border-[#A9C23F]/35 bg-[#A9C23F]/15 px-3 py-1 text-xs font-semibold text-[#A9C23F]">
+                            <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                            <span>
+                              15 Min. Aha-Kern · 30 Min. Praxis-Pfad ·{" "}
+                              <span className="whitespace-nowrap">100&nbsp;% öffentliche Daten</span>
+                            </span>
+                          </div>
+
+                          <h1 className="font-display text-2xl font-extrabold tracking-tight text-white sm:text-4xl">
+                            Vom ungefilterten Chat zum{" "}
+                            <span className="text-[#A9C23F]">verlässlichen KI-System.</span>
+                          </h1>
+
+                          <p className="editorial-measure text-sm leading-relaxed text-[#D3DACD] sm:text-base">
+                            Erlebe in 4 klaren Schritten, wie aus vagen Antworten belegte
+                            Ergebnisse werden — zuerst 15 Minuten gemeinsam im{" "}
+                            <strong>Aha-Kern</strong>, danach 30 Minuten frei in deinem{" "}
+                            <strong>Praxis-Pfad</strong>.
+                          </p>
+
+                          <div className="grid grid-cols-2 gap-2.5 pt-1 sm:grid-cols-4">
+                            {[
+                              { val: "15 Min.", lbl: "Gemeinsamer Aha-Kern" },
+                              { val: "30 Min.", lbl: "Freier Praxis-Pfad" },
+                              { val: "68", lbl: "Öffentliche Artikel" },
+                              { val: "0", lbl: "Vertrauliche Daten" },
+                            ].map((kpi) => (
+                              <div
+                                key={kpi.lbl}
+                                className="rounded-xl border border-white/10 bg-white/[0.04] p-2.5"
+                              >
+                                <div className="num-tabular font-display text-lg font-extrabold text-[#A9C23F] sm:text-xl">
+                                  {kpi.val}
+                                </div>
+                                <div className="mt-0.5 text-[11px] leading-snug text-[#9FA998]">
+                                  {kpi.lbl}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
 
-                        <h1 className="font-display text-2xl font-extrabold tracking-tight text-white sm:text-4xl">
-                          Vom ungefilterten Chat zum{" "}
-                          <span className="text-[#A9C23F]">strukturierten KI-System.</span>
-                        </h1>
-
-                        <p className="editorial-measure text-sm leading-relaxed text-[#D3DACD] sm:text-base">
-                          Probiere in 5 kurzen Schritten aus, wie aus vagen KI-Antworten
-                          verlässliche, belegte Ergebnisse werden — ganz ohne technisches Vorwissen.
-                          Alle Texte liegen als 1-Klick-Kopierpaket bereit.
-                        </p>
-
-                        <div className="grid grid-cols-2 gap-3 pt-1 sm:grid-cols-4">
-                          {[
-                            { val: "57 %", lbl: "Prompting-Praxis gewünscht" },
-                            { val: "62 %", lbl: "Erste KI-Workflows heute" },
-                            { val: "66 %", lbl: "Quellen & Fakten prüfen" },
-                            { val: "68", lbl: "Öffentliche Wissens-Artikel" },
-                          ].map((kpi) => (
-                            <div
-                              key={kpi.lbl}
-                              className="rounded-xl border border-white/10 bg-white/[0.04] p-3"
-                            >
-                              <div className="num-tabular font-display text-xl font-extrabold text-[#A9C23F] sm:text-2xl">
-                                {kpi.val}
-                              </div>
-                              <div className="mt-0.5 text-[11px] leading-snug text-[#9FA998]">
-                                {kpi.lbl}
-                              </div>
-                            </div>
-                          ))}
+                        <div className="lg:col-span-5">
+                          <HeroBeforeAfterAnimatic />
                         </div>
                       </div>
                     </section>
 
+                    {/* 3-Way Werkzeug-Hilfe Selector */}
                     <section className="space-y-3">
-                      <div className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                        1 · Wähle dein Arbeitswerkzeug (Standard: Browser-Chat ohne Installation)
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                          1 · Werkzeug-Hilfe wählen (passt Klick-, Ordner- &amp; Prompt-Hinweise an)
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          onClick={() => {
+                            markChecked("chk-setup");
+                            goToStep("methods");
+                          }}
+                        >
+                          <span>Weiter zu Schritt 02: Prompt-Methoden</span>
+                          <ArrowRight className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setTrack("A");
-                            markChecked("chk-setup");
-                          }}
-                          className={`flex flex-col justify-between gap-3 rounded-2xl border p-5 text-left transition-all ${
-                            track === "A"
-                              ? "border-primary bg-secondary/45 ring-1 ring-primary"
-                              : "bg-card hover:bg-muted/40"
-                          }`}
-                        >
-                          <div className="flex w-full items-center justify-between gap-2">
-                            <span className="flex items-center gap-2 font-display text-base font-bold">
-                              <Compass className="h-5 w-5 text-brand-ink" />
-                              Track A · Browser &amp; Web-Chat
-                            </span>
-                            {track === "A" && (
-                              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                                <Check className="h-3.5 w-3.5" />
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm leading-relaxed text-muted-foreground">
-                            ChatGPT, Claude oder Copilot im Browser. Keine Installation nötig:
-                            Du kopierst fertige Aufgaben und Übungstexte mit 1 Klick aus dieser App.
-                          </p>
-                        </button>
 
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setTrack("B");
-                            markChecked("chk-setup");
-                          }}
-                          className={`flex flex-col justify-between gap-3 rounded-2xl border p-5 text-left transition-all ${
-                            track === "B"
-                              ? "border-primary bg-secondary/45 ring-1 ring-primary"
-                              : "bg-card hover:bg-muted/40"
-                          }`}
-                        >
-                          <div className="flex w-full items-center justify-between gap-2">
-                            <span className="flex items-center gap-2 font-display text-base font-bold">
-                              <Terminal className="h-5 w-5 text-brand-ink" />
-                              Track B · Terminal, IDE &amp; Agent
-                            </span>
-                            {track === "B" && (
-                              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                                <Check className="h-3.5 w-3.5" />
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm leading-relaxed text-muted-foreground">
-                            Für Entwickler: Claude Code, Codex, Gemini CLI oder OpenCode im
-                            Terminal mit echten Projektordnern und lokalen Prüftools (MCP).
-                          </p>
-                        </button>
+                      <div className="grid gap-4 md:grid-cols-3">
+                        {data.toolModes.map((mode) => {
+                          const Icon = MODE_ICONS[mode.id];
+                          const isActive = toolMode === mode.id;
+                          return (
+                            <button
+                              key={mode.id}
+                              type="button"
+                              onClick={() => {
+                                setToolMode(mode.id);
+                                markChecked("chk-setup");
+                              }}
+                              className={`flex flex-col justify-between gap-3 rounded-2xl border p-5 text-left transition-all ${
+                                isActive
+                                  ? "border-primary bg-secondary/45 ring-1 ring-primary"
+                                  : "bg-card hover:bg-muted/40"
+                              }`}
+                            >
+                              <div className="space-y-2.5">
+                                <div className="flex items-start justify-between gap-2">
+                                  <span className="flex items-center gap-2 font-display text-base font-bold">
+                                    <Icon className="h-4 w-4 shrink-0 text-brand-ink" />
+                                    <span>{mode.label}</span>
+                                  </span>
+                                  {isActive ? (
+                                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                                      <Check className="h-3.5 w-3.5" />
+                                    </span>
+                                  ) : (
+                                    <Badge variant="outline" className="shrink-0 text-[10px]">
+                                      {mode.badge}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-xs leading-relaxed text-muted-foreground">
+                                  {mode.summary}
+                                </p>
+                              </div>
+
+                              <div className="space-y-2 border-t pt-2.5 text-[11px]">
+                                <div className="flex flex-wrap gap-1">
+                                  {mode.examples.map((ex) => (
+                                    <span
+                                      key={ex}
+                                      className="rounded-md bg-muted px-2 py-0.5 font-medium text-foreground"
+                                    >
+                                      {ex}
+                                    </span>
+                                  ))}
+                                </div>
+                                <div className="text-muted-foreground">{mode.workflowHint}</div>
+                              </div>
+                            </button>
+                          );
+                        })}
                       </div>
                     </section>
 
-                    <section className="flex flex-col gap-3 rounded-2xl border bg-card p-5 sm:flex-row sm:items-end">
-                      <div className="flex-1 space-y-1.5">
-                        <label className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                          2 · Euer Team- oder Tischname (für Beamer-Einträge)
-                        </label>
-                        <Input
-                          value={teamName}
-                          onChange={(e) => setTeamName(e.target.value)}
-                          placeholder="z. B. Tisch 1 - Polarfuchs"
-                        />
-                      </div>
-                      <Button
-                        type="button"
-                        size="lg"
-                        onClick={() => {
-                          setChecked((prev) => ({ ...prev, "chk-setup": true }));
-                          goToStep("methods");
-                        }}
-                      >
-                        <span>Los geht’s: Prompt-Methoden</span>
-                        <ArrowRight className="h-4 w-4" />
-                      </Button>
-                    </section>
+                    {/* Collapsible OpenCode + OpenRouter Card */}
+                    <Accordion type="single" collapsible className="rounded-2xl border bg-card px-5">
+                      <AccordionItem value="opencode" className="border-none">
+                        <AccordionTrigger className="font-display text-sm font-semibold">
+                          {data.openCodeHelp.title}
+                        </AccordionTrigger>
+                        <AccordionContent className="space-y-3 pb-4 text-xs leading-relaxed">
+                          <p className="text-muted-foreground">{data.openCodeHelp.summary}</p>
+                          <ol className="list-decimal space-y-1.5 pl-4 text-foreground">
+                            {data.openCodeHelp.steps.map((st, i) => (
+                              <li key={i}>{renderInlineCode(st)}</li>
+                            ))}
+                          </ol>
+                          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/40 p-3">
+                            <code className="font-mono text-xs text-foreground">
+                              {data.openCodeHelp.commandSnippet}
+                            </code>
+                            <CopyButton
+                              text={data.openCodeHelp.commandSnippet}
+                              label="Befehl kopieren"
+                            />
+                          </div>
+                          <p className="text-[11px] text-muted-foreground">
+                            {data.openCodeHelp.note}
+                          </p>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
 
+                    {/* Mode-Specific ToolHotspotGuide */}
+                    <ToolHotspotGuide toolMode={toolMode} />
+
+                    {/* 4-Phase Schedule Accordion */}
                     <Accordion type="single" collapsible className="rounded-2xl border bg-card px-5">
                       <AccordionItem value="schedule" className="border-none">
                         <AccordionTrigger className="font-display text-sm font-semibold">
-                          Ablaufplan ansehen (7 Phasen · 11:00–12:00 Uhr)
+                          Ablaufplan ansehen ({data.phases.length} Phasen · {data.meta.timeSlot})
                         </AccordionTrigger>
                         <AccordionContent className="divide-y pb-3">
                           {data.phases.map((p) => (
                             <div
                               key={p.id}
-                              className="flex flex-col gap-1 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+                              className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between"
                             >
-                              <div className="flex items-center gap-3">
-                                <span className="num-tabular font-mono text-xs font-semibold text-brand-ink">
-                                  {p.timeRange}
-                                </span>
-                                <span className="text-sm font-semibold">
-                                  {p.number}. {p.title}
-                                </span>
+                              <div className="space-y-0.5">
+                                <div className="flex items-center gap-3">
+                                  <span className="num-tabular font-mono text-xs font-semibold text-brand-ink">
+                                    {p.timeRange}
+                                  </span>
+                                  <span className="text-sm font-semibold">
+                                    {p.number}. {p.title}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-muted-foreground">
+                                  {p.modeCues[toolMode]}
+                                </div>
                               </div>
-                              <span className="text-xs text-muted-foreground">{p.subtitle}</span>
+                              <Badge variant="outline" className="w-fit shrink-0 text-[11px]">
+                                {p.durationMin} Min.
+                              </Badge>
                             </div>
                           ))}
                         </AccordionContent>
@@ -754,68 +884,60 @@ export function ParticipantApp() {
                   </div>
                 )}
 
-                {/* STEP 1: PROMPT METHODS & 5 ARCHITECTURE LAYERS */}
+                {/* STEP 02: AHA-KERN 1 — PROMPT-METHODEN & STEUERUNGSEBENEN */}
                 {step === "methods" && (
                   <div className="space-y-12">
                     <div className="space-y-2">
                       <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
-                        Schritt 02 · Prompting &amp; Steuerung
+                        Schritt 02 · Aha-Kern 1 (ca. 7 Min.)
                       </div>
                       <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
-                        Prompt-Methoden &amp; System-Ebenen
+                        Prompt-Methoden &amp; Steuerungs-Ebenen
                       </h1>
                       <p className="editorial-measure text-sm leading-relaxed text-muted-foreground">
                         Vergleiche, wie exakt dieselbe Frage durch Methodik (Zero-Shot, CO-STAR,
-                        Few-Shot, RISEN + CoT) völlig unterschiedliche Ergebnisse erzwingt.
+                        Few-Shot, RISEN + CoT) völlig unterschiedliche Ergebnisse erzwingt — und
+                        warum System-Regeln im Kontext-Fenster überleben.
                       </p>
                     </div>
 
                     <PromptMethodComparator
                       task={data.promptComparisonTask}
                       methods={data.promptMethods}
-                      track={track}
-                      arcticAndReefBundle={`${trackAPacks.arctic}\n\n${trackAPacks.reef}`}
+                      toolMode={toolMode}
+                      expressPackage={methodsExpressPack}
                       onCopyPrompt={() => markChecked("chk-methods")}
-                      onShareMethod={(methodName, promptTask) => {
-                        markChecked("chk-methods");
-                        openBeamerSheet({
-                          stage: "Prompt-Labor",
-                          method: methodName,
-                          question: promptTask,
-                        });
-                      }}
                     />
 
                     <Separator />
 
                     <ArchitectureLayerStack
                       layers={data.architectureLayers}
-                      primingTemplate={data.trackAPrimingTemplate}
-                      track={track}
-                      trackBAgentsTemplate={data.stages[1]?.agentsMd}
-                      onCopyTemplate={() => markChecked("chk-priming")}
+                      chatRulesTemplate={data.chatRulesTemplate}
+                      toolMode={toolMode}
+                      agentsMdTemplate={data.stages[1]?.agentsMd}
+                      onCopyTemplate={() => markChecked("chk-rules")}
                     />
                   </div>
                 )}
 
-                {/* STEP 2: STAGES 1 -> 2 -> 3 & OBSIDIAN KNOWLEDGE GRAPH */}
+                {/* STEP 03: AHA-KERN 2 — 3 STUFEN & WISSEN */}
                 {step === "stages" && (
-                  <div className="space-y-10">
+                  <div className="space-y-9">
                     <div className="space-y-2">
                       <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
-                        Schritt 03 · Das 3-Stufen-Experiment
+                        Schritt 03 · Aha-Kern 2 (ca. 8 Min.)
                       </div>
                       <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
                         Stufe 1 → Stufe 2 → Stufe 3
                       </h1>
                       <p className="editorial-measure text-sm leading-relaxed text-muted-foreground">
-                        {track === "A"
-                          ? "Stelle dieselben 4 Fragen nacheinander in drei frischen Chats und erlebe direkt, wie aus bloßem Raten verlässliche Antworten mit Quellen werden."
-                          : "Stelle dieselben 4 Fragen nacheinander in allen drei Stufen und erlebe den Unterschied zwischen Chaos, Harness und Markdown-RAG."}
+                        Erlebe an denselben Testfragen den Sprung von ungefiltertem Raten (Stufe 1)
+                        über verbindliche Regeln (Stufe 2) hin zum verknüpften Wissensnetz (Stufe 3).
                       </p>
                     </div>
 
-                    {/* Clean 3-Stage Selector */}
+                    {/* 3-Stage Selector Cards */}
                     <div className="grid gap-3 md:grid-cols-3">
                       {data.stages.map((st, idx) => {
                         const isActive = idx === activeStageIdx;
@@ -825,18 +947,6 @@ export function ParticipantApp() {
                             : idx === 1
                               ? "bg-amber-500"
                               : "bg-brand-lime";
-                        const beginnerBadge =
-                          idx === 0
-                            ? "Ohne Regeln"
-                            : idx === 1
-                              ? "Klare Chat-Regeln"
-                              : "Vernetztes Wissen";
-                        const beginnerSummary =
-                          idx === 0
-                            ? "Alle Texte liegen lose bereit, aber die KI hat keine festen Regeln — ideal, um typische KI-Fehler zu sehen."
-                            : idx === 1
-                              ? "Klare Regeln am Chat-Start verbieten Raten und erzwingen ehrliche Hinweise bei fehlenden Fakten."
-                              : "Ein Inhaltsverzeichnis verknüpft verwandte Artikel, sodass die KI Querverbindungen sicher findet.";
                         return (
                           <button
                             key={st.id}
@@ -854,7 +964,7 @@ export function ParticipantApp() {
                                 {st.title.split(" · ")[0]}
                               </span>
                               <Badge variant="outline" className="text-[11px]">
-                                {track === "A" ? beginnerBadge : st.badge}
+                                {toolMode === "web" ? st.beginnerBadge : st.badge}
                               </Badge>
                             </div>
                             <StageMiniDiagram
@@ -864,126 +974,225 @@ export function ParticipantApp() {
                               {st.title.split(" · ")[1]}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              {track === "A" ? beginnerSummary : st.summary}
+                              {toolMode === "web" ? st.beginnerSummary : st.summary}
                             </p>
                           </button>
                         );
                       })}
                     </div>
 
-                    {/* Calm Track-Aware Execution Strip */}
-                    <div className="flex flex-col gap-4 rounded-2xl border bg-card p-5 xl:flex-row xl:items-center xl:justify-between">
-                      <div className="min-w-0 flex-1 space-y-1">
-                        <div className="text-xs font-semibold uppercase tracking-wider text-brand-ink">
-                          {track === "A"
-                            ? `Track A · ${currentStage.title}`
-                            : `Track B · cd ${currentStage.folder}`}
+                    {/* Mode-Aware Execution Strip (wraps cleanly at <= 1280px!) */}
+                    <div className="flex flex-col gap-4 rounded-2xl border bg-card p-5">
+                      <div className="min-w-0 space-y-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-xs font-semibold uppercase tracking-wider text-brand-ink">
+                            {currentModeNote.headline}
+                          </span>
+                          <Badge variant="secondary" className="text-[11px]">
+                            {currentToolModeSpec.label}
+                          </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">
-                          {track === "A"
-                            ? currentStage.id === "stufe-1"
-                              ? "1. Neuen Browser-Chat öffnen (bewusst noch OHNE Regeln!) → 2. Arktis-Texte kopieren & einfügen → 3. Die Testfragen 1–4 unten kopieren und stellen."
-                              : currentStage.id === "stufe-2"
-                                ? "1. Neuen Chat öffnen → 2. Zuerst die Chat-Regeln kopieren & senden → 3. Danach Arktis-Texte kopieren und Testfragen 1–4 stellen (achte besonders auf Fangfrage 3 & Frage 4!)."
-                                : "1. Neuen Chat öffnen → 2. Inhaltsverzeichnis + Regeln kopieren & senden → 3. Korallenriff-Texte kopieren und alle Testfragen 1–4 (inkl. Querverbindung Frage 2) prüfen."
-                            : `Öffne ${currentStage.folder}/ als Arbeitsverzeichnis in Claude Code, Codex, Gemini CLI oder OpenCode.`}
-                        </p>
+
+                        <ol className="list-decimal space-y-1 pl-4 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                          {currentModeNote.steps.map((s, i) => (
+                            <li key={i}>{renderInlineCode(s)}</li>
+                          ))}
+                        </ol>
+
+                        {/* (datei.md) Source Tags */}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[11px]">
+                          <span className="font-medium text-muted-foreground">Fokus-Dateien:</span>
+                          {currentStage.sourceTags.map((tag) => (
+                            <span
+                              key={tag}
+                              className="rounded border bg-muted/40 px-1.5 py-0.5 font-mono text-[10px] text-brand-ink"
+                            >
+                              ({tag})
+                            </span>
+                          ))}
+                        </div>
                       </div>
 
-                      <div className="flex shrink-0 flex-wrap items-center gap-2">
-                        {track === "A" ? (
-                          currentStage.id === "stufe-1" ? (
+                      <div className="flex flex-wrap items-center gap-2 border-t pt-3">
+                        {toolMode === "web" ? (
+                          <>
                             <CopyButton
-                              text={trackAPacks.arctic}
-                              label="1 · Arktis-Texte kopieren"
+                              text={stageWebCopyPayload}
+                              label={
+                                currentStage.id === "stufe-1"
+                                  ? "Kompakt-Texte kopieren (~5.000 Z.)"
+                                  : currentStage.id === "stufe-2"
+                                    ? "Regeln + Texte kopieren"
+                                    : "Regeln + _index.md + Texte kopieren"
+                              }
                               variant="default"
-                              onCopy={() => markChecked("chk-s1")}
+                              onCopy={() => markChecked("chk-stages")}
                             />
-                          ) : currentStage.id === "stufe-2" ? (
-                            <>
+                            {currentStage.id === "stufe-2" && (
                               <CopyButton
-                                text={data.trackAPrimingTemplate}
-                                label="1 · Chat-Regeln kopieren"
-                                variant="default"
-                                onCopy={() => markChecked("chk-s2")}
-                              />
-                              <CopyButton
-                                text={trackAPacks.arctic}
-                                label="2 · Arktis-Texte kopieren"
+                                text={data.chatRulesTemplate}
+                                label="Nur Chat-Regeln"
                                 variant="secondary"
-                                onCopy={() => markChecked("chk-s2")}
+                                onCopy={() => markChecked("chk-stages")}
                               />
-                            </>
-                          ) : (
-                            <>
+                            )}
+                            {currentStage.id === "stufe-3" && currentStage.indexMd && (
                               <CopyButton
-                                text={`${data.trackAPrimingTemplate}\n\n---\n\n${currentStage.indexMd || ""}`}
-                                label="1 · Inhaltsverzeichnis + Regeln kopieren"
-                                variant="default"
-                                onCopy={() => markChecked("chk-s3")}
-                              />
-                              <CopyButton
-                                text={trackAPacks.reef}
-                                label="2 · Korallenriff-Texte kopieren"
+                                text={`${data.chatRulesTemplate}\n\n---\n\n${currentStage.indexMd}`}
+                                label="Regeln + _index.md"
                                 variant="secondary"
-                                onCopy={() => markChecked("chk-s3")}
+                                onCopy={() => markChecked("chk-stages")}
                               />
-                            </>
-                          )
+                            )}
+                          </>
                         ) : (
                           <CopyButton
-                            text={`cd ${currentStage.folder}`}
-                            label={`cd ${currentStage.folder}`}
+                            text={currentModeNote.commandOrAction}
+                            label={currentModeNote.commandOrAction}
                             variant="default"
-                            onCopy={() =>
-                              markChecked(
-                                currentStage.id === "stufe-1"
-                                  ? "chk-s1"
-                                  : currentStage.id === "stufe-2"
-                                    ? "chk-s2"
-                                    : "chk-s3"
-                              )
-                            }
+                            onCopy={() => markChecked("chk-stages")}
                           />
                         )}
+
                         <StageArtifactsSheet
                           stage={currentStage}
-                          arcticPack={trackAPacks.arctic}
-                          reefPack={trackAPacks.reef}
-                          all12Pack={trackAPacks.all12}
-                          track={track}
+                          expressArcticReef={stagesExpressPack}
+                          arcticPack={stagePacks.arctic}
+                          reefPack={stagePacks.reef}
+                          all12Pack={stagePacks.all12}
+                          toolMode={toolMode}
                         />
                       </div>
                     </div>
 
-                    {/* The 4 Verified Test Questions */}
+                    {/* Guardrail Shield Animatic + Interactive Q4 38 Zähne Preview */}
+                    <GuardrailShieldAnimatic
+                      activeStageIdx={activeStageIdx}
+                      onSelectStage={setActiveStageIdx}
+                    />
+
+                    {q4Spec?.manipulationCheck && (
+                      <div className="rounded-2xl border bg-card p-5 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="space-y-0.5">
+                            <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+                              Live-Vorschau · Frage 4 („38 Zähne“ statt „42 Zähne“)
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Testet, ob Regeln dein lokales Dokument stärker gewichten als das
+                              Trainingswissen der KI.
+                            </p>
+                          </div>
+                          <div className="inline-flex rounded-lg border bg-muted p-0.5 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => setQ4SimulatedMutated(true)}
+                              className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
+                                q4SimulatedMutated
+                                  ? "bg-card text-foreground shadow-sm"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              Test-Änderung: 38 Zähne
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setQ4SimulatedMutated(false)}
+                              className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
+                                !q4SimulatedMutated
+                                  ? "bg-card text-foreground shadow-sm"
+                                  : "text-muted-foreground"
+                              }`}
+                            >
+                              Original: 42 Zähne
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="grid gap-3 md:grid-cols-2 text-xs">
+                          <div className="rounded-xl border bg-muted/30 p-3 space-y-1">
+                            <div className="font-mono text-[11px] font-semibold text-muted-foreground">
+                              Ausschnitt ({q4Spec.manipulationCheck.targetFile})
+                            </div>
+                            <p className="text-foreground">
+                              „Wie die meisten Bären besitzen Eisbären{" "}
+                              <strong className="rounded bg-brand-lime/35 px-1 text-foreground">
+                                {q4SimulatedMutated
+                                  ? q4Spec.manipulationCheck.mutatedValue
+                                  : q4Spec.manipulationCheck.originalValue}
+                              </strong>
+                              , und wie alle Bären sind sie Sohlengänger.“
+                            </p>
+                          </div>
+
+                          <div className="rounded-xl border border-[#A9C23F]/50 bg-secondary/35 p-3 space-y-1">
+                            <div className="font-mono text-[11px] font-semibold text-brand-ink">
+                              Erwartete Antwort mit Guardrail (Stufe 2/3)
+                            </div>
+                            <p className="text-foreground">
+                              „Laut dem vorliegenden Dokument besitzt ein Eisbär{" "}
+                              <strong>
+                                {q4SimulatedMutated
+                                  ? q4Spec.manipulationCheck.mutatedValue
+                                  : q4Spec.manipulationCheck.originalValue}
+                              </strong>{" "}
+                              <code>{q4Spec.manipulationCheck.expectedCitation}</code>.“
+                            </p>
+                            <p className="text-[11px] text-muted-foreground">
+                              Bei lokalem Dateitest danach wieder auf{" "}
+                              <code>{q4Spec.manipulationCheck.originalValue}</code> zurücksetzen!
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Focus Test Questions (2 per stage + toggle for all 4) */}
                     <section className="space-y-4">
-                      <h2 className="font-display text-lg font-bold">
-                        Die 4 Testfragen (für alle 3 Stufen identisch)
-                      </h2>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h2 className="font-display text-lg font-bold">
+                            {showAllQuestions
+                              ? "Alle 4 Testfragen"
+                              : `2 Fokus-Fragen für ${currentStage.title.split(" · ")[0]}`}
+                          </h2>
+                          <p className="text-xs text-muted-foreground">
+                            Stelle die Fragen nacheinander und vergleiche, wie sich die Antwort pro
+                            Stufe verändert.
+                          </p>
+                        </div>
+
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowAllQuestions((s) => !s)}
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          <span>
+                            {showAllQuestions
+                              ? "Auf 2 Fokus-Fragen eingrenzen"
+                              : "Alle 4 Fragen anzeigen"}
+                          </span>
+                        </Button>
+                      </div>
+
                       <div className="grid gap-4 md:grid-cols-2">
-                        {data.testQuestions.map((q) => {
-                          const isTrackAQ4 = q.number === 4 && track === "A";
-                          const displayQuestion = isTrackAQ4
-                            ? "Starte einen neuen Chat mit deinen Chat-Regeln aus Stufe 2 und sende diese Nachricht: ‚Hier ist mein einziger gültiger Text: Ausgewachsene Eisbären haben genau 38 Zähne. — Frage: Wie viele Zähne hat ein ausgewachsener Eisbär laut meinem Text?‘"
-                            : q.question;
-                          const displayWatch = isTrackAQ4
-                            ? "Prüfe, ob die KI strikt ‚38‘ aus deiner Vorgabe übernimmt oder heimlich auf ‚42‘ aus ihrem Training korrigiert."
-                            : q.whatToWatch;
-                          const displaySolution = isTrackAQ4
-                            ? "Mit deinen Chat-Regeln aus Stufe 2 übernimmt die KI exakt ‚38 Zähne‘ aus deinem Text — ein leerer Standard-Chat hätte oft ‚42‘ aus dem allgemeinen Wissen geantwortet."
-                            : q.solutionSummary;
-                          const stageCheckId =
-                            currentStage.id === "stufe-1"
-                              ? "chk-s1"
-                              : currentStage.id === "stufe-2"
-                                ? "chk-s2"
-                                : "chk-s3";
+                        {visibleQuestions.map((q) => {
+                          const useWebText = toolMode === "web" && Boolean(q.webChatPrompt);
+                          const displayQuestion = useWebText ? q.webChatPrompt! : q.question;
+                          const displayWatch =
+                            toolMode === "web" && q.webChatWatch ? q.webChatWatch : q.whatToWatch;
+                          const displaySolution =
+                            toolMode === "web" && q.webChatSolution
+                              ? q.webChatSolution
+                              : q.solutionSummary;
+
                           return (
                             <div
                               key={q.id}
                               className={`flex flex-col justify-between gap-4 rounded-2xl border bg-card p-5 ${
-                                q.number === 3 ? "border-l-4 border-l-rose-500" : ""
+                                q.isTrap ? "border-l-4 border-l-rose-500" : ""
                               }`}
                             >
                               <div className="space-y-3">
@@ -1000,7 +1209,7 @@ export function ParticipantApp() {
                                     text={displayQuestion}
                                     label="Kopieren"
                                     className="shrink-0"
-                                    onCopy={() => markChecked(stageCheckId)}
+                                    onCopy={() => markChecked("chk-stages")}
                                   />
                                 </div>
 
@@ -1009,12 +1218,12 @@ export function ParticipantApp() {
                                 </p>
 
                                 <p className="rounded-xl bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
-                                  <strong className="text-foreground">Fokus: </strong>
+                                  <strong className="text-foreground">Worauf achten: </strong>
                                   {renderInlineCode(displayWatch)}
                                 </p>
                               </div>
 
-                              <div className="space-y-2 border-t pt-3">
+                              <div className="border-t pt-3">
                                 <Accordion type="single" collapsible>
                                   <AccordionItem value="sol" className="border-none">
                                     <AccordionTrigger className="py-1 text-xs font-medium text-brand-ink">
@@ -1025,29 +1234,6 @@ export function ParticipantApp() {
                                     </AccordionContent>
                                   </AccordionItem>
                                 </Accordion>
-
-                                <div className="flex justify-end">
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-8 px-2 text-xs text-brand-ink"
-                                    onClick={() =>
-                                      openBeamerSheet({
-                                        stage:
-                                          currentStage.id === "stufe-1"
-                                            ? "Stufe 1"
-                                            : currentStage.id === "stufe-2"
-                                              ? "Stufe 2"
-                                              : "Stufe 3",
-                                        question: displayQuestion,
-                                      })
-                                    }
-                                  >
-                                    <Send className="h-3.5 w-3.5" />
-                                    <span>Beobachtung teilen</span>
-                                  </Button>
-                                </div>
                               </div>
                             </div>
                           );
@@ -1055,526 +1241,545 @@ export function ParticipantApp() {
                       </div>
                     </section>
 
-                    {/* Real Obsidian Force-Directed Knowledge Graph */}
-                    <section className="space-y-3">
-                      <div className="space-y-1">
-                        <h2 className="font-display text-lg font-bold">
-                          Warum Stufe 3 gewinnt: Der Wissens-Graph hinter dem Vault
-                        </h2>
-                        <p className="editorial-measure text-sm text-muted-foreground">
-                          {track === "A" ? (
-                            <>
-                              <strong>Nur zum interaktiven Erkunden</strong> (kein externes Tool nötig):
-                              Klicke auf „KI-Suchpfad abspielen“ oder auf einen beliebigen Kreis, um
-                              zu sehen, wie alle 68 Themenartikel miteinander verknüpft sind.
-                            </>
-                          ) : (
-                            <>
-                              Erkunde alle 68 Artikel interaktiv — jeder Klick auf einen Knoten oder ein{" "}
-                              <code>[[Wikilink]]</code> zeigt exakt, wie der Agent Beziehungen verfolgt.
-                            </>
-                          )}
-                        </p>
+                    {/* Active 1-Click Self-Reflection Pills */}
+                    <section className="rounded-2xl border bg-card p-5 space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+                            Kurze Selbst-Reflexion (1 Klick)
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Was hast du gerade bei deinem KI-Test beobachtet?
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="text-[11px]">
+                          {Object.values(reflections).filter(Boolean).length}/3 markiert
+                        </Badge>
                       </div>
-                      <ObsidianKnowledgeGraph articles={data.vaultArticles} />
+
+                      <div className="grid gap-2.5 sm:grid-cols-3">
+                        {REFLECTION_PILLS.map((pill) => {
+                          const active = Boolean(reflections[pill.id]);
+                          return (
+                            <button
+                              key={pill.id}
+                              type="button"
+                              aria-pressed={active}
+                              onClick={() => toggleReflection(pill.id)}
+                              className={`flex flex-col gap-1 rounded-xl border p-3.5 text-left transition-all ${
+                                active
+                                  ? "border-brand-lime bg-secondary/60 ring-1 ring-brand-lime"
+                                  : "bg-muted/25 hover:bg-muted/50"
+                              }`}
+                            >
+                              <span className="flex items-center justify-between gap-2 text-xs font-bold text-foreground">
+                                <span>{pill.label}</span>
+                                {active && <Check className="h-3.5 w-3.5 text-brand-ink" />}
+                              </span>
+                              <span className="text-[11px] leading-snug text-muted-foreground">
+                                {pill.hint}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </section>
+
+                    {/* Natural Stufe 3 Reveal: Stage3AgentWalkPlayer + ObsidianKnowledgeGraph */}
+                    {activeStageIdx === 2 || showGraphEarly ? (
+                      <section className="space-y-4">
+                        <div className="flex flex-wrap items-end justify-between gap-2">
+                          <div className="space-y-1">
+                            <h2 className="font-display text-lg font-bold">
+                              Warum Stufe 3 gewinnt: Inhaltsverzeichnis &amp; Wissens-Graph
+                            </h2>
+                            <p className="editorial-measure text-sm text-muted-foreground">
+                              Statt alle 68 Artikel in den Chat zu laden, folgt das System dem{" "}
+                              <code>_index.md</code> und seinen <code>[[Wikilinks]]</code> in 5
+                              Sprüngen zum Ziel.
+                            </p>
+                          </div>
+                          {activeStageIdx !== 2 && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => setShowGraphEarly(false)}
+                            >
+                              Graph einklappen
+                            </Button>
+                          )}
+                        </div>
+
+                        <Stage3AgentWalkPlayer onSelectSlug={(slug) => setGraphSelectedSlug(slug)} />
+                        <ObsidianKnowledgeGraph
+                          articles={data.vaultArticles}
+                          vaultIndexMarkdown={data.stages[2]?.indexMd}
+                          externalSelectedSlug={graphSelectedSlug}
+                        />
+                      </section>
+                    ) : (
+                      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed bg-muted/25 p-4">
+                        <div className="space-y-0.5">
+                          <div className="flex items-center gap-2 text-sm font-bold text-foreground">
+                            <Network className="h-4 w-4 text-brand-ink" />
+                            <span>Vorschau auf Stufe 3: Interaktiver 68-Artikel-Wissens-Graph</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Öffnet sich automatisch bei Stufe 3 — oder jederzeit per Klick aufrufen.
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setShowGraphEarly(true)}
+                        >
+                          Graph jetzt ansehen
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
 
-                {/* STEP 3: TOOLS & MCP */}
-                {step === "mcp" && (
-                  <div className="space-y-8">
+                {/* STEP 04: PRAXIS-PFADE & CCF-TRANSFER-BRÜCKE */}
+                {step === "paths" && (
+                  <div className="space-y-10">
                     <div className="space-y-2">
                       <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
-                        Schritt 04 · Werkzeug-Protokoll (MCP) &amp; Live-Tests
+                        Schritt 04 · 30 Min. freier Praxis-Pfad &amp; Transfer-Brücke
                       </div>
                       <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
-                        Werkzeuge &amp; Model Context Protocol (MCP)
+                        Wähle deinen Praxis-Pfad
                       </h1>
                       <p className="editorial-measure text-sm leading-relaxed text-muted-foreground">
-                        {track === "A"
-                          ? "MCP funktioniert wie ein USB-C-Anschluss für KI: Statt Texte manuell einzukopieren, fragt die KI direkt Prüfdienste an. Hier auf der Seite kannst du beides sofort per Klick live ausprobieren — ganz ohne Einrichtung."
-                          : "MCP funktioniert wie ein USB-C-Anschluss für KI: Jede kompatible KI greift über einheitliche Befehle direkt auf unsere 68 Artikel, den Faktencheck und den Beamer zu."}
+                        Wähle frei eines von drei Praxis-Zielen — die Prompts passen sich automatisch
+                        an deine Werkzeug-Hilfe (<strong>{currentToolModeSpec.label}</strong>) an.
                       </p>
                     </div>
 
-                    {track === "A" && (
-                      <div className="rounded-2xl border border-brand-lime/45 bg-secondary/45 p-4 text-sm">
-                        <span className="font-semibold text-foreground">
-                          Kein Setup für Track A nötig:{" "}
-                        </span>
+                    {/* 3 Praxis-Pfad Selector Cards */}
+                    <div className="grid gap-3 md:grid-cols-3">
+                      {data.praxisPaths.map((p) => {
+                        const isActive = p.id === activePraxisPath.id;
+                        return (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              setActivePathId(p.id);
+                              markChecked("chk-path");
+                            }}
+                            className={`card-elevated flex flex-col justify-between gap-2 rounded-2xl border p-4 text-left transition-all ${
+                              isActive
+                                ? "border-primary bg-secondary/45 ring-1 ring-primary"
+                                : "bg-card hover:bg-muted/40"
+                            }`}
+                          >
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-mono text-xs font-bold text-brand-ink">
+                                  Pfad 0{p.number} · {p.durationMin} Min.
+                                </span>
+                                {isActive && (
+                                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                                    <Check className="h-3 w-3" />
+                                  </span>
+                                )}
+                              </div>
+                              <div className="font-display text-sm font-bold text-foreground">
+                                {p.title.replace(/^Praxis-Pfad \d+ · /, "")}
+                              </div>
+                              <p className="text-xs leading-relaxed text-muted-foreground">
+                                {p.description}
+                              </p>
+                            </div>
+                            <div className="text-[11px] font-medium text-brand-ink">{p.tag}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {/* Active Praxis-Pfad Detail Card */}
+                    <div className="rounded-2xl border bg-card p-5 space-y-4">
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="lime">{activePraxisPath.tag}</Badge>
+                            <span className="text-xs text-muted-foreground">
+                              Empfohlen für: {activePraxisPath.bestForRoles.join(", ")}
+                            </span>
+                          </div>
+                          <h2 className="font-display text-xl font-bold text-foreground">
+                            {activePraxisPath.title}
+                          </h2>
+                          <p className="text-sm text-muted-foreground">
+                            {activePraxisPath.description}
+                          </p>
+                        </div>
+
+                        <CopyButton
+                          text={activePraxisPath.promptsByMode[toolMode].prompt}
+                          label={activePraxisPath.promptsByMode[toolMode].label}
+                          variant="default"
+                          onCopy={() => markChecked("chk-path")}
+                        />
+                      </div>
+
+                      <pre className="whitespace-pre-wrap break-words rounded-xl border bg-muted/40 p-4 font-mono text-xs leading-relaxed text-foreground">
+                        {activePraxisPath.promptsByMode[toolMode].prompt}
+                      </pre>
+
+                      <div className="rounded-xl border border-brand-lime/40 bg-secondary/35 px-3.5 py-2.5 text-xs">
+                        <strong className="text-foreground">Ziel-Ergebnis: </strong>
                         <span className="text-muted-foreground">
-                          Klicke unten einfach einmal auf „Tool ausführen“ und bei „Fakten prüfen“
-                          auf „Fangfrage testen“ — danach kannst du direkt weiter zu Schritt 05.
+                          {activePraxisPath.promptsByMode[toolMode].deliverableHint}
                         </span>
+                      </div>
+                    </div>
+
+                    {/* Path 1 Special: Built-in 68-Article Search & Claim Verifier + McpPacketAnimatic + Multi-CLI */}
+                    {activePraxisPath.includesInBrowserLab && (
+                      <div className="space-y-6">
+                        <McpPacketAnimatic
+                          activeHop={mcpActiveHop}
+                          mode={labTab}
+                          toolMode={toolMode}
+                        />
+
+                        {/* 100% Client-Side 68-Article Search & Claim Verifier */}
+                        <div className="rounded-2xl border bg-card p-4 sm:p-6">
+                          <Tabs
+                            value={labTab}
+                            onValueChange={(v) => setLabTab(v as "search" | "verify")}
+                            className="space-y-4"
+                          >
+                            <TabsList className="grid h-auto w-full grid-cols-1 gap-1 p-1 sm:inline-flex sm:w-auto sm:flex-wrap">
+                              <TabsTrigger
+                                value="search"
+                                className="justify-start gap-1.5 px-3 py-2 text-xs sm:text-sm"
+                              >
+                                <Wrench className="h-3.5 w-3.5 shrink-0" />
+                                <span>Wissensbasis durchsuchen (68 Artikel)</span>
+                                {toolMode === "agent" && (
+                                  <code className="hidden text-[11px] opacity-70 sm:inline">
+                                    search_wildlife_vault
+                                  </code>
+                                )}
+                              </TabsTrigger>
+                              <TabsTrigger
+                                value="verify"
+                                className="justify-start gap-1.5 px-3 py-2 text-xs sm:text-sm"
+                              >
+                                <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
+                                <span>Fakten prüfen</span>
+                                {toolMode === "agent" && (
+                                  <code className="hidden text-[11px] opacity-70 sm:inline">
+                                    verify_claim_against_corpus
+                                  </code>
+                                )}
+                              </TabsTrigger>
+                            </TabsList>
+
+                            <TabsContent value="search" className="space-y-4">
+                              <div className="flex flex-col gap-2 sm:flex-row">
+                                <Input
+                                  value={mcpQuery}
+                                  onChange={(e) => setMcpQuery(e.target.value)}
+                                  placeholder="Suchbegriff eingeben…"
+                                />
+                                <Button
+                                  type="button"
+                                  onClick={() => runOfflineSearch()}
+                                  className="shrink-0"
+                                >
+                                  Tool ausführen
+                                </Button>
+                              </div>
+
+                              <div className="flex flex-wrap gap-1.5">
+                                {[
+                                  "Anemonenfische Symbiose",
+                                  "Eisbär Talg Squalen",
+                                  "Korallenbleiche Temperatur",
+                                  "Alpenmurmeltier Winterschlaf",
+                                  "Schneeleopard Nationalpark",
+                                ].map((preset) => (
+                                  <button
+                                    key={preset}
+                                    type="button"
+                                    onClick={() => runOfflineSearch(preset)}
+                                    className="rounded-full border bg-muted/50 px-2.5 py-1 text-xs hover:bg-secondary"
+                                  >
+                                    {preset}
+                                  </button>
+                                ))}
+                              </div>
+
+                              {mcpResults && (
+                                <div className="divide-y rounded-xl border bg-muted/20">
+                                  {mcpResults.length === 0 && (
+                                    <div className="p-4 text-xs text-muted-foreground">
+                                      0 Treffer in den 68 Artikeln gefunden.
+                                    </div>
+                                  )}
+                                  {mcpResults.map((m) => {
+                                    const parsed = parseWikilink(m.wikilink, m.slug, m.title);
+                                    return (
+                                      <div key={m.slug} className="space-y-1.5 p-3.5 text-xs">
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                          <div className="flex flex-wrap items-center gap-2">
+                                            <span className="font-display text-sm font-bold text-foreground">
+                                              {parsed.title}
+                                            </span>
+                                            <Badge
+                                              variant="outline"
+                                              className="font-mono text-[11px] text-brand-ink"
+                                            >
+                                              ({m.slug}.md)
+                                            </Badge>
+                                          </div>
+                                          <Badge variant="outline">Relevanz {m.score}</Badge>
+                                        </div>
+                                        <p className="leading-relaxed text-foreground/90">
+                                          {m.snippet}
+                                        </p>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </TabsContent>
+
+                            <TabsContent value="verify" className="space-y-4">
+                              <Textarea
+                                value={verifyClaim}
+                                onChange={(e) => setVerifyClaim(e.target.value)}
+                                placeholder="Behauptung zum Prüfen gegen alle 68 Artikel eingeben…"
+                                aria-label="Behauptung gegen Wissensbasis prüfen"
+                                rows={2}
+                              />
+                              <div className="flex flex-wrap gap-2">
+                                <Button type="button" onClick={() => runOfflineVerify()}>
+                                  Behauptung prüfen
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() =>
+                                    runOfflineVerify(
+                                      "Im Schweizerischen Nationalpark leben 45 Schneeleoparden und das Ticket kostet 25 Euro."
+                                    )
+                                  }
+                                >
+                                  Fangfrage testen
+                                </Button>
+                              </div>
+
+                              {verifyOutput && (
+                                <div className="space-y-3 rounded-xl border bg-muted/25 p-4 text-xs">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Badge
+                                      variant={
+                                        verifyOutput.status === "belegt"
+                                          ? "success"
+                                          : verifyOutput.status === "teilweise"
+                                            ? "warning"
+                                            : "danger"
+                                      }
+                                    >
+                                      {verifyOutput.status.toUpperCase()}
+                                    </Badge>
+                                    <span className="font-medium">{verifyOutput.label}</span>
+                                  </div>
+                                  {verifyOutput.evidence.length === 0 && (
+                                    <div className="rounded-lg border border-dashed bg-card p-3 text-muted-foreground">
+                                      0 verlässliche Belege in den 68 Artikeln – korrekte
+                                      System-Reaktion: Behauptung nicht bestätigen.
+                                    </div>
+                                  )}
+                                  {verifyOutput.evidence.map((ev) => {
+                                    const parsed = parseWikilink(ev.wikilink, ev.slug, ev.title);
+                                    return (
+                                      <div
+                                        key={ev.slug}
+                                        className="space-y-1 rounded-lg border bg-card p-3"
+                                      >
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <span className="font-display text-sm font-bold text-foreground">
+                                            {parsed.title}
+                                          </span>
+                                          <Badge
+                                            variant="outline"
+                                            className="font-mono text-[11px] text-brand-ink"
+                                          >
+                                            ({ev.slug}.md)
+                                          </Badge>
+                                        </div>
+                                        <p className="leading-relaxed text-muted-foreground">
+                                          {ev.snippet}
+                                        </p>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </TabsContent>
+                          </Tabs>
+                        </div>
+
+                        {/* Collapsible Code-Agent Multi-CLI MCP Configs */}
+                        <Accordion
+                          type="single"
+                          collapsible
+                          className="rounded-2xl border bg-card px-5"
+                        >
+                          <AccordionItem value="mcp-cfg" className="border-none">
+                            <AccordionTrigger className="font-display text-sm font-semibold">
+                              <span className="flex items-center gap-2 text-left">
+                                <FileCode2 className="h-4 w-4 shrink-0 text-brand-ink" />
+                                <span>
+                                  Code-Agent Setup: Lokaler MCP-Server für 5 Clients
+                                </span>
+                              </span>
+                            </AccordionTrigger>
+                            <AccordionContent className="min-w-0 pb-4">
+                              <Tabs defaultValue="claude" className="min-w-0">
+                                <TabsList className="h-auto w-full flex-wrap justify-start gap-1 overflow-visible bg-muted p-1.5">
+                                  <TabsTrigger value="claude" className="px-2.5 py-1 text-xs">
+                                    Claude Code
+                                  </TabsTrigger>
+                                  <TabsTrigger value="gemini" className="px-2.5 py-1 text-xs">
+                                    Gemini CLI
+                                  </TabsTrigger>
+                                  <TabsTrigger value="codex" className="px-2.5 py-1 text-xs">
+                                    Codex
+                                  </TabsTrigger>
+                                  <TabsTrigger value="vscode" className="px-2.5 py-1 text-xs">
+                                    VS Code
+                                  </TabsTrigger>
+                                  <TabsTrigger value="setup" className="px-2.5 py-1 text-xs">
+                                    Setup-CLI
+                                  </TabsTrigger>
+                                </TabsList>
+                                {[
+                                  {
+                                    id: "claude",
+                                    path: ".mcp.json (im Root, Stufe 2 & Stufe 3 vorkonfiguriert)",
+                                    code: data.mcpConfigs.claudeCode,
+                                  },
+                                  {
+                                    id: "gemini",
+                                    path: "~/.gemini/settings.json (oder .gemini/settings.json)",
+                                    code: data.mcpConfigs.geminiCli,
+                                  },
+                                  {
+                                    id: "codex",
+                                    path: "~/.codex/config.toml",
+                                    code: data.mcpConfigs.codex,
+                                  },
+                                  {
+                                    id: "vscode",
+                                    path: ".vscode/mcp.json",
+                                    code: data.mcpConfigs.vscodeCursor,
+                                  },
+                                  {
+                                    id: "setup",
+                                    path: "Terminal (erzeugt absolute Pfade für alle Clients)",
+                                    code: data.mcpConfigs.setupCommand,
+                                  },
+                                ].map((cfg) => (
+                                  <TabsContent
+                                    key={cfg.id}
+                                    value={cfg.id}
+                                    className="min-w-0 space-y-2"
+                                  >
+                                    <div className="flex flex-wrap items-center justify-between gap-2">
+                                      <code className="break-all text-[11px] text-muted-foreground">
+                                        Zieldatei: {cfg.path}
+                                      </code>
+                                      <CopyButton text={cfg.code} label="Konfig kopieren" />
+                                    </div>
+                                    <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-xl border bg-muted/40 p-3.5 font-mono text-xs">
+                                      {cfg.code}
+                                    </pre>
+                                  </TabsContent>
+                                ))}
+                              </Tabs>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
                       </div>
                     )}
 
-                    {/* Interactive Animated 4-Node Protocol Pipeline */}
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                      {[
-                        {
-                          hop: 1,
-                          icon: Bot,
-                          title: "1 · Deine Frage",
-                          desc: track === "A" ? "Browser-Chat oder diese App" : "Web-Chat, CLI oder diese App",
-                        },
-                        {
-                          hop: 2,
-                          icon: Network,
-                          title: track === "A" ? "2 · Einheitliche Schnittstelle" : "2 · MCP-Protokoll",
-                          desc: track === "A" ? "Standardisiertes Frage-Antwort-Format" : "Einheitliches Datenformat (JSON-RPC)",
-                        },
-                        {
-                          hop: 3,
-                          icon: Cpu,
-                          title: track === "A" ? "3 · Werkzeug-Server" : "3 · MCP-Server",
-                          desc: track === "A" ? "Lokaler Prüf-Dienst (3 Tools)" : "mcp-server/server.mjs (3 Tools)",
-                        },
-                        {
-                          hop: 4,
-                          icon: Monitor,
-                          title: "4 · 68 Artikel & Leinwand",
-                          desc: "Suche, Faktencheck & Live-Teilen",
-                        },
-                      ].map((node) => {
-                        const Icon = node.icon;
-                        const lit = mcpActiveHop === node.hop;
-                        const passed = mcpActiveHop > node.hop;
-                        const edgeActive =
-                          mcpActiveHop === node.hop || mcpActiveHop === node.hop + 1;
-                        return (
-                          <div
-                            key={node.hop}
-                            className={`relative rounded-2xl border p-4 transition-all duration-300 ${
-                              lit
-                                ? "lime-glow border-brand-lime bg-secondary/80 ring-1 ring-brand-lime"
-                                : passed
-                                  ? "border-brand-lime/45 bg-secondary/35"
-                                  : "card-elevated bg-card"
-                            }`}
-                          >
-                            <div className="mb-1.5 flex items-center justify-between gap-2 font-display text-sm font-bold">
-                              <span className="flex items-center gap-2">
-                                <Icon
-                                  className={`h-4 w-4 ${
-                                    lit || passed ? "text-brand-ink" : "text-muted-foreground"
-                                  }`}
-                                />
-                                <span>{node.title}</span>
-                              </span>
-                              {lit && (
-                                <span
-                                  className="inline-block h-2 w-2 rounded-full bg-brand-lime animate-pulse"
-                                  aria-hidden="true"
-                                />
-                              )}
-                            </div>
-                            <p className="text-xs text-muted-foreground">{node.desc}</p>
-                            {node.hop < 4 && (
-                              <>
-                                <span
-                                  aria-hidden="true"
-                                  className={`pointer-events-none absolute -right-3 top-1/2 z-10 hidden h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full border text-[11px] font-bold transition-all lg:flex ${
-                                    edgeActive
-                                      ? "animate-pulse border-brand-lime bg-brand-lime text-brand-obsidian shadow-sm"
-                                      : "border-border bg-background text-muted-foreground"
-                                  }`}
-                                >
-                                  →
-                                </span>
-                                <span
-                                  aria-hidden="true"
-                                  className={`pointer-events-none absolute -bottom-3 left-1/2 z-10 flex h-5 w-5 -translate-x-1/2 items-center justify-center rounded-full border text-[11px] font-bold transition-all sm:hidden ${
-                                    edgeActive
-                                      ? "animate-pulse border-brand-lime bg-brand-lime text-brand-obsidian shadow-sm"
-                                      : "border-border bg-background text-muted-foreground"
-                                  }`}
-                                >
-                                  ↓
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
+                    <Separator />
 
-                    {/* Unified Interactive Tool Lab */}
-                    <div className="rounded-2xl border bg-card p-4 sm:p-6">
-                      <Tabs defaultValue="search" className="space-y-4">
-                        <TabsList className="grid h-auto w-full grid-cols-1 gap-1 p-1 sm:inline-flex sm:w-auto sm:flex-wrap">
-                          <TabsTrigger value="search" className="justify-start gap-1.5 px-3 py-2 text-xs sm:text-sm">
-                            <Wrench className="h-3.5 w-3.5 shrink-0" />
-                            <span>{track === "A" ? "Wissensbasis durchsuchen" : "Vault durchsuchen"}</span>
-                            {track === "B" && (
-                              <code className="hidden text-[11px] opacity-70 sm:inline">
-                                search_wildlife_vault
-                              </code>
-                            )}
-                          </TabsTrigger>
-                          <TabsTrigger value="verify" className="justify-start gap-1.5 px-3 py-2 text-xs sm:text-sm">
-                            <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
-                            <span>Fakten prüfen</span>
-                            {track === "B" && (
-                              <code className="hidden text-[11px] opacity-70 sm:inline">
-                                verify_claim_against_corpus
-                              </code>
-                            )}
-                          </TabsTrigger>
-                        </TabsList>
-
-                        <TabsContent value="search" className="space-y-4">
-                          <div className="flex flex-col gap-2 sm:flex-row">
-                            <Input
-                              value={mcpQuery}
-                              onChange={(e) => setMcpQuery(e.target.value)}
-                              placeholder="Suchbegriff eingeben…"
-                            />
-                            <Button type="button" onClick={() => runMcpSearch()} className="shrink-0">
-                              Tool ausführen
-                            </Button>
-                          </div>
-
-                          <div className="flex flex-wrap gap-1.5">
-                            {[
-                              "Anemonenfische Symbiose",
-                              "Eisbär Talg Squalen",
-                              "Korallenbleiche Temperatur",
-                              "Alpenmurmeltier Winterschlaf",
-                              "Schneeleopard Nationalpark",
-                            ].map((preset) => (
-                              <button
-                                key={preset}
-                                type="button"
-                                onClick={() => runMcpSearch(preset)}
-                                className="rounded-full border bg-muted/50 px-2.5 py-1 text-xs hover:bg-secondary"
-                              >
-                                {preset}
-                              </button>
-                            ))}
-                          </div>
-
-                          {mcpResults && (
-                            <div className="divide-y rounded-xl border bg-muted/20">
-                              {mcpResults.length === 0 && (
-                                <div className="p-4 text-xs text-muted-foreground">
-                                  Keine Treffer im 68-Artikel-Korpus gefunden (0 Treffer).
-                                </div>
-                              )}
-                              {mcpResults.map((m) => {
-                                const parsed = parseWikilink(m.wikilink, m.slug, m.title);
-                                return (
-                                  <div key={m.slug} className="space-y-1.5 p-3.5 text-xs">
-                                    <div className="flex flex-wrap items-center justify-between gap-2">
-                                      <div className="flex flex-wrap items-center gap-2">
-                                        <span className="font-display text-sm font-bold text-foreground">
-                                          {parsed.title}
-                                        </span>
-                                        {track === "B" && (
-                                          <Badge variant="outline" className="font-mono text-[11px] text-brand-ink">
-                                            [[{parsed.slug}]]
-                                          </Badge>
-                                        )}
-                                      </div>
-                                      <Badge variant="outline">Relevanz {m.score}</Badge>
-                                    </div>
-                                    {track === "B" && (
-                                      <div className="break-all font-mono text-[11px] text-muted-foreground">
-                                        {m.rel_path}
-                                      </div>
-                                    )}
-                                    <p className="leading-relaxed text-foreground/90">{m.snippet}</p>
-                                    {m.matched_tokens && m.matched_tokens.length > 0 && (
-                                      <div className="flex flex-wrap items-center gap-1 pt-0.5">
-                                        <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                                          Treffer:
-                                        </span>
-                                        {m.matched_tokens.slice(0, 6).map((tok) => (
-                                          <span
-                                            key={tok}
-                                            className="rounded bg-secondary/70 px-1.5 py-0.5 font-mono text-[10px] text-foreground"
-                                          >
-                                            {tok}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </TabsContent>
-
-                        <TabsContent value="verify" className="space-y-4">
-                          <Textarea
-                            value={verifyClaim}
-                            onChange={(e) => setVerifyClaim(e.target.value)}
-                            rows={2}
-                          />
-                          <div className="flex flex-wrap gap-2">
-                            <Button type="button" onClick={() => runMcpVerify()}>
-                              Behauptung prüfen
-                            </Button>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                runMcpVerify(
-                                  "Im Schweizerischen Nationalpark leben 45 Schneeleoparden und das Ticket kostet 25 Euro."
-                                )
-                              }
-                            >
-                              Fangfrage testen
-                            </Button>
-                          </div>
-
-                          {verifyOutput && (
-                            <div className="space-y-3 rounded-xl border bg-muted/25 p-4 text-xs">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Badge
-                                  variant={
-                                    verifyOutput.status === "belegt"
-                                      ? "success"
-                                      : verifyOutput.status === "teilweise"
-                                        ? "warning"
-                                        : "danger"
-                                  }
-                                >
-                                  {verifyOutput.status.toUpperCase()}
-                                </Badge>
-                                <span className="font-medium">{verifyOutput.label}</span>
-                              </div>
-                              {verifyOutput.evidence.length === 0 && (
-                                <div className="rounded-lg border border-dashed bg-card p-3 text-muted-foreground">
-                                  0 verlässliche Belege in den 68 Artikeln – korrekte System-Reaktion:
-                                  Behauptung nicht bestätigen.
-                                </div>
-                              )}
-                              {verifyOutput.evidence.map((ev) => {
-                                const parsed = parseWikilink(ev.wikilink, ev.slug, ev.title);
-                                return (
-                                  <div key={ev.slug} className="space-y-1 rounded-lg border bg-card p-3">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <span className="font-display text-sm font-bold text-foreground">
-                                        {parsed.title}
-                                      </span>
-                                      {track === "B" && (
-                                        <Badge variant="outline" className="font-mono text-[11px] text-brand-ink">
-                                          [[{parsed.slug}]]
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <p className="leading-relaxed text-muted-foreground">{ev.snippet}</p>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          )}
-                        </TabsContent>
-                      </Tabs>
-                    </div>
-
-                    {/* Track B MCP Configs (Clean file targets + wrapping without awkward desktop scrollbars) */}
-                    <Accordion type="single" collapsible className="rounded-2xl border bg-card px-5">
-                      <AccordionItem value="mcp-cfg" className="border-none">
-                        <AccordionTrigger className="font-display text-sm font-semibold">
-                          <span className="flex items-center gap-2 text-left">
-                            <FileCode2 className="h-4 w-4 shrink-0 text-brand-ink" />
-                            <span>
-                              {track === "A"
-                                ? "Nur für Track B (Entwickler): MCP-Konfiguration für 5 CLI-Clients"
-                                : "MCP-Konfiguration für Track B anzeigen (5 Clients)"}
-                            </span>
-                          </span>
-                        </AccordionTrigger>
-                        <AccordionContent className="min-w-0 pb-4">
-                          <Tabs defaultValue="claude" className="min-w-0">
-                            <TabsList className="h-auto w-full flex-wrap justify-start gap-1 overflow-visible bg-muted p-1.5">
-                              <TabsTrigger value="claude" className="px-2.5 py-1 text-xs">Claude Code</TabsTrigger>
-                              <TabsTrigger value="gemini" className="px-2.5 py-1 text-xs">Gemini CLI</TabsTrigger>
-                              <TabsTrigger value="codex" className="px-2.5 py-1 text-xs">Codex</TabsTrigger>
-                              <TabsTrigger value="vscode" className="px-2.5 py-1 text-xs">VS Code</TabsTrigger>
-                              <TabsTrigger value="cli" className="px-2.5 py-1 text-xs">1-Zeiler CLI</TabsTrigger>
-                            </TabsList>
-                            {[
-                              { id: "claude", path: ".mcp.json (im Repo-Root bereits hinterlegt)", code: data.mcpConfigs.claudeCode, wrapAll: false },
-                              { id: "gemini", path: "~/.gemini/settings.json (oder .gemini/settings.json im Projekt)", code: data.mcpConfigs.geminiCli, wrapAll: false },
-                              { id: "codex", path: "~/.codex/config.toml", code: data.mcpConfigs.codex, wrapAll: false },
-                              { id: "vscode", path: ".vscode/mcp.json (bzw. Cursor MCP Settings)", code: data.mcpConfigs.vscodeCursor, wrapAll: false },
-                              {
-                                id: "cli",
-                                path: "Terminal (PowerShell / Bash im Repo-Root)",
-                                code: data.mcpConfigs.cliCommand.replace(
-                                  /--team\s+"[^"]*"/,
-                                  `--team "${(teamName.trim() || "Euer Team").replace(/"/g, "'")}"`
-                                ),
-                                wrapAll: true,
-                              },
-                            ].map((cfg) => (
-                              <TabsContent key={cfg.id} value={cfg.id} className="min-w-0 space-y-2">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <code className="break-all text-[11px] text-muted-foreground">
-                                    Zieldatei: {cfg.path}
-                                  </code>
-                                  <CopyButton text={cfg.code} label="Konfig kopieren" />
-                                </div>
-                                <pre
-                                  className={`max-w-full rounded-xl border bg-muted/40 p-3.5 font-mono text-xs ${
-                                    cfg.wrapAll
-                                      ? "whitespace-pre-wrap break-all"
-                                      : "overflow-x-auto whitespace-pre-wrap break-words"
-                                  }`}
-                                >
-                                  {cfg.code}
-                                </pre>
-                              </TabsContent>
-                            ))}
-                          </Tabs>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
-                  </div>
-                )}
-
-                {/* STEP 4: INCLUSIVE MISSIONS */}
-                {step === "missions" && (
-                  <div className="space-y-8">
-                    <div className="space-y-2">
-                      <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
-                        Schritt 05 · Freie Wahl-Missionen &amp; Abschluss
+                    {/* 4-Rollen CCF-Transfer-Brücke */}
+                    <section className="space-y-4">
+                      <div className="space-y-1">
+                        <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+                          Transfer-Brücke · Vom Tierwelt-Beispiel in deinen CCF-Alltag
+                        </div>
+                        <h2 className="font-display text-xl font-bold">
+                          4 Rollen im Customer Cluster Finance
+                        </h2>
+                        <p className="editorial-measure text-sm text-muted-foreground">
+                          Übertrage die drei Muster (CO-STAR/RISEN, verbindliche Regeln, verknüpfte
+                          Wissensbasis) direkt auf deinen Arbeitsbereich — immer unter Einhaltung der
+                          CCF-Datenschutzregeln.
+                        </p>
                       </div>
-                      <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
-                        Für jeden etwas: Wähle deine Bonus-Mission
-                      </h1>
-                      <p className="editorial-measure text-sm leading-relaxed text-muted-foreground">
-                        {track === "A"
-                          ? "Suche dir 1–2 kleine Praxistests für deinen Browser-Chat aus. Alle benötigten Texte und Regeln werden automatisch mitkopiert — danach kannst du dein Ergebnis direkt teilen."
-                          : "Ob Faktenprüfung, strukturierte Daten, klares Management-Briefing oder eigenes MCP-Gimmick — wählt nach Lust und Laune und schickt euer Ergebnis an den Beamer!"}
-                      </p>
-                    </div>
 
-                    <div className="grid gap-5 md:grid-cols-2">
-                      {data.missions.map((m) => {
-                        const trackAConfig =
-                          m.id === "m1-audit"
-                            ? {
-                                title: m.title,
-                                description:
-                                  "Prüfe eine typische KI-Antwort streng anhand von Check-Regeln gegen den echten Eisbär-Text und decke erfundene Fakten auf.",
-                                displayPrompt:
-                                  "Prüfe jede Teilaussage strikt gegen meinen beigefügten Eisbär-Artikel:\n„Eisbären haben weiße Haut unter ihrem dichten weißen Fell, wiegen bis zu 800 kg, fressen am liebsten Pinguine und ihre Haare leiten UV-Licht wie Glasfaserkabel direkt auf die Haut.“\nMarkiere jeden Teilpunkt mit [BELEGT], [WIDERSPRÜCHLICH] oder [NICHT BELEGT] inkl. kurzem Textbeleg!",
-                                bundlePrefix: `${data.trackAPrimingTemplate}\n\n---\n\n`,
-                                bundleSuffix: `\n\n---\n\n${trackAPacks.arctic}`,
-                              }
-                            : m.id === "m2-data"
-                              ? {
-                                  title: m.title,
-                                  description:
-                                    "Verwandle die Artikel zu Eisbär, Ringelrobbe und Anemonenfisch in eine übersichtliche Vergleichstabelle — ohne Daten zu erfinden.",
-                                  displayPrompt:
-                                    "Erstelle aus den angehängten Artikeln eine übersichtliche Tabelle für Eisbär, Ringelrobbe und Anemonenfische.\nSpalten: Tierart | Lebensraum | Besonderes Merkmal | Wichtige Zahl aus Text.\nWichtig: Erfinde nichts hinzu! Fehlt ein Wert, schreibe exakt [Nicht in Quelle].",
-                                  bundlePrefix: "",
-                                  bundleSuffix: `\n\n---\n\n${trackAPacks.arctic}\n\n${trackAPacks.reef}`,
-                                }
-                              : m.id === "m3-briefing"
-                                ? {
-                                    title: m.title,
-                                    description:
-                                      "Formuliere ein kurzes Management-Briefing zu den Folgen der Korallenbleiche — inklusive transparenter Lückenliste.",
-                                    displayPrompt:
-                                      "Context: Kurze Entscheidungsvorlage für eine Cluster-Runde.\nObjective: Fasse die Folgen der Korallenbleiche und von Steinkorallen-Schäden anhand der beigefügten Korallenriff-Artikel zusammen.\nAudience: Teamleitung & Management.\nResponse: Max. 5 prägnante Bulletpoints mit belegten Fakten/Zahlen + separater Absatz „Was in diesen Texten fehlt“.",
-                                    bundlePrefix: `${data.trackAPrimingTemplate}\n\n---\n\n`,
-                                    bundleSuffix: `\n\n---\n\n${trackAPacks.reef}`,
-                                  }
-                                : {
-                                    title: "Mission D · Eigene Top-3-Regeln & Raum-Check",
-                                    description:
-                                      "Erstelle deine persönliche 3-Punkte-Checkliste für bessere KI-Antworten im Alltag und teile dein bestes Ergebnis im Raum.",
-                                    displayPrompt:
-                                      "Fasse auf Basis unseres Workshops die 3 wichtigsten Regeln für verlässlichere KI-Antworten im Arbeitsalltag zusammen — maximal 1 klarer Satz pro Regel, leicht verständlich für Kolleginnen und Kollegen ohne IT-Hintergrund.\nWende die 3 Regeln anschließend auf eine kurze Beispielfrage aus meinem Job an.",
-                                    bundlePrefix: "",
-                                    bundleSuffix: "",
-                                  };
-
-                        const shownTitle = track === "A" ? trackAConfig.title : m.title;
-                        const shownDescription = track === "A" ? trackAConfig.description : m.description;
-                        const shownPrompt = track === "A" ? trackAConfig.displayPrompt : m.prompt;
-                        const copyPayload =
-                          track === "A"
-                            ? `${trackAConfig.bundlePrefix}${trackAConfig.displayPrompt}${trackAConfig.bundleSuffix}`
-                            : m.prompt;
-                        const copyLabel =
-                          track === "A"
-                            ? trackAConfig.bundleSuffix
-                              ? "Texte + Mission kopieren"
-                              : "Mission kopieren"
-                            : "Prompt kopieren";
-
-                        return (
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {data.transferBridge.map((role) => (
                           <div
-                            key={m.id}
-                            className="flex flex-col justify-between gap-4 rounded-2xl border bg-card p-6"
+                            key={role.id}
+                            className="flex flex-col justify-between gap-3 rounded-2xl border bg-card p-5"
                           >
-                            <div className="space-y-3">
+                            <div className="space-y-2.5">
                               <div className="flex flex-wrap items-center justify-between gap-2">
-                                <span className="text-xs font-semibold uppercase tracking-wider text-brand-ink">
-                                  {m.tag}
-                                </span>
-                                {track === "A" && trackAConfig.bundleSuffix && (
-                                  <Badge variant="outline" className="text-[11px]">
-                                    Texte werden mitkopiert
-                                  </Badge>
-                                )}
+                                <h3 className="font-display text-base font-bold text-foreground">
+                                  {role.title}
+                                </h3>
+                                <Badge variant="outline" className="text-[10px]">
+                                  {role.workshopPattern}
+                                </Badge>
                               </div>
-                              <h3 className="font-display text-lg font-bold">{shownTitle}</h3>
-                              <p className="text-sm leading-relaxed text-muted-foreground">
-                                {renderInlineCode(shownDescription)}
+                              <div className="text-xs font-medium text-brand-ink">{role.roles}</div>
+                              <p className="text-xs leading-relaxed text-muted-foreground">
+                                <strong className="text-foreground">CCF-Einsatz: </strong>
+                                {role.ccfUseCase}
                               </p>
-                              <pre className="whitespace-pre-wrap break-words rounded-xl border bg-muted/35 p-3.5 font-mono text-xs leading-relaxed">
-                                {shownPrompt}
-                              </pre>
+                              <div className="rounded-xl bg-muted/50 p-2.5 text-[11px] leading-relaxed text-muted-foreground">
+                                <strong className="text-foreground">Guardrail: </strong>
+                                {role.guardrailRule}
+                              </div>
                             </div>
 
-                            <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+                            <div className="flex items-center justify-between gap-2 border-t pt-3">
+                              <span className="truncate font-mono text-[11px] text-muted-foreground">
+                                Starter-Prompt bereit
+                              </span>
                               <CopyButton
-                                text={copyPayload}
-                                label={copyLabel}
-                                onCopy={() => markChecked("chk-mission")}
+                                text={role.starterPrompt}
+                                label="Starter-Prompt kopieren"
+                                onCopy={() => markChecked("chk-transfer")}
                               />
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                className="text-brand-ink"
-                                onClick={() => {
-                                  markChecked("chk-mission");
-                                  openBeamerSheet({
-                                    stage: "Wahl-Mission",
-                                    method: track === "A" ? "CO-STAR" : "MCP / Frei",
-                                    question: `${shownTitle}: ${shownDescription}`,
-                                  });
-                                }}
-                              >
-                                <Send className="h-3.5 w-3.5" />
-                                <span>Ergebnis teilen</span>
-                              </Button>
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
+                        ))}
+                      </div>
+                    </section>
 
-                    {/* Workshop Completion & Takeaways Card */}
+                    {/* Completion Summary Card */}
                     <section className="rounded-2xl border border-brand-lime/45 bg-secondary/35 p-5 sm:p-6">
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div className="space-y-2">
                           <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant={completedCount >= 6 ? "success" : "outline"}>
-                              {completedCount >= 6
-                                ? "Glückwunsch – Workshop durchlaufen!"
+                            <Badge variant={completedCount >= 5 ? "success" : "outline"}>
+                              {completedCount >= 5
+                                ? "Stark — alle Kernmuster erlebt!"
                                 : `Dein Stand: ${completedCount}/${CHECKLIST_ITEMS.length} Häkchen`}
                             </Badge>
                             <span className="num-tabular text-xs font-semibold text-brand-ink">
@@ -1582,41 +1787,21 @@ export function ParticipantApp() {
                             </span>
                           </div>
                           <h2 className="font-display text-lg font-bold text-foreground">
-                            Was du aus allen 5 Schritten mitnimmst
+                            Was du aus allen 4 Schritten mitnimmst
                           </h2>
                           <p className="editorial-measure text-sm text-muted-foreground">
-                            Gute KI-Ergebnisse entstehen durch klare Aufträge (CO-STAR/RISEN),
-                            verbindliche Chat-Regeln gegen Raten und saubere Quellen mit
-                            Querverbindungen — egal ob im Browser oder im Terminal.
+                            Klare Prompt-Struktur, verbindliche Regeln gegen Raten und ein
+                            vernetzter Index schlagen blindes Kopieren — in Web-Chats genauso wie in
+                            Desktop-Ordnern und Code-Agenten.
                           </p>
-                          <div className="h-2 w-full max-w-md overflow-hidden rounded-full bg-background/80">
-                            <div
-                              className="h-full rounded-full bg-brand-lime transition-all duration-300"
-                              style={{ width: `${progressPct}%` }}
-                            />
+                          <div className="max-w-md pt-1">
+                            <Progress value={progressPct} />
                           </div>
                         </div>
-                        <div className="flex shrink-0 flex-wrap gap-2">
-                          <Button
-                            type="button"
-                            onClick={() =>
-                              openBeamerSheet({
-                                stage: "Wahl-Mission",
-                                method: track === "A" ? "CO-STAR" : "MCP / Frei",
-                              })
-                            }
-                          >
-                            <Send className="h-4 w-4" />
-                            <span>Ergebnis teilen</span>
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => goToStep("start")}
-                          >
-                            Zurück zum Start
-                          </Button>
-                        </div>
+
+                        <Button type="button" variant="outline" onClick={() => goToStep("start")}>
+                          Zurück zum Einstieg
+                        </Button>
                       </div>
                     </section>
                   </div>
@@ -1630,28 +1815,19 @@ export function ParticipantApp() {
                 {prevStep ? (
                   <Button type="button" variant="outline" onClick={() => goToStep(prevStep.id)}>
                     <ArrowLeft className="h-4 w-4" />
-                    <span>Zurück: {prevStep.label}</span>
+                    <span>Zurück: {prevStep.short}</span>
                   </Button>
                 ) : (
                   <div />
                 )}
                 {nextStep ? (
                   <Button type="button" onClick={() => goToStep(nextStep.id)}>
-                    <span>Weiter: {nextStep.label}</span>
+                    <span>Weiter: {nextStep.short}</span>
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button
-                    type="button"
-                    onClick={() =>
-                      openBeamerSheet({
-                        stage: "Wahl-Mission",
-                        method: track === "A" ? "CO-STAR" : "MCP / Frei",
-                      })
-                    }
-                  >
-                    <Send className="h-4 w-4" />
-                    <span>Abschluss-Learning teilen</span>
+                  <Button type="button" variant="outline" onClick={() => goToStep("start")}>
+                    Zurück zum Einstieg
                   </Button>
                 )}
               </footer>
@@ -1660,13 +1836,13 @@ export function ParticipantApp() {
         </main>
       </div>
 
-      {/* Fixed Mobile Bottom Step-Bar (Safe-Area Aware) */}
+      {/* Fixed Mobile Bottom Step-Bar (4 Steps) */}
       <nav
         aria-label="Mobile Navigation"
-        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
       >
-        {STEPS.map((s) => {
-          const Icon = s.icon;
+        {data.steps.map((s) => {
+          const Icon = STEP_ICONS[s.id];
           const isActive = s.id === step;
           return (
             <button
@@ -1681,24 +1857,14 @@ export function ParticipantApp() {
                 <span className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-brand-lime" />
               )}
               <Icon className="h-4 w-4" />
-              <span className="truncate max-w-full">{s.short}</span>
+              <span className="max-w-full truncate">{s.short}</span>
             </button>
           );
         })}
       </nav>
 
-      {/* Global Slide-Over Send-to-Beamer Sheet */}
-      <BeamerSendSheet
-        open={sendOpen}
-        onOpenChange={setSendOpen}
-        teamName={teamName}
-        onTeamNameChange={setTeamName}
-        track={track}
-        prefill={sendPrefill}
-        githubRepoSlug={githubRepoSlug}
-        cliCommandTemplate={data.mcpConfigs.cliCommand}
-        onSuccess={() => setChecked((prev) => ({ ...prev, "chk-beamer": true }))}
-      />
+      {/* Lightweight 15-Second Onboarding Spotlight Tour */}
+      <OnboardingTour open={tourOpen} onOpenChange={setTourOpen} onSelectStep={goToStep} />
     </div>
   );
 }

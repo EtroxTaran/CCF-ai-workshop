@@ -1,24 +1,29 @@
 # Workshop MCP Server (`workshop-wildlife`)
 
-Ein **komplett abhängigkeitsfreier** Node.js-MCP-Server (`>= 18`), der über `stdio` (JSON-RPC 2.0) drei Werkzeuge bereitstellt:
+Ein **komplett abhängigkeitsfreier** Node.js-MCP-Server (`>= 18`), der über `stdio` (JSON-RPC 2.0) die gemeinsame Korpus-Engine (`../shared/corpus-engine.mjs`) nutzt und **3 Tools** sowie **MCP-Resources** bereitstellt:
 
-1. **`search_wildlife_vault`** — Sucht gezielt im strukturierten Vault (`stufe-3-obsidian-vault/wiki/`) und liefert `[[Wikilinks]]` + Textauszüge.
-2. **`verify_claim_against_corpus`** — Prüft Aussagen auf Belege vs. Lücken im lokalen Korpus.
-3. **`send_to_beamer`** — Speichert eine Frage/KI-Antwort als JSON in `live-questions/` **und** sendet sie bei erreichbarem LAN-Server live auf den Beamer (`/beamer`).
+## Tools
+1. **`search_wildlife_vault`** — Durchsucht den strukturierten Vault (`stufe-3-obsidian-vault/wiki/`, mit Datei-`mtime`-Cache) und liefert `[[Wikilinks]]`, Treffer-Scores und Textauszüge.
+2. **`verify_claim_against_corpus`** — Prüft Aussagen gegen alle 68 lokalen Artikel und deckt unbelegte Behauptungen bzw. Fangfragen (inkl. strengem Rauschfilter) auf.
+3. **`read_vault_article`** — Liest den vollständigen Markdown-Inhalt eines Artikels oder von `_index` anhand von Slug, Titel, `[[Wikilink]]` oder relativem Pfad.
 
-## Schnelltest per Terminal
-
-```bash
-node mcp-server/submit-question.mjs --team "Tisch 1" --question "Wie überwintern Alpenmurmeltiere?" --stage "Stufe 3"
-```
+## MCP Resources (`resources/list` & `resources/read`)
+- `vault://_index.md` — Zentrale Übersichtskarte des Obsidian-Vaults.
+- `vault://wiki/<kategorie>/<slug>.md` — Alle 68 kuratierten Wiki-Artikel.
 
 ## Einbindung in KI-Tools
 
-Im Repository-Root liegt bereits eine fertige [`.mcp.json`](../.mcp.json) für Claude Code.
-Weitere Vorlagen findest du in `mcp-config-examples/`:
+Im Repository-Root (`.mcp.json`), in `.vscode/mcp.json` sowie in `stufe-2-skills-guardrails/.mcp.json` und `stufe-3-obsidian-vault/.mcp.json` liegen bereits fertige Projekt-Konfigurationen.
+
+Für globale/benutzerweite oder absolute Pfade steht der Setup-Helfer bereit:
+
+```bash
+node mcp-server/setup-client.mjs --client all --dry-run
+node mcp-server/setup-client.mjs --client claude --scope user
+```
+
+Weitere Vorlagen liegen in `mcp-config-examples/`:
 - `claude-code.mcp.json`
 - `gemini-cli.settings.json`
 - `codex.config.toml`
 - `vscode-cursor.mcp.json`
-
-Wenn der Beamer-Server im Raum auf der IP des Trainers läuft (z. B. `192.168.178.42`), setze einfach die Umgebungsvariable `BEAMER_URL=http://192.168.178.42:3777/api/submissions` oder gib `beamer_url` direkt beim Tool-Aufruf an.

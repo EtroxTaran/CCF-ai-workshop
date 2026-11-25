@@ -1,3 +1,7 @@
+export type ToolMode = "web" | "desktop" | "agent";
+export type WorkshopStepId = "start" | "methods" | "stages" | "paths";
+export type BeamerMode = "stage" | "demo" | "qr" | "outro";
+
 export interface WorkshopMeta {
   title: string;
   subtitle: string;
@@ -6,18 +10,48 @@ export interface WorkshopMeta {
   timeSlot: string;
   articleCount: number;
   complianceNote: string;
+  pagesUrl: string;
+  repoUrl: string;
+}
+
+export interface WorkshopStepSpec {
+  id: WorkshopStepId;
+  num: string;
+  label: string;
+  short: string;
+  phaseGroup: "aha-kern" | "praxis-pfad";
+  phaseLabel: string;
+}
+
+export interface ToolModeSpec {
+  id: ToolMode;
+  label: string;
+  shortLabel: string;
+  badge: string;
+  summary: string;
+  examples: string[];
+  workflowHint: string;
+  noInstallRequired: boolean;
+}
+
+export interface OpenCodeHelpSpec {
+  title: string;
+  summary: string;
+  steps: string[];
+  commandSnippet: string;
+  note: string;
 }
 
 export interface PhaseItem {
   id: string;
   number: number;
+  phaseGroup: "aha-kern" | "praxis-pfad";
   timeRange: string;
   durationMin: number;
   title: string;
   subtitle: string;
   beamerHeadline: string;
-  trackACue: string;
-  trackBCue: string;
+  modeCues: Record<ToolMode, string>;
   activeQuestionId: string;
   keyTakeaway: string;
 }
@@ -31,6 +65,18 @@ export interface PromptMethod {
   risk: string;
   components: string[];
   prompt: string;
+  unstructuredComparison: {
+    label: string;
+    excerpt: string;
+    issues: string[];
+  };
+  structuredComparison: {
+    label: string;
+    excerpt: string;
+    highlights: string[];
+    formatTag: string;
+  };
+  expectedSnippet: string;
 }
 
 export interface ArchitectureLayer {
@@ -49,6 +95,17 @@ export interface TestQuestion {
   targetDocs: string[];
   whatToWatch: string;
   solutionSummary: string;
+  focusStages: string[];
+  isTrap?: boolean;
+  webChatPrompt?: string;
+  webChatWatch?: string;
+  webChatSolution?: string;
+  manipulationCheck?: {
+    targetFile: string;
+    originalValue: string;
+    mutatedValue: string;
+    expectedCitation: string;
+  };
 }
 
 export interface StageSkill {
@@ -56,24 +113,64 @@ export interface StageSkill {
   content: string;
 }
 
+export interface StageModeNote {
+  headline: string;
+  steps: string[];
+  commandOrAction: string;
+}
+
 export interface StageSpec {
   id: string;
   folder: string;
   title: string;
   badge: string;
+  beginnerBadge: string;
   summary: string;
+  beginnerSummary: string;
   agentsMd: string;
   indexMd?: string;
   skills: StageSkill[];
-  trackBPrompt: string;
+  modeNotes: Record<ToolMode, StageModeNote>;
+  focusQuestionIds: string[];
+  sourceTags: string[];
 }
 
-export interface MissionSpec {
-  id: string;
+export interface ExpressPackage {
+  id: "methods" | "stages-arctic-reef";
+  title: string;
+  description: string;
+  charCount: number;
+  promptHeaderTemplate: string;
+  sources: string[];
+  content: string;
+}
+
+export interface PraxisPathModeVariant {
+  label: string;
+  prompt: string;
+  deliverableHint: string;
+}
+
+export interface PraxisPathSpec {
+  id: "pfad-recherche" | "pfad-praesentation" | "pfad-app";
+  number: 1 | 2 | 3;
   title: string;
   tag: string;
+  durationMin: number;
+  bestForRoles: string[];
   description: string;
-  prompt: string;
+  includesInBrowserLab?: boolean;
+  promptsByMode: Record<ToolMode, PraxisPathModeVariant>;
+}
+
+export interface TransferBridgeRole {
+  id: string;
+  title: string;
+  roles: string;
+  workshopPattern: string;
+  ccfUseCase: string;
+  guardrailRule: string;
+  starterPrompt: string;
 }
 
 export interface StarterArticle {
@@ -97,25 +194,32 @@ export interface VaultArticle {
   key_points: string[];
 }
 
+export interface McpConfigSet {
+  claudeCode: string;
+  geminiCli: string;
+  codex: string;
+  vscodeCursor: string;
+  setupCommand: string;
+}
+
 export interface WorkshopDataset {
   meta: WorkshopMeta;
+  steps: WorkshopStepSpec[];
+  toolModes: ToolModeSpec[];
+  openCodeHelp: OpenCodeHelpSpec;
   phases: PhaseItem[];
   promptComparisonTask: string;
   promptMethods: PromptMethod[];
   architectureLayers: ArchitectureLayer[];
-  trackAPrimingTemplate: string;
+  chatRulesTemplate: string;
   testQuestions: TestQuestion[];
   stages: StageSpec[];
-  missions: MissionSpec[];
+  expressPackages: ExpressPackage[];
+  praxisPaths: PraxisPathSpec[];
+  transferBridge: TransferBridgeRole[];
   starterArticles: StarterArticle[];
   vaultArticles: VaultArticle[];
-  mcpConfigs: {
-    claudeCode: string;
-    geminiCli: string;
-    codex: string;
-    vscodeCursor: string;
-    cliCommand: string;
-  };
+  mcpConfigs: McpConfigSet;
 }
 
 export interface EvidenceMatch {
@@ -129,51 +233,10 @@ export interface EvidenceMatch {
   score: number;
 }
 
-export interface SubmissionEvaluation {
-  status: "belegt" | "teilweise" | "nicht_belegt" | "notiz";
-  statusLabel: string;
-  matchedRatio: number;
-  isLikelyTrap: boolean;
-  answerHasCitation: boolean;
-  answerHasGuardrailRefusal: boolean;
+export interface VerifyClaimResult {
+  status: "belegt" | "teilweise" | "nicht_belegt";
+  label: string;
   evidence: EvidenceMatch[];
-  llmProvider?: string | null;
-  llmComment?: string | null;
 }
 
-export interface SubmissionItem {
-  id: string;
-  created_at: string;
-  team: string;
-  track: string;
-  stage: string;
-  method: string;
-  question: string;
-  ai_answer: string;
-  source: string;
-  pinned?: boolean;
-  discussed?: boolean;
-  sample?: boolean;
-  evaluation: SubmissionEvaluation;
-}
-
-export interface ServerHealth {
-  ok: boolean;
-  articleCount: number;
-  lanUrls: string[];
-  port: number;
-  llmMode: string;
-  githubRepo: string;
-  githubLabel: string;
-  gitAutoPull: boolean;
-  joinUrl: string;
-}
-
-export interface StageState {
-  phaseIdx: number;
-  running: boolean;
-  secondsLeft: number;
-  updatedAt: number;
-  beamerActive: boolean;
-  connectedClients: number;
-}
+export type CorpusSearchIndex = Record<string, string>;

@@ -46,9 +46,11 @@ export function StageMiniDiagram({ variant }: { variant: "chaos" | "harness" | "
       <circle cx="44" cy="48" r="5" fill="#CBD5C0" fillOpacity="0.7" />
       <circle cx="176" cy="16" r="6.5" fill="#34D399" />
       <circle cx="182" cy="46" r="6.5" fill="#A9C23F" />
-      <circle cx="110" cy="32" r="14" fill="#A9C23F" fillOpacity="0.2" />
-      <circle cx="110" cy="32" r="9" fill="#A9C23F" />
-      <text x="110" y="35" textAnchor="middle" fontSize="8" fontWeight="800" fill="#0B0F0A">MOC</text>
+      <circle cx="110" cy="32" r="16" fill="#A9C23F" fillOpacity="0.2" />
+      <circle cx="110" cy="32" r="12" fill="#A9C23F" />
+      <text x="110" y="34.5" textAnchor="middle" fontSize="6.5" fontWeight="800" fill="#0B0F0A">
+        _index
+      </text>
     </svg>
   );
 }

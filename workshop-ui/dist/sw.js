@@ -1,5 +1,5 @@
-const CACHE_NAME = "v7-ccf-workshop-shell-v1";
-const SHELL_ASSETS = ["/", "/manifest.webmanifest", "/icons/icon.svg"];
+const CACHE_NAME = "v7-ccf-workshop-shell-v2";
+const SHELL_ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon.svg"];
 
 self.addEventListener("install", (event) => {
   self.skipWaiting();
@@ -24,8 +24,6 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET") return;
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
-  // Never intercept live API calls or SSE streams
-  if (url.pathname.startsWith("/api/")) return;
 
   event.respondWith(
     fetch(request)
@@ -36,6 +34,10 @@ self.addEventListener("fetch", (event) => {
         }
         return response;
       })
-      .catch(() => caches.match(request).then((cached) => cached || caches.match("/")))
+      .catch(() =>
+        caches
+          .match(request)
+          .then((cached) => cached || (request.mode === "navigate" ? caches.match("./") : undefined))
+      )
   );
 });

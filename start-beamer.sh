@@ -2,16 +2,59 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+PORT="${PORT:-3777}"
+STAGE_URL="http://127.0.0.1:${PORT}/#/beamer"
+
 echo ""
 echo "============================================================"
-echo "  virtual7 CCF KI-Workshop - BEAMER REGIE (/beamer)"
+echo "  virtual7 CCF Prompt-Werkstatt - Trainer-Bühne (#/beamer)"
 echo "============================================================"
+echo "  Primäre Online-URL : https://etroxtaran.github.io/CCF-ai-workshop/#/beamer"
+echo "  Lokales Backup     : ${STAGE_URL}"
 echo ""
 
-if ! command -v node >/dev/null 2>&1; then
-  echo "[FEHLER] Fuer den Beamer-Live-Server wird Node.js >= 18 benoetigt."
+if [ ! -f "workshop-ui/dist/index.html" ]; then
+  echo "[FEHLER] workshop-ui/dist/index.html fehlt."
+  echo "Nutze online https://etroxtaran.github.io/CCF-ai-workshop/#/beamer"
+  echo "oder baue lokal mit: cd workshop-ui && npm install && npm run build"
   exit 1
 fi
 
-(sleep 2 && (command -v xdg-open >/dev/null 2>&1 && xdg-open "http://127.0.0.1:3777/beamer" || command -v open >/dev/null 2>&1 && open "http://127.0.0.1:3777/beamer" || true)) &
-exec node workshop-ui/server.mjs
+open_browser() {
+  local url="$1"
+  (
+    sleep 2
+    if command -v xdg-open >/dev/null 2>&1; then
+      xdg-open "$url" >/dev/null 2>&1 || true
+    elif command -v open >/dev/null 2>&1; then
+      open "$url" >/dev/null 2>&1 || true
+    elif command -v wslview >/dev/null 2>&1; then
+      wslview "$url" >/dev/null 2>&1 || true
+    fi
+  ) &
+}
+
+if command -v node >/dev/null 2>&1; then
+  echo "[OK] Node.js gefunden - starte statischen Offline-Backup-Server für Trainer-Bühne (#/beamer)..."
+  open_browser "$STAGE_URL"
+  PORT="$PORT" exec node workshop-ui/server.mjs
+fi
+
+PY_CMD=""
+if command -v python3 >/dev/null 2>&1 && python3 -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 7) else 1)" >/dev/null 2>&1; then
+  PY_CMD="python3"
+elif command -v python >/dev/null 2>&1 && python -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 7) else 1)" >/dev/null 2>&1; then
+  PY_CMD="python"
+fi
+
+if [ -n "$PY_CMD" ]; then
+  echo "[INFO] Kein Node.js gefunden - starte statischen Offline-Backup-Server für Trainer-Bühne über Python (#/beamer)..."
+  open_browser "$STAGE_URL"
+  exec "$PY_CMD" -m http.server "$PORT" --bind 127.0.0.1 --directory workshop-ui/dist
+fi
+
+echo "[FEHLER] Weder Node.js noch Python 3.7+ gefunden."
+echo "Nutze direkt die primäre GitHub-Pages-URL:"
+echo "  https://etroxtaran.github.io/CCF-ai-workshop/#/beamer"
+echo "Oder nutze alternativ presentation/CCF_HandsOn_Prompt_Werkstatt.pptx."
+exit 1

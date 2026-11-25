@@ -8,10 +8,10 @@ const ParticipantApp = lazy(() =>
 
 function detectIsBeamer(): boolean {
   if (typeof window === "undefined") return false;
-  return (
-    window.location.pathname.startsWith("/beamer") ||
-    window.location.hash.startsWith("#/beamer")
-  );
+  const hash = window.location.hash;
+  if (/^#\/beamer(?:[/?#]|$)/.test(hash)) return true;
+  if (hash && hash !== "#") return false;
+  return window.location.pathname === "/beamer" || window.location.pathname.startsWith("/beamer/");
 }
 
 export function App() {

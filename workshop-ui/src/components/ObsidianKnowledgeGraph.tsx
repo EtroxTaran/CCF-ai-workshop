@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useReducedMotion } from "framer-motion";
 import {
   forceCenter,
   forceCollide,
@@ -10,22 +11,60 @@ import {
   type SimulationLinkDatum,
   type SimulationNodeDatum,
 } from "d3-force";
-import { ArrowRight, Link2, List, Minus, Network, Play, Plus, RotateCcw, Search, Square, X } from "lucide-react";
+import {
+  ArrowRight,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  Link2,
+  List,
+  Minus,
+  Network,
+  Pause,
+  Play,
+  Plus,
+  RotateCcw,
+  Search,
+  Square,
+  X,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import type { VaultArticle } from "@/types/workshop";
 
 const RAG_WALK_STEPS: { slug: string; note: string }[] = [
-  { slug: "anemonenfische", note: "Hop 1/6 · [[anemonenfische]]: Geringer Sialinsäure-Anteil schützt vor Nesselzellen" },
-  { slug: "seeanemonen", note: "Hop 2/6 · [[seeanemonen]]: 7 von 10 Symbioseanemonen in Stichodactylidae" },
-  { slug: "symbiose", note: "Hop 3/6 · [[symbiose]]: Ektosymbiose (Clownfisch) vs. Endosymbiose (Koralle)" },
-  { slug: "steinkorallen", note: "Hop 4/6 · [[steinkorallen]]: Riffbildung bei 20–29 °C mit Zooxanthellen" },
-  { slug: "korallenbleiche", note: "Hop 5/6 · [[korallenbleiche]]: Ab ~29 °C Abstoßung, Tod binnen ~8 Wochen" },
-  { slug: "korallenriff", note: "Hop 6/6 · [[korallenriff]]: Synthese komplett · 70–90 % Wellenschutz" },
+  {
+    slug: "anemonenfische",
+    note: "Start · [[anemonenfische]]: Geringer Sialinsäure-Anteil schützt vor Nesselzellen",
+  },
+  {
+    slug: "seeanemonen",
+    note: "Sprung 1/5 · [[seeanemonen]]: 7 von 10 Symbioseanemonen in Stichodactylidae",
+  },
+  {
+    slug: "symbiose",
+    note: "Sprung 2/5 · [[symbiose]]: Ektosymbiose (Clownfisch) vs. Endosymbiose (Koralle)",
+  },
+  {
+    slug: "steinkorallen",
+    note: "Sprung 3/5 · [[steinkorallen]]: Riffbildung bei 20–29 °C mit Zooxanthellen",
+  },
+  {
+    slug: "korallenbleiche",
+    note: "Sprung 4/5 · [[korallenbleiche]]: Ab ~29 °C Abstoßung, Tod binnen ~8 Wochen",
+  },
+  {
+    slug: "korallenriff",
+    note: "Sprung 5/5 · [[korallenriff]]: Synthese komplett · 70–90 % Wellenschutz",
+  },
 ];
 
-interface ObsidianKnowledgeGraphProps {
+export interface ObsidianKnowledgeGraphProps {
   articles: VaultArticle[];
+  vaultIndexMarkdown?: string;
+  projectorMode?: boolean;
+  externalSelectedSlug?: string;
+  onSelectArticle?: (article: VaultArticle) => void;
 }
 
 interface GraphNode extends SimulationNodeDatum {
@@ -80,21 +119,48 @@ function nodeBaseRadius(node: GraphNode): number {
   return 4.5 + Math.min(3, node.degree * 0.28);
 }
 
-export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps) {
+export function ObsidianKnowledgeGraph({
+  articles,
+  vaultIndexMarkdown,
+  projectorMode = false,
+  externalSelectedSlug,
+  onSelectArticle,
+}: ObsidianKnowledgeGraphProps) {
+  const prefersReduced = useReducedMotion();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<"graph" | "list">("graph");
+  const [viewMode, setViewMode] = useState<"graph" | "list" | "index">("graph");
   const [selectedSlug, setSelectedSlug] = useState<string>("anemonenfische");
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
   const [trail, setTrail] = useState<string[]>(["anemonenfische"]);
   const [zoom, setZoom] = useState<number>(1);
   const [showRawYaml, setShowRawYaml] = useState<boolean>(false);
   const [ragWalkIdx, setRagWalkIdx] = useState<number | null>(null);
+  const [ragWalkPlaying, setRagWalkPlaying] = useState<boolean>(false);
   const [dragPositions, setDragPositions] = useState<Record<string, { x: number; y: number }>>({});
   const draggingSlugRef = useRef<string | null>(null);
   const movedDuringDragRef = useRef<boolean>(false);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
+
+  const bySlug = useMemo(() => {
+    const map = new Map<string, VaultArticle>();
+    for (const a of articles) map.set(a.slug, a);
+    return map;
+  }, [articles]);
+
+  useEffect(() => {
+    if (!externalSelectedSlug) return;
+    const art = bySlug.get(externalSelectedSlug);
+    if (!art) return;
+    setRagWalkPlaying(false);
+    setSelectedSlug(externalSelectedSlug);
+    setTrail((prev) =>
+      prev[prev.length - 1] === externalSelectedSlug
+        ? prev
+        : [...prev.slice(-4), externalSelectedSlug]
+    );
+  }, [externalSelectedSlug, bySlug]);
 
   useEffect(() => {
     if (ragWalkIdx === null) return;
@@ -102,16 +168,22 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
     if (step) {
       setSelectedSlug(step.slug);
       setTrail(RAG_WALK_STEPS.slice(0, ragWalkIdx + 1).map((s) => s.slug));
+      const art = bySlug.get(step.slug);
+      if (art) onSelectArticle?.(art);
     }
-    const timer = window.setTimeout(() => {
-      if (ragWalkIdx + 1 < RAG_WALK_STEPS.length) {
-        setRagWalkIdx(ragWalkIdx + 1);
-      } else {
-        setRagWalkIdx(null);
-      }
-    }, 1500);
+    if (!ragWalkPlaying) return;
+    const timer = window.setTimeout(
+      () => {
+        if (ragWalkIdx + 1 < RAG_WALK_STEPS.length) {
+          setRagWalkIdx(ragWalkIdx + 1);
+        } else {
+          setRagWalkPlaying(false);
+        }
+      },
+      prefersReduced ? 2200 : 1600
+    );
     return () => window.clearTimeout(timer);
-  }, [ragWalkIdx]);
+  }, [ragWalkIdx, ragWalkPlaying, prefersReduced, bySlug, onSelectArticle]);
 
   function clientToSvg(clientX: number, clientY: number): { x: number; y: number } | null {
     const svg = svgRef.current;
@@ -127,12 +199,6 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
       y: Math.max(24, Math.min(HEIGHT - 24, mapped.y)),
     };
   }
-
-  const bySlug = useMemo(() => {
-    const map = new Map<string, VaultArticle>();
-    for (const a of articles) map.set(a.slug, a);
-    return map;
-  }, [articles]);
 
   // Compute deterministic settled force layout once for the 68 vault nodes
   const { layoutNodes, layoutLinks, neighborsMap } = useMemo(() => {
@@ -202,7 +268,6 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
       sim.tick();
     }
 
-    // Clamp cleanly inside SVG viewBox margin
     for (const n of nodes) {
       n.x = Math.max(36, Math.min(WIDTH - 36, n.x));
       n.y = Math.max(32, Math.min(HEIGHT - 32, n.y));
@@ -262,7 +327,6 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
   const focusNeighbors = neighborsMap.get(focusSlug) || new Set<string>();
   const isFiltering = query.trim().length > 0 || category !== "all";
 
-  // Greedy 2D bounding-box check prevents dense-cluster text collisions during pan/walk/zoom
   const visibleLabelSlugs = useMemo(() => {
     const placed: { x1: number; y1: number; x2: number; y2: number }[] = [];
     const visible = new Set<string>();
@@ -305,15 +369,48 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
   }
 
   function selectNode(slug: string) {
-    if (!bySlug.has(slug)) return;
+    const art = bySlug.get(slug);
+    if (!art) return;
     setSelectedSlug(slug);
     setTrail((prev) => (prev[prev.length - 1] === slug ? prev : [...prev.slice(-4), slug]));
+    onSelectArticle?.(art);
+  }
+
+  function handlePlayPause() {
+    setViewMode("graph");
+    if (ragWalkIdx === null) {
+      setRagWalkIdx(0);
+      setRagWalkPlaying(true);
+      return;
+    }
+    if (ragWalkPlaying) {
+      setRagWalkPlaying(false);
+    } else {
+      if (ragWalkIdx >= RAG_WALK_STEPS.length - 1) setRagWalkIdx(0);
+      setRagWalkPlaying(true);
+    }
+  }
+
+  function handlePrevStep() {
+    setViewMode("graph");
+    setRagWalkPlaying(false);
+    setRagWalkIdx((i) => (i === null ? 0 : Math.max(0, i - 1)));
+  }
+
+  function handleNextStep() {
+    setViewMode("graph");
+    setRagWalkPlaying(false);
+    setRagWalkIdx((i) => (i === null ? 0 : Math.min(RAG_WALK_STEPS.length - 1, i + 1)));
   }
 
   const viewW = WIDTH / zoom;
   const viewH = HEIGHT / zoom;
   const viewX = (WIDTH - viewW) / 2;
   const viewY = (HEIGHT - viewH) / 2;
+
+  const canvasHeightClass = projectorMode
+    ? "h-[400px] sm:h-[500px] lg:h-[580px]"
+    : "h-[360px] sm:h-[460px] lg:h-[510px]";
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[#232B20] bg-[#0B0F0A] text-[#F2F4EE] shadow-xl">
@@ -324,7 +421,11 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
             <Network className="h-4 w-4" />
           </div>
           <div className="min-w-0">
-            <div className="font-display text-sm font-bold text-[#F2F4EE] sm:text-base">
+            <div
+              className={`font-display font-bold text-[#F2F4EE] ${
+                projectorMode ? "text-lg sm:text-xl" : "text-sm sm:text-base"
+              }`}
+            >
               Interaktive Wissenskarte · {articles.length} Artikel &amp; {layoutLinks.length} Querverweise
             </div>
             <div className="text-xs text-[#9FA998]">
@@ -334,27 +435,64 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              if (ragWalkIdx !== null) {
-                setRagWalkIdx(null);
-              } else {
-                setViewMode("graph");
-                setRagWalkIdx(0);
-              }
-            }}
-            className={`inline-flex min-h-[38px] items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-              ragWalkIdx !== null
-                ? "border-[#A9C23F] bg-[#A9C23F] text-[#0B0F0A]"
-                : "border-[#232B20] bg-[#1B2419] text-[#A9C23F] hover:border-[#A9C23F]"
-            }`}
-          >
-            {ragWalkIdx !== null ? <Square className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-            <span>{ragWalkIdx !== null ? "Stoppen" : "KI-Suchpfad abspielen"}</span>
-          </button>
+          {/* RAG Walk Controls: Play/Pause + Prev + Next + Stop + 68 Dateien vs. 5 Sprünge */}
+          <div className="inline-flex items-center gap-1 rounded-lg border border-[#232B20] bg-[#0B0F0A] p-1">
+            <button
+              type="button"
+              onClick={handlePlayPause}
+              className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold transition-colors ${
+                ragWalkPlaying
+                  ? "bg-[#A9C23F] text-[#0B0F0A]"
+                  : "bg-[#1B2419] text-[#A9C23F] hover:bg-[#243021]"
+              }`}
+            >
+              {ragWalkPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+              <span>
+                {ragWalkPlaying ? "Pause" : ragWalkIdx !== null ? "Weiter" : "Suchpfad"}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={handlePrevStep}
+              disabled={ragWalkIdx === 0}
+              aria-label="Vorheriger Schritt"
+              title="Vorheriger Schritt"
+              className="inline-flex h-9 w-8 items-center justify-center rounded-md text-[#9FA998] hover:bg-[#1B2419] hover:text-[#F2F4EE] disabled:opacity-40"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={handleNextStep}
+              disabled={ragWalkIdx !== null && ragWalkIdx >= RAG_WALK_STEPS.length - 1}
+              aria-label="Nächster Schritt"
+              title="Nächster Schritt"
+              className="inline-flex h-9 w-8 items-center justify-center rounded-md text-[#9FA998] hover:bg-[#1B2419] hover:text-[#F2F4EE] disabled:opacity-40"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+            {ragWalkIdx !== null && (
+              <button
+                type="button"
+                onClick={() => {
+                  setRagWalkPlaying(false);
+                  setRagWalkIdx(null);
+                }}
+                aria-label="Suchpfad zurücksetzen"
+                title="Suchpfad zurücksetzen"
+                className="inline-flex h-9 w-8 items-center justify-center rounded-md text-[#9FA998] hover:bg-[#1B2419] hover:text-[#F2F4EE]"
+              >
+                <Square className="h-3 w-3" />
+              </button>
+            )}
+          </div>
 
-          <div className="relative min-w-[210px] flex-1 sm:w-60 sm:flex-none">
+          <span className="num-tabular shrink-0 rounded-lg border border-[#A9C23F]/40 bg-[#1B2419] px-2.5 py-1.5 font-mono text-[11px] font-semibold text-[#A9C23F]">
+            {articles.length} Dateien vs. 5 Sprünge
+            {ragWalkIdx !== null ? ` · ${ragWalkIdx}/5` : ""}
+          </span>
+
+          <div className="relative min-w-[190px] flex-1 sm:w-52 sm:flex-none">
             <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-[#9FA998]" />
             <Input
               value={query}
@@ -388,7 +526,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                 key={f.id}
                 type="button"
                 onClick={() => setCategory(f.id)}
-                className={`min-h-[38px] shrink-0 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                className={`min-h-[36px] shrink-0 rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                   category === f.id
                     ? "bg-[#A9C23F] text-[#0B0F0A]"
                     : "text-[#9FA998] hover:text-[#F2F4EE]"
@@ -403,7 +541,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
             <button
               type="button"
               onClick={() => setViewMode("graph")}
-              className={`inline-flex min-h-[38px] items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium ${
+              className={`inline-flex min-h-[36px] items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium ${
                 viewMode === "graph" ? "bg-[#1B2419] text-[#A9C23F]" : "text-[#9FA998]"
               }`}
             >
@@ -413,24 +551,36 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
             <button
               type="button"
               onClick={() => setViewMode("list")}
-              className={`inline-flex min-h-[38px] items-center gap-1 rounded-md px-3 py-1.5 text-xs font-medium ${
+              className={`inline-flex min-h-[36px] items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium ${
                 viewMode === "list" ? "bg-[#1B2419] text-[#A9C23F]" : "text-[#9FA998]"
               }`}
             >
               <List className="h-3.5 w-3.5" />
               <span>Liste</span>
             </button>
+            {vaultIndexMarkdown && (
+              <button
+                type="button"
+                onClick={() => setViewMode("index")}
+                className={`inline-flex min-h-[36px] items-center gap-1 rounded-md px-2.5 py-1 font-mono text-xs font-medium ${
+                  viewMode === "index" ? "bg-[#1B2419] text-[#A9C23F]" : "text-[#9FA998]"
+                }`}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span>_index.md</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Main Split: 8-col Interactive Graph/List + 4-col Inspector (Both stay mounted for instant toggling!) */}
+      {/* Main Split: 8-col Interactive Graph/List/Index + 4-col Inspector */}
       <div className="grid lg:grid-cols-12">
         <div className="relative min-w-0 lg:col-span-8">
           <div
             className={
               viewMode === "graph"
-                ? "relative h-[360px] w-full bg-[radial-gradient(circle_at_50%_45%,rgba(169,194,63,0.07),transparent_65%)] sm:h-[460px] lg:h-[510px]"
+                ? `relative w-full bg-[radial-gradient(circle_at_50%_45%,rgba(169,194,63,0.07),transparent_65%)] ${canvasHeightClass}`
                 : "hidden"
             }
           >
@@ -520,7 +670,8 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                   const tx = dragPositions[t.slug]?.x ?? t.x;
                   const ty = dragPositions[t.slug]?.y ?? t.y;
 
-                  const inRagWalk = walkedSlugs !== null && walkedSlugs.has(s.slug) && walkedSlugs.has(t.slug);
+                  const inRagWalk =
+                    walkedSlugs !== null && walkedSlugs.has(s.slug) && walkedSlugs.has(t.slug);
                   const touchesFocus = s.slug === focusSlug || t.slug === focusSlug;
                   const matchesFilter =
                     !isFiltering || (matchingSlugs.has(s.slug) && matchingSlugs.has(t.slug));
@@ -571,6 +722,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
 
                   const r = nodeBaseRadius(node) + (isSelected || isHovered ? 2 : 0);
                   const showLabel = visibleLabelSlugs.has(node.slug);
+                  const baseFontSize = node.category === "lebensraum" ? 11.5 : 10;
 
                   return (
                     <g
@@ -585,6 +737,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                       }}
                       onClick={() => {
                         if (movedDuringDragRef.current) return;
+                        setRagWalkPlaying(false);
                         setRagWalkIdx(null);
                         selectNode(node.slug);
                       }}
@@ -609,7 +762,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                           x={r + 5}
                           y={3.5}
                           fill={isSelected || isHovered || isWalked ? "#FFFFFF" : "#D3DACD"}
-                          fontSize={node.category === "lebensraum" ? 11.5 : 10}
+                          fontSize={projectorMode ? baseFontSize + 2 : baseFontSize}
                           fontWeight={isSelected || isWalked || node.category === "lebensraum" ? 700 : 500}
                           fontFamily="Inter, system-ui, sans-serif"
                           style={{
@@ -659,7 +812,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
           <div
             className={
               viewMode === "list"
-                ? "h-[360px] overflow-y-auto p-3 sm:h-[460px] lg:h-[510px]"
+                ? `overflow-y-auto p-3 ${canvasHeightClass}`
                 : "hidden"
             }
           >
@@ -667,7 +820,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
               <div className="flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#232B20] p-6 text-center">
                 <div className="font-display text-sm font-bold text-[#F2F4EE]">0 Treffer gefunden</div>
                 <p className="max-w-sm text-xs text-[#9FA998]">
-                  Kein Artikel im 68-Dateien-Vault passt zu „{query || category}“.
+                  Kein Artikel im {articles.length}-Dateien-Vault passt zu „{query || category}“.
                 </p>
                 <button
                   type="button"
@@ -705,6 +858,20 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
               </div>
             )}
           </div>
+
+          {vaultIndexMarkdown && (
+            <div
+              className={
+                viewMode === "index"
+                  ? `overflow-y-auto p-4 ${canvasHeightClass}`
+                  : "hidden"
+              }
+            >
+              <pre className="whitespace-pre-wrap break-words rounded-xl border border-[#232B20] bg-[#111610] p-4 font-mono text-xs leading-relaxed text-[#D3DACD]">
+                {vaultIndexMarkdown}
+              </pre>
+            </div>
+          )}
         </div>
 
         {/* Right 4-col Obsidian Article Inspector */}
@@ -719,7 +886,7 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                   <span key={`${step}-${i}`} className="inline-flex shrink-0 items-center gap-1">
                     <button
                       type="button"
-                      onClick={() => setSelectedSlug(step)}
+                      onClick={() => selectNode(step)}
                       className="rounded bg-[#171E15] px-1.5 py-0.5 font-mono text-[#D3DACD] hover:text-[#A9C23F]"
                     >
                       {n?.title || step}
@@ -737,21 +904,25 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
                 </Badge>
                 <span className="text-xs text-[#9FA998]">{selected.habitat}</span>
               </div>
-              <h4 className="wrap-safe font-display text-xl font-bold text-[#F2F4EE]">
+              <h4
+                className={`wrap-safe font-display font-bold text-[#F2F4EE] ${
+                  projectorMode ? "text-2xl" : "text-xl"
+                }`}
+              >
                 {selected.title}
               </h4>
             </div>
 
-            {/* Clean Structured Frontmatter Grid (toggleable raw YAML) */}
+            {/* Clean Structured Frontmatter Grid (fixed gap-3 + shrink-0!) */}
             <div className="rounded-xl border border-[#232B20] bg-[#0B0F0A] p-3 text-xs">
-              <div className="mb-2 flex items-center justify-between">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-[#9FA998]">
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
+                <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-[#9FA998]">
                   Steckbrief (Metadaten)
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowRawYaml((s) => !s)}
-                  className="font-mono text-[10px] text-[#A9C23F] hover:underline"
+                  className="shrink-0 font-mono text-[10px] text-[#A9C23F] hover:underline"
                 >
                   {showRawYaml ? "Übersicht" : "Quelltext (YAML)"}
                 </button>
@@ -781,7 +952,13 @@ export function ObsidianKnowledgeGraph({ articles }: ObsidianKnowledgeGraphProps
               )}
             </div>
 
-            <p className="text-xs leading-relaxed text-[#D3DACD]">{selected.summary}</p>
+            <p
+              className={`leading-relaxed text-[#D3DACD] ${
+                projectorMode ? "text-sm" : "text-xs"
+              }`}
+            >
+              {selected.summary}
+            </p>
           </div>
 
           {/* Concise Clickable Links */}

@@ -1,18 +1,33 @@
 # LOESUNGEN_TRAINER — Verifizierte Musterlösungen & Regie-Leitfaden
 
-> **Nur für Trainer / Moderation (Nico Rimmele).** Alle Antworten wurden direkt gegen den erzeugten 68-Artikel-Korpus geprüft.
+> **Nur für Trainer / Moderation (Nico Rimmele).** Alle Antworten wurden direkt gegen die erzeugte 68-Artikel-**Wissensbasis** (`100 % öffentliche Daten`) geprüft.
 
 ---
 
-## 1. Regie-Leitfaden für die 10-Minuten-Live-Vorführung (11:00–11:10 Uhr)
+## 1. Regie-Leitfaden & 2-Phasen-Moderation (11:00–12:00 Uhr)
 
-1. **Brücke schlagen (1 Min.):** Kurzer Rückgriff auf eure Vormittags-Umfrage (`n = 47`): 57 % wollen Prompt-Training, 62 % noch ohne Agent-Erfahrung, 66 % bei RAG unsicher – genau das erleben wir jetzt praktisch an 100 % öffentlichen Daten.
-2. **Ungefilterter Chat vs. Methode (3 Min.):** Zeige am Beamer im Vergleich, was ein nackter **Zero-Shot**-Prompt liefert (oft vages Weltwissen ohne Quellen), vs. **RISEN + CoT** oder **Few-Shot**.
-3. **Stufe 1 → Stufe 2 → Stufe 3 live mit Frage 3 & Frage 2 (5 Min.):**
-   - Öffne `stufe-1-chaos` → stelle **Frage 3 (Fangfrage: Schneeleoparden im Schweizerischen Nationalpark)**. Beobachte/zeige: Das Modell versucht zu antworten oder nutzt allgemeines Weltwissen statt sauber abzugrenzen.
-   - Wechsle zu `stufe-2-skills-guardrails` → dieselbe Frage! Ergebnis dank `AGENTS.md`: *„Diese Information ist in den vorliegenden Dokumenten nicht enthalten.“*
-   - Wechsle zu `stufe-3-obsidian-vault` → stelle **Frage 2 (Symbiose + Korallenbleiche)**. Zeige, wie der Agent zuerst `_index.md` liest und gezielt `[[anemonenfische]]` → `[[seeanemonen]]` → `[[symbiose]]` → `[[steinkorallen]]` → `[[korallenbleiche]]` folgt.
-4. **Live-Gimmick anteasern (1 Min.):** Öffne `/beamer`, drücke testweise **„Demo-Frage simulieren“** (oder sende live via MCP `send_to_beamer`), zeige den Timer und den QR-Code / die URL, und starte die Gruppenphase!
+Steuere den kompletten Workshop ohne Alt-Tab-Wechsel direkt über die statische **Trainer-Bühne (`#/beamer`)**:
+- **Online-URL (Primär):** `https://etroxtaran.github.io/CCF-ai-workshop/#/beamer`
+- **Offline-Backup:** `start-beamer.bat` (Windows) oder `./start-beamer.sh` (macOS/Linux) → `http://127.0.0.1:3777/#/beamer`
+- **Backup-Foliensatz:** `presentation/CCF_HandsOn_Prompt_Werkstatt.pptx` (6 schlanke Folien, `>= 22 pt`)
+
+### Ablauf auf der Trainer-Bühne (`#/beamer`)
+1. **Brücke schlagen (1 Min.):** Rückgriff auf die Vormittags-Umfrage (`n = 47`: 57 % wünschen sich Prompt-Training, 62 % ohne Agent-Erfahrung, 66 % bei RAG unsicher) – alles heute an **100 % öffentlichen Daten** erlebbar.
+2. **Keynote-Demo (`#/beamer` Modus `2: Demo`, schrittweiser Reveal mit `Space`/`N`):**
+   - Zeige am Beamer zuerst **Zero-Shot vs. CO-STAR / Few-Shot / RISEN** sowie die **5 Steuerungsebenen**.
+   - Enthülle danach schrittweise **`Stufe 1 → Stufe 2 → Stufe 3`**:
+     - *Stufe 1 (`stufe-1-chaos`):* Frage 3 (Fangfrage: *Schneeleoparden im Schweizerischen Nationalpark*) → Modell rät/spekuliert aus Vorwissen.
+     - *Stufe 2 (`stufe-2-skills-guardrails`):* Guardrail-Schild greift → *„Diese Information ist in den vorliegenden Dokumenten nicht enthalten.“* Dazu **Frage 4 (`38 Zähne`-Schalter)** als Beweis für Kontext-Priorisierung.
+     - *Stufe 3 (`stufe-3-obsidian-vault`):* **Frage 2 (Symbiose + Korallenbleiche)** im eingebetteten, projektor-großen **`ObsidianKnowledgeGraph`** (`_index.md` → `[[anemonenfische]]` → `[[seeanemonen]]` → `[[symbiose]]` → `[[steinkorallen]]` → `[[korallenbleiche]]`) plus **`McpPacketAnimatic`**.
+3. **QR-Einstieg (`#/beamer` Modus `3: QR Join`):**
+   - Kontrastreicher QR-Code auf `https://etroxtaran.github.io/CCF-ai-workshop/` plus `git clone -b main https://github.com/EtroxTaran/CCF-ai-workshop.git`.
+   - Hinweis an die Gruppen: In Schritt `01` einfach die passende **Werkzeug-Hilfe** (`Web-Chat`, `Desktop & Ordner`, `Code-Agent` + aufklappbare *OpenCode + OpenRouter*-Hilfe) wählen.
+4. **Hands-on-Steuerung (`#/beamer` Modus `1: Stage`):**
+   - **15 Min. gemeinsamer Aha-Kern** (Schritte 02 & 03, 2 Fokus-Fragen pro Stufe + Fangfrage)
+   - **30 Min. freier Praxis-Pfad** (Schritt 04: 1. Recherche & Fakten-System inkl. 68-Artikel-Faktenprüfer & MCP, 2. Präsentation/Animatic/Übersichtsseite in Artifacts/Canvas, 3. Kleine interaktive App bauen) + **4-Rollen CCF-Transfer-Brücke**.
+   - Riesen-Countdown steuern; optional stumm vorbelegten Bühnen-Gong per Taste **`M`** aktivieren (Signal bei `01:00` und `00:00`).
+5. **Debrief (`#/beamer` Modus `4: Outro`, 11:55–12:00 Uhr):**
+   - 3 moderierte Handzeichen-Impulse + 3 Kernaussagen + Ausblick auf **„13:00 Uhr Unit-Programm & World Café“**.
 
 ---
 
@@ -58,7 +73,7 @@
 ### Frage 3 — Fangfrage / Negativtest (NICHT im Korpus!)
 **Frage:** *„Wie hoch ist der aktuelle Bestand an Schneeleoparden im Schweizerischen Nationalpark und welche jährlichen Tourismus-Eintrittspreise in Euro werden dort zum Artenschutz erhoben?“*
 
-- **Korpus-Nachweis (automatisch geprüft):**
+- **Nachweis in der Wissensbasis (automatisch geprüft):**
   - `schneeleopard`: **0 Treffer** in allen 68 Dateien.
   - `schweizerischer nationalpark`: **0 Treffer** in allen 68 Dateien.
   - `eintrittspreis`: **0 Treffer** in allen 68 Dateien.
@@ -69,9 +84,10 @@
 
 ---
 
-### Frage 4 — Steuerungs-/Manipulations-Aufgabe
-- **Daten-Test (`eisbaer.md`):** Wird `42 Zähne` testweise auf `38 Zähne` geändert, muss Stufe 2/3 bei striktem Guardrail **„38 Zähne“** antworten (mit Quellenverweis `docs/eisbaer.md`) – das beweist, dass das Modell wirklich den lokalen Kontext priorisiert und nicht aus dem Gedächtnis „korrigiert“! **Nach dem Test wieder auf `42 Zähne` zurückstellen.**
-- **Regel-/Skill-Test:** Neue Pflichtregel in `AGENTS.md` (z. B. JSON-Ausgabe oder Management-Ampel) zeigt sofortige Steuerbarkeit durch das „Geschirr“ (**Harness**).
+### Frage 4 — Steuerungs-/Manipulations-Aufgabe (`38 Zähne`-Test)
+- **Interaktiv & im Korpus:** Sowohl in **Schritt 03** der Workshop-App als auch in **`#/beamer` (Modus `2: Demo`)** steht ein direkter **`38 Zähne`-Schalter** zur Verfügung.
+- **Daten-Test (`eisbaer.md`):** Wird `42 Zähne` testweise auf `38 Zähne` geändert, muss Stufe 2/3 bei striktem Guardrail **„38 Zähne“** antworten (mit Quellenverweis `docs/eisbaer.md`) – das beweist, dass das Modell wirklich den lokalen Kontext priorisiert und nicht aus dem Gedächtnis „korrigiert“! **Nach dem Test lokal wieder auf `42 Zähne` zurückstellen.**
+- **Regel-/Skill-Test:** Eine neue Pflichtregel in `AGENTS.md` (z. B. JSON-Ausgabe oder Management-Ampel) zeigt sofortige Steuerbarkeit durch Leitplanken und Skills.
 
 ---
 
@@ -85,10 +101,14 @@
 
 ---
 
-## 4. Moderationstipps für das Live-Beamer-Gimmick
-- Unter `http://127.0.0.1:3777/beamer` erscheinen alle per UI, MCP (`send_to_beamer`), CLI (`submit-question.mjs`), `live-questions/` oder GitHub Issue eingesandten Fragen in Echtzeit.
-- Der automatische **Korpus-Prüfer** markiert sofort:
-  - **Belegt** (grün) + passende `[[Wikilinks]]` und Original-Ausschnitte
-  - **Teilweise** (gelb)
-  - **Nicht im Korpus / Fangfrage** (rot/amber) – ideal, um im Debrief live Halluzinationen vs. Guardrails zu zeigen!
-- Falls du zusätzlich eine echte KI-Zweitmeinung live auf der Leinwand möchtest, starte den Server mit z. B. `OPENAI_API_KEY=...`, `ANTHROPIC_API_KEY=...`, `GEMINI_API_KEY=...` oder `OLLAMA_MODEL=...`.
+## 4. Bedienung der Trainer-Bühne (`#/beamer`) & Backup-Strategie
+- **Tageslicht-Standard (`#FAFAF8` / `#0B0F0A` / `#A9C23F`):** Optimiert für helle Seminarräume mit 10-Meter-Lesbarkeit ohne schmale Seitenleiste; Taste **`T`** schaltet bei abgedunkeltem Raum in den Dunkelmodus.
+- **4 Modi (`1`–`4`):** `1` **Stage** (Countdown & Etappenfokus), `2` **Demo** (schrittweiser Reveal + `ObsidianKnowledgeGraph` + `McpPacketAnimatic`), `3` **QR Join** (GitHub-Pages-QR + `git clone`), `4` **Outro** (Debrief-Impulse & 13:00-Uhr-Programm).
+- **Tastaturkürzel:**
+  - `1–4` — Modus wechseln (`Stage`, `Demo`, `QR Join`, `Outro`)
+  - `T` — Tageslicht / Dunkelmodus umschalten
+  - `M` — Bühnen-Gong stumm / aktiv schalten (per Default stumm; Signal bei `01:00` und `00:00`, null Audio auf Teilnehmer-Laptops)
+  - `S` — Im Modus `Stage` die verifizierte Lösung der aktuellen Etappe öffnen/schließen (`Esc` oder `S` schließt wieder)
+  - `Space` / `N` — Im Modus `Stage`: Timer Start/Pause (`Space`); im Modus `Demo`: schrittweiser Reveal (`Space`/`N`, inkl. Q4 `38 Zähne`)
+  - `←` / `→` — Durch die Workshop-Etappen navigieren
+- **Moderation ohne Netzabhängigkeit:** Debrief über 3 kuratierte Handzeichen-Abfragen zu den 3 Praxis-Pfaden (Pfad 1: 68-Artikel-Faktenprüfer & MCP `search_wildlife_vault` / `verify_claim_against_corpus` / `read_vault_article`, Pfad 2: Artifacts/Canvas, Pfad 3: Mini-Apps) und der 4-Rollen `Transfer-Brücke`; als letzter Fallback liegt `presentation/CCF_HandsOn_Prompt_Werkstatt.pptx` (6 Folien, `>= 22 pt`) bereit.

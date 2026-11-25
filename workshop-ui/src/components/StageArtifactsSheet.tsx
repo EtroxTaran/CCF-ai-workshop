@@ -10,14 +10,15 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { StageSpec } from "@/types/workshop";
+import type { ExpressPackage, StageSpec, ToolMode } from "@/types/workshop";
 
 interface StageArtifactsSheetProps {
   stage: StageSpec;
+  expressArcticReef: ExpressPackage;
   arcticPack: string;
   reefPack: string;
   all12Pack: string;
-  track?: "A" | "B";
+  toolMode: ToolMode;
 }
 
 function downloadMd(filename: string, content: string) {
@@ -32,20 +33,23 @@ function downloadMd(filename: string, content: string) {
 
 export function StageArtifactsSheet({
   stage,
+  expressArcticReef,
   arcticPack,
   reefPack,
   all12Pack,
-  track = "A",
+  toolMode,
 }: StageArtifactsSheetProps) {
+  const isWeb = toolMode === "web";
+
   return (
     <Sheet>
       <SheetTrigger asChild>
         <Button type="button" size="sm" variant="outline">
           <FileText className="h-3.5 w-3.5" />
           <span>
-            {track === "A"
+            {isWeb
               ? `Alle Texte & Regeln (${stage.skills.length + (stage.indexMd ? 2 : 1)})`
-              : `Dateien & Kopierpakete (${stage.skills.length + (stage.indexMd ? 2 : 1)})`}
+              : `Dateien & Pakete (${stage.skills.length + (stage.indexMd ? 2 : 1)})`}
           </span>
         </Button>
       </SheetTrigger>
@@ -53,23 +57,24 @@ export function StageArtifactsSheet({
         <SheetHeader>
           <SheetTitle>{stage.title}</SheetTitle>
           <SheetDescription>
-            {track === "A" ? (
-              "Fertige Text-Pakete zum Kopieren sowie optional die zugehörigen KI-Regeln."
+            {isWeb ? (
+              "Kompakte Text-Pakete zum Kopieren sowie optional die zugehörigen KI-Regeln."
             ) : (
               <>
-                Direkter Blick in <code>{stage.folder}/</code> inkl. Track-A-Kopierpaketen.
+                Direkter Blick in <code>{stage.folder}/</code> inklusive Kopier-Paketen mit{" "}
+                <code>(datei.md)</code>-Tags.
               </>
             )}
           </SheetDescription>
         </SheetHeader>
 
-        <Tabs defaultValue={track === "A" ? "packs" : "agents"} className="mt-5">
+        <Tabs defaultValue={isWeb ? "packs" : "agents"} className="mt-5">
           <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1.5">
             <TabsTrigger value="packs" className="px-2.5 py-1.5 text-xs">
               Artikel-Pakete
             </TabsTrigger>
             <TabsTrigger value="agents" className="px-2.5 py-1.5 text-xs">
-              {track === "A" ? "Regel-Vorlage" : "AGENTS.md"}
+              Regeln (AGENTS.md)
             </TabsTrigger>
             {stage.skills.map((sk) => (
               <TabsTrigger key={sk.name} value={sk.name} className="px-2.5 py-1.5 text-xs">
@@ -78,13 +83,13 @@ export function StageArtifactsSheet({
             ))}
             {stage.indexMd && (
               <TabsTrigger value="index" className="px-2.5 py-1.5 text-xs">
-                {track === "A" ? "Inhaltsverzeichnis" : "_index.md"}
+                Inhaltsverzeichnis (_index.md)
               </TabsTrigger>
             )}
           </TabsList>
 
           <TabsContent value="agents" className="space-y-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <code className="text-xs text-muted-foreground">{stage.folder}/AGENTS.md</code>
               <CopyButton text={stage.agentsMd} label="AGENTS.md kopieren" variant="default" />
             </div>
@@ -109,8 +114,10 @@ export function StageArtifactsSheet({
 
           {stage.indexMd && (
             <TabsContent value="index" className="space-y-3">
-              <div className="flex items-center justify-between">
-                <code className="text-xs text-muted-foreground">stufe-3-obsidian-vault/_index.md</code>
+              <div className="flex items-center justify-between gap-2">
+                <code className="text-xs text-muted-foreground">
+                  stufe-3-obsidian-vault/_index.md
+                </code>
                 <CopyButton text={stage.indexMd} label="_index.md kopieren" variant="default" />
               </div>
               <pre className="max-h-[60dvh] overflow-auto whitespace-pre-wrap break-words rounded-xl border bg-muted/40 p-4 font-mono text-xs leading-relaxed">
@@ -121,39 +128,54 @@ export function StageArtifactsSheet({
 
           <TabsContent value="packs" className="space-y-4">
             <p className="text-xs leading-relaxed text-muted-foreground">
-              Für Web-Chats (ChatGPT, Claude, Gemini): Kopiere das passende Paket direkt in deinen Chat
-              oder lade alle 12 Kern-Artikel gebündelt als <code>.md</code>-Datei herunter.
+              Für Web-Chats und schnelle Tests: Alle Pakete sind mit <code>(datei.md)</code>-Tags
+              versehen oder lassen sich direkt als <code>.md</code>-Datei herunterladen.
             </p>
             <div className="space-y-2.5">
-              <div className="flex items-center justify-between rounded-xl border p-3.5">
-                <div>
+              <div className="flex items-center justify-between gap-3 rounded-xl border border-[#A9C23F]/50 bg-secondary/35 p-3.5">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold">{expressArcticReef.title}</div>
+                  <div className="text-xs text-muted-foreground">
+                    ~{expressArcticReef.charCount.toLocaleString("de-DE")} Zeichen · alle 10
+                    Fokus-Dateien (Arktis + Riff)
+                  </div>
+                </div>
+                <CopyButton text={expressArcticReef.content} label="Kopieren" variant="default" />
+              </div>
+
+              <div className="flex items-center justify-between gap-3 rounded-xl border p-3.5">
+                <div className="min-w-0">
                   <div className="text-sm font-semibold">Paket Arktis &amp; Klima (4 Artikel)</div>
                   <div className="text-xs text-muted-foreground">
-                    Für Frage 1 (Eisbär) &amp; das Prompt-Labor
+                    Für Frage 1 (Eisbär) &amp; Frage 4
                   </div>
                 </div>
                 <CopyButton text={arcticPack} label="Kopieren" />
               </div>
-              <div className="flex items-center justify-between rounded-xl border p-3.5">
-                <div>
-                  <div className="text-sm font-semibold">Paket Korallenriff &amp; Symbiose (6 Artikel)</div>
+
+              <div className="flex items-center justify-between gap-3 rounded-xl border p-3.5">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold">
+                    Paket Korallenriff &amp; Symbiose (6 Artikel)
+                  </div>
                   <div className="text-xs text-muted-foreground">
                     Für Querverbindungs-Frage 2
                   </div>
                 </div>
                 <CopyButton text={reefPack} label="Kopieren" />
               </div>
-              <div className="flex items-center justify-between rounded-xl border p-3.5">
-                <div>
-                  <div className="text-sm font-semibold">Alle 12 Starter-Artikel (.md)</div>
+
+              <div className="flex items-center justify-between gap-3 rounded-xl border p-3.5">
+                <div className="min-w-0">
+                  <div className="text-sm font-semibold">Alle 12 Fokus-Artikel (.md)</div>
                   <div className="text-xs text-muted-foreground">
-                    Zum direkten Hochladen in Browser-Chats
+                    Zum direkten Hochladen in Web-Chats oder Projekte
                   </div>
                 </div>
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => downloadMd("starter-korpus-12-artikel.md", all12Pack)}
+                  onClick={() => downloadMd("fokus-korpus-12-artikel.md", all12Pack)}
                 >
                   <Download className="h-3.5 w-3.5" />
                   <span>Laden</span>

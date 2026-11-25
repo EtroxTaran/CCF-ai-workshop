@@ -1,13 +1,23 @@
-import type { EvidenceMatch, StarterArticle, VaultArticle } from "@/types/workshop";
+import rawSearchIndex from "@/data/searchIndex.json";
+import type {
+  CorpusSearchIndex,
+  EvidenceMatch,
+  StarterArticle,
+  VaultArticle,
+  VerifyClaimResult,
+} from "@/types/workshop";
+
+const DEFAULT_CORPUS_INDEX = rawSearchIndex as CorpusSearchIndex;
+const EMPTY_STARTER_ARTICLES: StarterArticle[] = [];
 
 const STOPWORDS = new Set([
   "aber", "alle", "allem", "allen", "aller", "alles", "also", "auch", "auf", "aus",
   "bei", "beim", "beide", "beiden", "besitzen", "besitzt", "bestehen", "besteht",
   "bietet", "bieten", "bis", "bist", "bleiben", "bleibt", "bzw", "circa", "dabei",
   "dadurch", "dafuer", "dafür", "dagegen", "daher", "damit", "danach", "dann",
-  "darauf", "daraus", "darin", "darum", "dass", "dazu", "dein", "deine", "dem",
+  "darauf", "daraus", "darin", "darum", "das", "dass", "dazu", "dein", "deine", "dem",
   "den", "denn", "der", "deren", "des", "dessen", "deshalb", "die", "dies", "diese",
-  "diesem", "diesen", "dieser", "dieses", "doch", "dort", "durch", "eine", "einem",
+  "diesem", "diesen", "dieser", "dieses", "doch", "dort", "durch", "ein", "eine", "einem",
   "einen", "einer", "eines", "einige", "einmal", "enthaelt", "enthalten", "erhoben",
   "erklaere", "etwa", "etwas", "euch", "euer", "eure", "findet", "finden", "fuer",
   "für", "ganz", "geben", "gegen", "genau", "gibt", "gilt", "gelten", "haben",
@@ -38,6 +48,7 @@ const STOPWORDS = new Set([
 
 function normalize(text: string): string {
   return String(text || "")
+    .normalize("NFC")
     .toLowerCase()
     .replace(/ä/g, "ae")
     .replace(/ö/g, "oe")
@@ -85,7 +96,16 @@ function pickCenteredSnippet(candidates: string[], tokens: string[], fallback: s
 
   for (const line of candidates) {
     const clean = line.trim();
-    if (!clean || clean.startsWith("#") || clean.startsWith("---")) continue;
+    if (
+      !clean ||
+      clean.startsWith("#") ||
+      clean.startsWith("---") ||
+      clean.startsWith("> **Kategorie") ||
+      clean.startsWith("*(Hinweis:") ||
+      clean.startsWith("Quelle:")
+    ) {
+      continue;
+    }
     const nl = normalize(clean);
     const words = nl.match(/[a-z0-9]{2,}/g) || [];
     let sc = 0;
@@ -119,34 +139,56 @@ function pickCenteredSnippet(candidates: string[], tokens: string[], fallback: s
   return `${start > 0 ? "…" : ""}${best.slice(start, end)}${end < best.length ? "…" : ""}`;
 }
 
-interface InternalMatch extends EvidenceMatch {
-  hasTitleHit: boolean;
+interface IndexedArticle {
+  art: VaultArticle;
+  snippetLines: string[];
+  normTitle: string;
+  titleWords: string[];
+  titleWordSet: Set<string>;
+  bodyWords: string[];
+  bodyWordSet: Set<string>;
+  tagWords: string[];
+  tagWordSet: Set<string>;
 }
 
-function runInternalSearch(
-  query: string,
+interface CachedIndexEntry {
+  starterArticles: StarterArticle[];
+  corpusIndex: CorpusSearchIndex;
+  indexed: IndexedArticle[];
+}
+
+const indexCache = new WeakMap<VaultArticle[], CachedIndexEntry>();
+
+function getIndexedArticles(
   vaultArticles: VaultArticle[],
   starterArticles: StarterArticle[],
-  limit: number
-): InternalMatch[] {
-  const tokens = tokenize(query);
-  const normQ = normalize(query).trim();
-  if (!tokens.length && !normQ) return [];
+  corpusIndex: CorpusSearchIndex
+): IndexedArticle[] {
+  const existing = indexCache.get(vaultArticles);
+  if (
+    existing &&
+    existing.starterArticles === starterArticles &&
+    existing.corpusIndex === corpusIndex
+  ) {
+    return existing.indexed;
+  }
 
   const starterMap = new Map(starterArticles.map((s) => [s.slug, s.content]));
-  const total = vaultArticles.length || 1;
-
-  const indexed = vaultArticles.map((art) => {
-    const extraContent = starterMap.get(art.slug) || "";
-    const bodyText = [art.summary, ...art.key_points, extraContent].filter(Boolean).join("\n");
+  const indexed: IndexedArticle[] = vaultArticles.map((art) => {
+    const fullText = corpusIndex[art.slug] || starterMap.get(art.slug) || "";
+    const bodyText = [art.summary, ...art.key_points, fullText].filter(Boolean).join("\n");
+    const snippetSource = fullText || [art.summary, ...art.key_points].filter(Boolean).join("\n");
     const normTitle = normalize(art.title);
     const normBody = normalize(bodyText);
-    const titleWords = [...new Set([...(normTitle.match(/[a-z0-9]{2,}/g) || []), ...art.slug.split("-")])];
+    const titleWords = [
+      ...new Set([...(normTitle.match(/[a-z0-9]{2,}/g) || []), ...art.slug.split("-").filter(Boolean)]),
+    ];
     const bodyWords = [...new Set(normBody.match(/[a-z0-9]{2,}/g) || [])];
     const tagWords = [...new Set(art.tags.flatMap((t) => normalize(t).match(/[a-z0-9]{2,}/g) || []))];
+
     return {
       art,
-      bodyText,
+      snippetLines: snippetSource.split(/\r?\n/),
       normTitle,
       titleWords,
       titleWordSet: new Set(titleWords),
@@ -156,6 +198,28 @@ function runInternalSearch(
       tagWordSet: new Set(tagWords),
     };
   });
+
+  indexCache.set(vaultArticles, { starterArticles, corpusIndex, indexed });
+  return indexed;
+}
+
+interface InternalMatch extends EvidenceMatch {
+  hasTitleHit: boolean;
+}
+
+function runInternalSearch(
+  query: string,
+  vaultArticles: VaultArticle[],
+  starterArticles: StarterArticle[],
+  limit: number,
+  corpusIndex: CorpusSearchIndex
+): InternalMatch[] {
+  const tokens = tokenize(query);
+  const normQ = normalize(query).trim();
+  if (!tokens.length && !normQ) return [];
+
+  const indexed = getIndexedArticles(vaultArticles, starterArticles, corpusIndex);
+  const total = indexed.length || 1;
 
   const docFreq = new Map<string, number>();
   for (const tok of tokens) {
@@ -203,11 +267,6 @@ function runInternalSearch(
 
     const minTokensOk = tokens.length <= 1 || hasTitleHit || matchedTokens.length >= 2;
     if (score > 0 && minTokensOk) {
-      const candidates = [
-        ...item.bodyText.split(/\r?\n/),
-        ...item.art.key_points,
-        item.art.summary,
-      ];
       scored.push({
         slug: item.art.slug,
         title: item.art.title,
@@ -215,7 +274,7 @@ function runInternalSearch(
         rel_path: `wiki/${categoryDir(item.art.category)}/${item.art.slug}.md`,
         source_file: item.art.source_file,
         snippet: pickCenteredSnippet(
-          candidates,
+          item.snippetLines,
           matchedTokens.length ? matchedTokens : tokens,
           item.art.summary
         ),
@@ -233,10 +292,11 @@ function runInternalSearch(
 export function offlineSearchVault(
   query: string,
   vaultArticles: VaultArticle[],
-  starterArticles: StarterArticle[] = [],
-  limit = 5
+  starterArticles: StarterArticle[] = EMPTY_STARTER_ARTICLES,
+  limit = 5,
+  corpusIndex: CorpusSearchIndex = DEFAULT_CORPUS_INDEX
 ): EvidenceMatch[] {
-  return runInternalSearch(query, vaultArticles, starterArticles, limit).map(
+  return runInternalSearch(query, vaultArticles, starterArticles, limit, corpusIndex).map(
     ({ hasTitleHit: _ignored, ...rest }) => rest
   );
 }
@@ -244,47 +304,75 @@ export function offlineSearchVault(
 export function offlineVerifyClaim(
   claim: string,
   vaultArticles: VaultArticle[],
-  starterArticles: StarterArticle[] = []
-): { status: "belegt" | "teilweise" | "nicht_belegt"; label: string; evidence: EvidenceMatch[] } {
+  starterArticles: StarterArticle[] = EMPTY_STARTER_ARTICLES,
+  corpusIndex: CorpusSearchIndex = DEFAULT_CORPUS_INDEX
+): VerifyClaimResult {
+  const indexed = getIndexedArticles(vaultArticles, starterArticles, corpusIndex);
   const tokens = tokenize(claim);
-  const matches = runInternalSearch(claim, vaultArticles, starterArticles, 5);
+  const matches = runInternalSearch(claim, vaultArticles, starterArticles, 5, corpusIndex);
+
+  if (!tokens.length || !matches.length) {
+    return {
+      status: "nicht_belegt",
+      label: "Nicht im Korpus gefunden – mögliche Fangfrage!",
+      evidence: [],
+    };
+  }
 
   const covered = new Set<string>();
   for (const m of matches.slice(0, 3)) {
     for (const t of m.matched_tokens || []) covered.add(t);
   }
-  const ratio = tokens.length ? covered.size / tokens.length : 0;
+  const ratio = covered.size / tokens.length;
   const specificTokens = tokens.filter((t) => t.length >= 6);
   const missingSpecific = specificTokens.filter((t) => !covered.has(t));
-  const missingSpecificRatio = specificTokens.length ? missingSpecific.length / specificTokens.length : 0;
+  const missingSpecificRatio = specificTokens.length
+    ? missingSpecific.length / specificTokens.length
+    : 0;
+  const missingInCorpus = tokens.filter(
+    (tok) =>
+      !indexed.some(
+        (item) =>
+          matchesWordSet(item.titleWordSet, item.titleWords, tok) ||
+          matchesWordSet(item.bodyWordSet, item.bodyWords, tok) ||
+          matchesWordSet(item.tagWordSet, item.tagWords, tok)
+      )
+  );
   const top = matches[0];
-  const topRatio = top && tokens.length ? (top.matched_tokens?.length || 0) / tokens.length : 0;
+  const topRatio = top ? (top.matched_tokens?.length || 0) / tokens.length : 0;
 
-  let status: "belegt" | "teilweise" | "nicht_belegt" = "nicht_belegt";
+  let status: VerifyClaimResult["status"] = "nicht_belegt";
   let label = "Nicht im Korpus gefunden – mögliche Fangfrage!";
 
   if (
     top &&
+    missingInCorpus.length === 0 &&
     ratio >= 0.55 &&
     top.score >= 14 &&
     (top.hasTitleHit || topRatio >= 0.35) &&
+    (topRatio >= 0.55 || ratio >= 0.8) &&
     missingSpecificRatio <= 0.45
   ) {
     status = "belegt";
     label = "Starke Abdeckung in den lokalen Artikeln – Belege verfügbar.";
   } else if (
     top &&
-    ratio >= 0.40 &&
+    ratio >= 0.4 &&
     (top.hasTitleHit || (top.matched_tokens?.length || 0) >= 2) &&
     missingSpecificRatio <= 0.45
   ) {
     status = "teilweise";
-    label = "Teilweise Themenbezug gefunden – Detailabgleich empfohlen.";
+    label =
+      missingInCorpus.length > 0
+        ? `Begriffe nicht im Korpus gefunden (${missingInCorpus.join(", ")}) – mögliche Fangfrage!`
+        : "Teilweise Themenbezug gefunden – Detailabgleich empfohlen.";
   }
 
   const rawEvidence =
     status === "nicht_belegt"
-      ? (top?.hasTitleHit ? matches.slice(0, 2) : [])
+      ? top?.hasTitleHit
+        ? matches.slice(0, 2)
+        : []
       : matches.slice(0, 3);
   const evidenceRaw = rawEvidence.filter(
     (m, idx) => idx === 0 || m.hasTitleHit || (top && m.score >= top.score * 0.45)

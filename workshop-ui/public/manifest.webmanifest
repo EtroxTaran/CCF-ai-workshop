@@ -2,8 +2,8 @@
   "name": "virtual7 CCF Prompt-Werkstatt",
   "short_name": "v7 Workshop",
   "description": "Interaktive Hands-on Prompt-, Harness-, Markdown-RAG- & MCP-Werkstatt (virtual7 Customer Cluster Finance)",
-  "start_url": "/",
-  "scope": "/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#FAFAF8",
@@ -11,13 +11,13 @@
   "lang": "de",
   "icons": [
     {
-      "src": "/icons/icon.svg",
+      "src": "./icons/icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon-maskable.svg",
+      "src": "./icons/icon-maskable.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "maskable"

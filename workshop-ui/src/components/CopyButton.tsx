@@ -24,18 +24,43 @@ export function CopyButton({
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
+    let ok = false;
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        ok = true;
+      } catch {
+        ok = false;
+      }
+    }
+
+    if (!ok && typeof document !== "undefined") {
       const ta = document.createElement("textarea");
       ta.value = text;
+      ta.readOnly = true;
+      ta.setAttribute("readonly", "");
       ta.style.position = "fixed";
+      ta.style.top = "0";
+      ta.style.left = "-9999px";
       ta.style.opacity = "0";
       document.body.appendChild(ta);
+      ta.focus();
       ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
+      ta.setSelectionRange(0, 99999);
+      try {
+        ok = document.execCommand("copy");
+      } catch {
+        ok = false;
+      } finally {
+        document.body.removeChild(ta);
+      }
     }
+
+    if (!ok) {
+      toast.error("Kopieren fehlgeschlagen — bitte Text manuell markieren und kopieren.");
+      return;
+    }
+
     setCopied(true);
     onCopy?.();
     const cleaned = label.replace(/\s*kopieren$/i, "").trim();

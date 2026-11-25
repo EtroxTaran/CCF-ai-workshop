@@ -3,10 +3,7 @@
     "workshop-wildlife": {
       "type": "stdio",
       "command": "node",
-      "args": ["./mcp-server/server.mjs"],
-      "env": {
-        "BEAMER_URL": "http://127.0.0.1:3777/api/submissions"
-      }
+      "args": ["./mcp-server/server.mjs"]
     }
   }
 }

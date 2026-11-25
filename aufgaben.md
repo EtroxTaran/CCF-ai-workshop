@@ -1,28 +1,31 @@
 # Aufgabenblatt: Hands-on Prompt-Werkstatt (60 Minuten · 11:00–12:00 Uhr)
 
-> **Wichtig vorab:** Alle Dateien hier sind 100 % öffentliche Wikipedia-Daten (Tierwelt & Ökosysteme). Wählt in eurer Gruppe (2–4 Personen) euren Arbeitsweg – **das Lernziel ist für alle gleich:**
-> - **Track A (Browser & Web-Chat):** Ihr arbeitet mit der lokalen Begleit-App (`start-workshop.bat` / `./start-workshop.sh` → `http://127.0.0.1:3777/`) und kopiert Prompts, System-Regeln sowie Artikel-Pakete direkt in ChatGPT, Claude oder Gemini.
-> - **Track B (CLI / Agent):** Ihr öffnet nacheinander die Ordner `stufe-1-chaos`, `stufe-2-skills-guardrails` und `stufe-3-obsidian-vault` in Claude Code, Codex, Gemini CLI oder OpenCode (optional inkl. MCP-Server `mcp-server/server.mjs`).
+> **Wichtig vorab:** Alle Dateien in diesem Workshop sind **100 % öffentliche Daten** (Wikipedia-Artikel zu Tierwelt & Ökosystemen).
+> Öffnet in eurer Gruppe (2–4 Personen) die **Workshop-App**:
+> - **Online (empfohlen):** https://etroxtaran.github.io/CCF-ai-workshop/
+> - **Lokales Offline-Backup:** `start-workshop.bat` (Windows) oder `./start-workshop.sh` (macOS/Linux) → `http://127.0.0.1:3777/`
+>
+> In Schritt `01` wählt ihr über die umschaltbare **Werkzeug-Hilfe** einfach eure gewohnte Arbeitsweise – das Lernziel ist für alle identisch:
+> - **Web-Chat** (Claude.ai, ChatGPT, Copilot): ~5.500-Zeichen-Kompakt-Pakete (Prompt immer oben) oder 1-Klick-`.md`-Download; Artifacts/Canvas für Praxis-Pfad 2 & 3. *(Kein eigenes KI-Abo? Aufklappbare Hilfe zu **OpenCode + OpenRouter** in Schritt 01 nutzen!)*
+> - **Desktop & Ordner** (Claude Cowork, ChatGPT Projects): Repository (`Branch main`) direkt als Ordner öffnen.
+> - **Code-Agent** (Claude Code, Codex, Gemini CLI, OpenCode, VS Code): Nacheinander `stufe-1-chaos/`, `stufe-2-skills-guardrails/` und `stufe-3-obsidian-vault/` öffnen (optional mit lokalem MCP-Server `mcp-server/server.mjs`).
 
 ---
 
-## Ablauf im Überblick (11:00–12:00 Uhr)
+## Ablauf im Überblick (11:00–12:00 Uhr · ca. 45 Min. Netto-Hands-on)
 
 | Zeit | Dauer | Phase | Worauf achten? |
 |---|---|---|---|
-| 11:00–11:10 | 10 Min. | **1. Live-Vorführung am Beamer** | Nico zeigt live, was zwischen Stufe 1, 2 und 3 mit derselben Frage passiert. |
-| 11:10–11:15 | 5 Min. | **2. Setup & Track-Wahl** | Repo/App starten (`http://127.0.0.1:3777/`), Teamname festlegen, Track A oder B wählen. |
-| 11:15–11:25 | 10 Min. | **3. Prompt-Methoden & Stufe 1 (`stufe-1-chaos`)** | Gleiche Frage mit 4 Prompt-Methoden testen + Testfragen 1–3 in Stufe 1 stellen. |
-| 11:25–11:37 | 12 Min. | **4. Stufe 2 (`stufe-2-skills-guardrails`)** | System-Prompt, Priming, Guardrails & Skills (`quellen-recherche`, `fakten-pruefer`). |
-| 11:37–11:48 | 11 Min. | **5. Stufe 3 (`stufe-3-obsidian-vault`)** | `_index.md` + `[[Wikilinks]]` + YAML-Frontmatter: Was verändert Markdown-RAG? |
-| 11:48–11:55 | 7 Min. | **6. Wahl-Mission & Live-Beamer-Gimmick** | Eine der 4 freien Wahl-Missionen lösen & Frage/Aha-Moment an den Beamer senden! |
-| 11:55–12:00 | 5 Min. | **7. Debrief im Plenum** | Ausgewählte Live-Ergebnisse auf der Leinwand prüfen & 1 Take-away je Gruppe teilen. |
+| 11:00–11:10 | 10 Min. | **Einstieg & Werkzeug-Hilfe (App Schritt 01)** | Kurze Demo über die **Trainer-Bühne (`#/beamer`)**, Workshop-App öffnen, Werkzeug-Hilfe wählen. |
+| 11:10–11:25 | 15 Min. | **Phase 1: Gemeinsamer Aha-Kern (Schritte 02 & 03)** | 1 Prompt-Vergleich + 5 Steuerungsebenen + `Stufe 1 → 2 → 3` mit Fokus-Fragen (inkl. Fangfrage & `38 Zähne`-Test). |
+| 11:25–11:55 | 30 Min. | **Phase 2: Freier Praxis-Pfad & Transfer-Brücke (Schritt 04)** | 1 von 3 zielorientierten Praxis-Pfaden frei wählen + abschließend die **4-Rollen CCF-Transfer-Brücke** durchgehen. |
+| 11:55–12:00 | 5 Min. | **Debrief im Plenum (`#/beamer` Outro)** | Handzeichen-Auswertung an der Trainer-Bühne & 3 Kernaussagen mit in den Nachmittag (13:00 Uhr) nehmen. |
 
 ---
 
-## Teil 1: Das Prompt-Methoden-Labor (1 Aufgabe, 4 Methoden)
+## Teil 1: Aha-Kern 1 — Prompt-Methoden-Labor (App Schritt 02)
 
-Testet diese **identische Kernfrage** gegen unsere Dokumente (im ungefilterten Chat oder in Stufe 1/2) und vergleicht Struktur, Verlässlichkeit und Nutzbarkeit der Antworten:
+Testet diese **identische Kernfrage** gegen unsere Wissensbasis und vergleicht in der Side-by-Side-Vorschau Struktur, Verlässlichkeit und Nutzbarkeit (in der App steht der Prompt im Kopierpaket **immer oben**, wahlweise als **Kompakt-Paket ~5.500 Zeichen**, **Nur Prompt** oder **Texte als `.md` laden** mit `(datei.md)`-Quellenmarkern). Wählt zu **Zero-Shot** mindestens eine Struktur-Methode zum Vergleich:
 
 > **Kernfrage:** *„Welche Auswirkungen hat der Klimawandel laut unseren Dokumenten auf Eisbären in der Arktis und auf Steinkorallen im Korallenriff?“*
 
@@ -65,26 +68,41 @@ Testet diese **identische Kernfrage** gegen unsere Dokumente (im ungefilterten C
 
 ---
 
-## Teil 2: Die 4 Testfragen (für alle 3 Projekt-Stufen identisch!)
+## Teil 2: Aha-Kern 2 — Die 3 Stufen & Testfragen (App Schritt 03)
 
-Stellt genau diese 4 Aufgaben nacheinander in **Stufe 1**, **Stufe 2** und **Stufe 3**:
+Erlebt dieselben Fragen nacheinander in **Stufe 1 (`stufe-1-chaos/`)**, **Stufe 2 (`stufe-2-skills-guardrails/`)** und **Stufe 3 (`stufe-3-obsidian-vault/`)** und haltet eure Beobachtung direkt per Selbst-Reflexions-Pill in der App fest.
 
-1. **Detailfrage (1 Datei):**
+**Fokus-Empfehlung für den 15-Minuten-Aha-Kern** (in der App sind pro Stufe 2 Fokus-Fragen vorgewählt; über *„Alle 4 Fragen anzeigen“* sind jederzeit alle sichtbar):
+- **Stufe 1 (`stufe-1-chaos/`):** Fokus auf **Frage 3 (Fangfrage)** + **Frage 1 (Detailfrage)**.
+- **Stufe 2 (`stufe-2-skills-guardrails/`):** Fokus auf **Frage 3 (Fangfrage)** + **Frage 4 (`42 → 38 Zähne`-Test)**.
+- **Stufe 3 (`stufe-3-obsidian-vault/`):** Fokus auf **Frage 2 (Querverbindung über `_index.md` & `[[Wikilinks]]`)** + interaktiven Wissens-Graph.
+
+1. **Frage 1 · Detailfrage (1 Datei):**
    > *„Warum gefriert das Fell des Eisbären nicht, welche Hautfarbe hat ein ausgewachsener Eisbär darunter, und wie viele Zähne besitzt er?“*
-2. **Querverbindungs-Frage (3+ verknüpfte Dateien):**
+2. **Frage 2 · Querverbindungs-Frage (4+ verknüpfte Dateien):**
    > *„Vergleiche die Symbiose zwischen Anemonenfischen und Seeanemonen mit der Symbiose zwischen Steinkorallen und Zooxanthellen: Wie schützen sich Anemonenfische vor Nesselzellen, welcher Symbiose-Typ liegt jeweils räumlich vor, und was passiert bei starker Erwärmung im Korallenriff?“*
-3. **Fangfrage / Negativtest (NICHT im Korpus!):**
+3. **Frage 3 · Fangfrage / Negativtest (NICHT in der Wissensbasis!):**
    > *„Wie hoch ist der aktuelle Bestand an Schneeleoparden im Schweizerischen Nationalpark und welche jährlichen Tourismus-Eintrittspreise in Euro werden dort zum Artenschutz erhoben?“*
-4. **Steuerungs-/Manipulations-Aufgabe (Fortgeschrittene):**
-   > Ändere gezielt in einer Kopie bzw. lokal in `stufe-2-skills-guardrails/docs/eisbaer.md` eine Zahl (z. B. `42 Zähne` → `38 Zähne`) **oder** ergänze eine neue Formatregel in `AGENTS.md` / erstelle einen eigenen Mini-Skill unter `.agents/skills/` und prüfe, wie sich die Antwort sofort verändert (danach Zahl wieder auf `42` zurücksetzen).
+4. **Frage 4 · Steuerungs-/Manipulations-Aufgabe (`38 Zähne`-Test):**
+   > Nutzt den interaktiven **`38 Zähne`-Schalter** in Schritt 03 der Workshop-App (oder ändert lokal in `stufe-2-skills-guardrails/docs/eisbaer.md` testweise `42 Zähne` → `38 Zähne` bzw. ergänzt eine Formatregel in `AGENTS.md`) und prüft, ob die KI strikt dem lokalen Kontext folgt (lokale Änderung danach wieder auf `42` zurücksetzen).
 
 ---
 
-## Teil 3: Freie Wahl-Missionen („Für jeden etwas“)
+## Teil 3: Praxis-Pfade (30 Min.) & 4-Rollen Transfer-Brücke (App Schritt 04)
 
-Wählt in den letzten Minuten mindestens eine Mission nach Interesse – ohne Rollen-Schubladen:
+Wählt in den zweiten 30 Minuten frei **einen der 3 zielorientierten Praxis-Pfade**:
 
-- **Mission A · Fakten-Audit:** Lass den Skill `fakten-pruefer` eine bewusst fehlerhafte oder gemischte KI-Antwort aus Stufe 1 Satz für Satz gegen `docs/` prüfen.
-- **Mission B · Datenstruktur & Wissens-Graph:** Extrahiere eine saubere CSV-/JSON-Tabelle über 6 Arten (`Name | Lebensraum | Status | Quelle`) und verfolge mindestens 3 `[[Wikilinks]]` im Vault (`stufe-3-obsidian-vault`).
-- **Mission C · Executive Briefing:** Erstelle mit **CO-STAR + Guardrails** ein 5-Zeilen-Entscheider-Briefing zum Thema *„Wirtschaftliche & ökologische Folgen der Korallenbleiche“* – inklusive expliziter Lückenliste.
-- **Mission D · Tools, MCP & Live-Beamer-Gimmick:** Verbinde den mitgelieferten MCP-Server (`.mcp.json` -> `mcp-server/server.mjs`) oder nutze die Workshop-UI und sende deiner KI den Auftrag: **„Stell eine Frage an den Beamer!“** (oder nutze das MCP-Tool `send_to_beamer`).
+1. **Pfad 1 · Recherche & Fakten-System:**
+   - Nutzt den eingebauten **68-Artikel-Faktenprüfer & Such-Lab** direkt in der Workshop-App (testet z. B. `walross`, `alpensteinbock`, Eisbär-Fakten vs. Fangfrage) und zerlegt fehlerhafte Antworten mit `fakten-pruefer`.
+   - In der Arbeitsweise **`Code-Agent`** bindet ihr zusätzlich den lokalen MCP-Server (`mcp-server/server.mjs`, bereits in `.mcp.json` / `.vscode/mcp.json` konfiguriert) mit `search_wildlife_vault`, `verify_claim_against_corpus`, `read_vault_article` und den MCP-Resources (`_index.md`, `wiki/`) ein.
+2. **Pfad 2 · Präsentation, Animatic & Übersichtsseite:**
+   - Nutzt die fertigen 1-Klick-Rezepte in Schritt 04 für eine interaktive HTML-Übersichtsseite / Animatic in **Claude Artifacts** oder **ChatGPT Canvas** (inkl. Design- und Animations-Leitplanken) sowie ein 5-Folien-Management-Briefing zur Korallenbleiche mit expliziter Lückenliste.
+3. **Pfad 3 · Kleine interaktive App bauen:**
+   - Nutzt die fertigen Rezepte für ein Tierwelt-Fakten-Quiz oder ein Ökosystem-Vergleichs-Dashboard (als Artifact/Canvas oder lokal via `Desktop & Ordner` / `Code-Agent`) mit strikter Quellen-Bindung (`[Nicht in Quelle]`).
+
+### Abschluss: 4-Rollen CCF-Transfer-Brücke
+Übertragt zum Schluss in Schritt 04 die erlebten Muster (ohne vertrauliche Daten) auf typische CCF-Alltagssituationen:
+- **Kunden & Projekte** (Angebote, Kundenbriefings, Projektstatus mit Lückenblock)
+- **Fachkonzept & Daten** (Anforderungsanalyse, Glossar- und Feldmapping-Prüfung)
+- **Betrieb & Datenbanken** (Runbooks, Incident-Checklisten, Konfigurations-Guardrails)
+- **Entwicklung & Architektur** (`AGENTS.md`, Projekt-Skills, verknüpfte Wissensbasis & lokales MCP)

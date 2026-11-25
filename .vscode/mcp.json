@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "workshop-wildlife": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["${workspaceFolder}/mcp-server/server.mjs"]
+    }
+  }
+}

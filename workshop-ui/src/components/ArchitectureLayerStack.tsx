@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Eye, Layers } from "lucide-react";
 import { CopyButton } from "@/components/CopyButton";
+import { ContextWindowAnimatic } from "@/components/guidance/ContextWindowAnimatic";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,27 +13,28 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import type { ArchitectureLayer } from "@/types/workshop";
+import type { ArchitectureLayer, ToolMode } from "@/types/workshop";
 
 interface ArchitectureLayerStackProps {
   layers: ArchitectureLayer[];
-  primingTemplate: string;
-  track?: "A" | "B";
-  trackBAgentsTemplate?: string;
+  chatRulesTemplate: string;
+  toolMode: ToolMode;
+  agentsMdTemplate?: string;
   onCopyTemplate?: () => void;
 }
 
 export function ArchitectureLayerStack({
   layers,
-  primingTemplate,
-  track = "A",
-  trackBAgentsTemplate,
+  chatRulesTemplate,
+  toolMode,
+  agentsMdTemplate,
   onCopyTemplate,
 }: ArchitectureLayerStackProps) {
-  const [activeIdx, setActiveIdx] = useState<number>(2); // Default: System-Prompt / AGENTS.md
+  const prefersReduced = useReducedMotion();
+  const [activeIdx, setActiveIdx] = useState<number>(2);
   const active = layers[activeIdx] || layers[0];
-  const isTrackB = track === "B" && Boolean(trackBAgentsTemplate);
-  const activeTemplate = isTrackB ? trackBAgentsTemplate! : primingTemplate;
+  const usesRepoAgents = toolMode !== "web" && Boolean(agentsMdTemplate);
+  const activeTemplate = usesRepoAgents ? agentsMdTemplate! : chatRulesTemplate;
 
   return (
     <div className="space-y-5">
@@ -40,25 +42,29 @@ export function ArchitectureLayerStack({
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
             <Layers className="h-3.5 w-3.5" />
-            Teil 2 · Dauerhafte Basis-Regeln (Steuerungs-Ebenen)
+            Steuerungs-Ebenen &amp; Kontext-Fenster
           </div>
           <h3 className="text-xl font-bold tracking-tight">
-            {isTrackB
-              ? "Vom User-Prompt zur System-Regel (AGENTS.md)"
-              : "Zweites Experiment (im neuen Chat): Basis-Regeln am Chat-Start"}
+            5 Steuerungs-Ebenen auf einen Blick
           </h3>
           <p className="editorial-measure text-sm text-muted-foreground">
-            {isTrackB
-              ? "Wähle eine Ebene, um zu sehen, wie System-Regeln (AGENTS.md), Leitplanken und Werkzeuge (MCP) zusammenspielen."
-              : "Im ersten Test musstest du Regeln jedes Mal neu dazuschreiben. Kopiere für einen neuen Chat zuerst diese Basis-Regeln als Start-Nachricht — ab dann gelten Quellenpflicht und Struktur automatisch."}
+            {toolMode === "web"
+              ? "In Web-Chats gelten Regeln nur für das aktuelle Fenster — dauerhafte System-Regeln halten Quellenpflicht und Format auch in langen Verläufen stabil."
+              : toolMode === "desktop"
+                ? "Desktop & Ordner lädt AGENTS.md automatisch pro Projekt-Ordner, sodass Leitplanken dauerhaft aktiv bleiben."
+                : "Code-Agent kombiniert AGENTS.md, Skills und MCP-Werkzeuge zu einem verlässlichen Projekt-System."}
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <CopyButton
             text={activeTemplate}
-            label={isTrackB ? "AGENTS.md (Stufe 2) kopieren" : "1 · Chat-Basis-Regeln kopieren"}
-            toastMessage={isTrackB ? "AGENTS.md (Stufe 2) in Zwischenablage kopiert" : "Chat-Basis-Regeln in Zwischenablage kopiert"}
+            label={usesRepoAgents ? "AGENTS.md (Stufe 2) kopieren" : "Chat-Basis-Regeln kopieren"}
+            toastMessage={
+              usesRepoAgents
+                ? "AGENTS.md (Stufe 2) in Zwischenablage kopiert"
+                : "Chat-Basis-Regeln in Zwischenablage kopiert"
+            }
             variant="secondary"
             onCopy={onCopyTemplate}
           />
@@ -66,24 +72,26 @@ export function ArchitectureLayerStack({
             <SheetTrigger asChild>
               <Button type="button" size="sm" variant="outline">
                 <Eye className="h-3.5 w-3.5" />
-                <span>{isTrackB ? "System-Regel ansehen" : "Regeltext ansehen"}</span>
+                <span>{usesRepoAgents ? "System-Regel ansehen" : "Regeltext ansehen"}</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="overflow-y-auto">
               <SheetHeader>
                 <SheetTitle>
-                  {isTrackB ? "Track B · AGENTS.md System-Regel (Stufe 2)" : "Chat-Basis-Regeln (am Chat-Start senden)"}
+                  {usesRepoAgents
+                    ? "AGENTS.md System-Regel (Stufe 2)"
+                    : "Chat-Basis-Regeln (am Chat-Start senden)"}
                 </SheetTitle>
                 <SheetDescription>
-                  {isTrackB ? (
+                  {usesRepoAgents ? (
                     <>
-                      Diese Datei steuert deinen CLI-Agenten automatisch im Ordner{" "}
+                      Diese Datei steuert dein Werkzeug automatisch im Ordner{" "}
                       <code>stufe-2-skills-guardrails/</code>.
                     </>
                   ) : (
                     <>
-                      Öffne einen neuen Chat in ChatGPT, Claude oder Gemini, füge zuerst diesen Text ein
-                      und sende danach deine Texte und Fragen.
+                      Öffne einen neuen Chat im Web-Chat, füge zuerst diesen Text ein und sende
+                      danach deine Texte und Fragen.
                     </>
                   )}
                 </SheetDescription>
@@ -91,7 +99,7 @@ export function ArchitectureLayerStack({
               <div className="mt-5 space-y-4">
                 <CopyButton
                   text={activeTemplate}
-                  label={isTrackB ? "AGENTS.md kopieren" : "Basis-Regeln kopieren"}
+                  label={usesRepoAgents ? "AGENTS.md kopieren" : "Basis-Regeln kopieren"}
                   variant="default"
                   onCopy={onCopyTemplate}
                 />
@@ -146,10 +154,10 @@ export function ArchitectureLayerStack({
           <AnimatePresence mode="wait">
             <motion.div
               key={active.layer}
-              initial={{ opacity: 0, y: 6 }}
+              initial={prefersReduced ? false : { opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -4 }}
-              transition={{ duration: 0.15 }}
+              exit={prefersReduced ? undefined : { opacity: 0, y: -4 }}
+              transition={{ duration: prefersReduced ? 0 : 0.15 }}
               className="flex h-full flex-col justify-between gap-4 rounded-2xl border bg-card p-6"
             >
               <div className="space-y-3">
@@ -189,6 +197,9 @@ export function ArchitectureLayerStack({
           </AnimatePresence>
         </div>
       </div>
+
+      {/* Embedded Context Window Animatic */}
+      <ContextWindowAnimatic onResetChat={onCopyTemplate} />
     </div>
   );
 }

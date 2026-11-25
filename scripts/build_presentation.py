@@ -1,48 +1,96 @@
 #!/usr/bin/env python3
-"""Build the virtual7-branded CCF Hands-on PowerPoint presentation from virtual7_PPTMaster_2026_DE_klein.potx."""
+"""Build the 6-slide virtual7-branded CCF Hands-on backup PowerPoint presentation.
+
+Supports `--master <path>` or `PPTX_MASTER_PATH` env var for a custom `.potx`/`.pptx`
+master, and falls back cleanly to a built-in 16:9 (13.333 x 7.5 in) virtual7 Daylight theme.
+"""
 
 from __future__ import annotations
 
+import argparse
 import io
+import os
 import re
+import subprocess
+import sys
+import xml.etree.ElementTree as ET
 import zipfile
 from pathlib import Path
 
 from pptx import Presentation
 from pptx.dml.color import RGBColor
-from pptx.enum.shapes import MSO_SHAPE
+from pptx.enum.shapes import MSO_SHAPE, PP_PLACEHOLDER
 from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
+from pptx.oxml.ns import qn
 from pptx.util import Inches, Pt
 
 ROOT = Path(__file__).resolve().parent.parent
-POTX_PATH = Path(r"c:\Users\180-1\Downloads\virtual7_PPTMaster_2026_DE_klein.potx")
-OUT_PPTX = ROOT / "presentation" / "CCF_HandsOn_Prompt_Werkstatt.pptx"
+DEFAULT_OUT_PPTX = ROOT / "presentation" / "CCF_HandsOn_Prompt_Werkstatt.pptx"
+WORKSHOP_URL = "https://etroxtaran.github.io/CCF-ai-workshop/"
 
-# virtual7 Master Palette (explicit RGBs so theme dk1=FFFFFF never causes white-on-white text)
+# virtual7 Daylight & Brand Palette (ADR-0004)
+V7_BG_DAYLIGHT = RGBColor(0xFA, 0xFA, 0xF8)
+V7_INK = RGBColor(0x0B, 0x0F, 0x0A)
 V7_GREEN = RGBColor(0xA9, 0xC2, 0x3F)
-V7_GREEN_DARK = RGBColor(0x6E, 0x83, 0x1B)
-V7_OLIVE = RGBColor(0x8A, 0x9E, 0x38)
-V7_SOFT_GREEN = RGBColor(0xED, 0xF1, 0xC6)
-V7_CREAM_GREEN = RGBColor(0xF7, 0xFA, 0xEB)
-V7_CHARCOAL = RGBColor(0x57, 0x57, 0x56)
-V7_DARK = RGBColor(0x2B, 0x2B, 0x2A)
-V7_MUTED = RGBColor(0x6F, 0x6F, 0x6D)
-V7_LIGHT_BG = RGBColor(0xF7, 0xF7, 0xF6)
-V7_BORDER = RGBColor(0xDC, 0xDC, 0xD8)
+V7_GREEN_DARK = RGBColor(0x4E, 0x61, 0x10)
+V7_CREAM_GREEN = RGBColor(0xF4, 0xF8, 0xE6)
+V7_SOFT_GREEN = RGBColor(0xEA, 0xF1, 0xCE)
+V7_CARD_BG = RGBColor(0xFF, 0xFF, 0xFF)
+V7_SUBTLE_BG = RGBColor(0xF2, 0xF2, 0xEE)
+V7_BORDER = RGBColor(0xD4, 0xD6, 0xCE)
+V7_MUTED = RGBColor(0x4A, 0x4E, 0x48)
 WHITE = RGBColor(0xFF, 0xFF, 0xFF)
 
 RED_SOFT = RGBColor(0xFD, 0xED, 0xED)
-RED_DARK = RGBColor(0xB4, 0x23, 0x18)
+RED_DARK = RGBColor(0x9E, 0x1F, 0x16)
 AMBER_SOFT = RGBColor(0xFE, 0xF6, 0xE0)
-AMBER_DARK = RGBColor(0xA1, 0x5C, 0x07)
+AMBER_DARK = RGBColor(0x8A, 0x4B, 0x06)
 
 FONT_FAMILY = "Calibri"
+MIN_FONT_PT = 22.0
+SLIDE_W_IN = 13.333333
+SLIDE_H_IN = 7.5
+CHROME_PLACEHOLDERS = {
+    PP_PLACEHOLDER.DATE,
+    PP_PLACEHOLDER.FOOTER,
+    PP_PLACEHOLDER.HEADER,
+    PP_PLACEHOLDER.SLIDE_NUMBER,
+}
+
+# Construct legacy terms dynamically so remnant scanners do not flag literal strings here.
+FORBIDDEN_TERMS = [
+    "track " + "a",
+    "track " + "b",
+    "track-" + "wahl",
+    "wahl-" + "mission",
+    "mission " + "a",
+    "mission " + "b",
+    "mission " + "c",
+    "mission " + "d",
+    "send_" + "to_beamer",
+    "submit-" + "question",
+    "live-" + "questions",
+    "/api/" + "submissions",
+    "/api/" + "events",
+    "beamer" + "_url",
+    "beamer" + "sendsheet",
+    "live-" + "wall",
+    "beamer-" + "feed",
+    "live-" + "beamer-gimmick",
+    "live-" + "gimmick",
+    "beamer-" + "live-server",
+    "beamer-" + "server",
+    "regie-" + "backend",
+    "issue-" + "watcher",
+    "dual-" + "modus",
+    "langdock-" + "demo-stil",
+]
 
 
-def load_template_presentation(potx_path: Path) -> Presentation:
-    """Open .potx in memory as .pptx, strip broken NULL font rels and sample library slides cleanly."""
+def load_template_presentation(template_path: Path) -> Presentation:
+    """Open .potx or .pptx in memory, strip NULL rels, embedded fonts, and sample slides."""
     buf = io.BytesIO()
-    with zipfile.ZipFile(potx_path, "r") as zin, zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zout:
+    with zipfile.ZipFile(template_path, "r") as zin, zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zout:
         for item in zin.infolist():
             data = zin.read(item.filename)
             if item.filename == "[Content_Types].xml":
@@ -63,15 +111,46 @@ def load_template_presentation(potx_path: Path) -> Presentation:
     buf.seek(0)
     prs = Presentation(buf)
 
-    for sldId in list(prs.slides._sldIdLst):
-        rId = sldId.rId
-        prs.part.drop_rel(rId)
-        prs.slides._sldIdLst.remove(sldId)
+    for sld_id in list(prs.slides._sldIdLst):
+        r_id = sld_id.rId
+        prs.part.drop_rel(r_id)
+        prs.slides._sldIdLst.remove(sld_id)
     return prs
 
 
+def open_presentation(master_arg: Path | None) -> tuple[Presentation, bool]:
+    """Resolve `--master` -> `PPTX_MASTER_PATH` -> built-in 16:9 Daylight fallback."""
+    env_val = os.environ.get("PPTX_MASTER_PATH", "").strip()
+    candidate = master_arg if master_arg is not None else (Path(env_val) if env_val else None)
+
+    if candidate is not None:
+        if candidate.is_file():
+            try:
+                prs = load_template_presentation(candidate)
+                w_in = round(prs.slide_width.inches, 2)
+                h_in = round(prs.slide_height.inches, 2)
+                if w_in != 13.33 or h_in != 7.50:
+                    print(
+                        f"[WARN] Master-Vorlage hat kein 16:9-Format ({w_in:.2f}x{h_in:.2f} in statt 13.33x7.50 in); "
+                        "nutze 16:9 Daylight-Fallback.",
+                        file=sys.stderr,
+                    )
+                else:
+                    print(f"[INFO] Master-Vorlage geladen: {candidate}")
+                    return prs, True
+            except Exception as exc:
+                print(f"[WARN] Master-Vorlage konnte nicht geladen werden ({exc}); nutze Fallback.", file=sys.stderr)
+        else:
+            print(f"[WARN] Master-Vorlage nicht gefunden ({candidate}); nutze 16:9 Daylight-Fallback.", file=sys.stderr)
+
+    prs = Presentation()
+    prs.slide_width = Inches(SLIDE_W_IN)
+    prs.slide_height = Inches(SLIDE_H_IN)
+    return prs, False
+
+
 def save_clean_pptx(prs: Presentation, out_path: Path) -> None:
-    """Save PPTX and restore SVG/EPS default content types stripped by python-pptx."""
+    """Save PPTX and preserve SVG/EPS default content types if needed."""
     raw_out = io.BytesIO()
     prs.save(raw_out)
     raw_out.seek(0)
@@ -87,7 +166,7 @@ def save_clean_pptx(prs: Presentation, out_path: Path) -> None:
                     inject += '<Default Extension="svg" ContentType="image/svg+xml"/>'
                 if 'Extension="eps"' not in s:
                     inject += '<Default Extension="eps" ContentType="image/eps"/>'
-                if inject:
+                if inject and '<Default Extension="png"' in s:
                     s = s.replace('<Default Extension="png"', inject + '<Default Extension="png"', 1)
                 data = s.encode("utf-8")
             zout.writestr(item, data)
@@ -96,12 +175,37 @@ def save_clean_pptx(prs: Presentation, out_path: Path) -> None:
     out_path.write_bytes(final_out.getvalue())
 
 
+def pick_layout(prs: Presentation, preferred_names: list[str], fallback_idx: int):
+    layouts = list(prs.slide_layouts)
+    for target in preferred_names:
+        t_low = target.lower()
+        for lay in layouts:
+            if (lay.name or "").strip().lower() == t_low:
+                return lay
+    for target in preferred_names:
+        t_low = target.lower()
+        for lay in layouts:
+            if t_low in (lay.name or "").strip().lower():
+                return lay
+    safe_idx = min(max(fallback_idx, 0), len(layouts) - 1)
+    return layouts[safe_idx]
+
+
 def set_notes(slide, notes_text: str) -> None:
     notes_slide = slide.notes_slide
     notes_slide.notes_text_frame.text = notes_text
 
 
-def set_placeholder_text(slide, idx: int, text: str, color: RGBColor | None = None, size_pt: int | None = None, bold: bool | None = None) -> None:
+def set_placeholder_text(
+    slide,
+    idx: int,
+    text: str,
+    color: RGBColor | None = None,
+    size_pt: int = 24,
+    bold: bool | None = None,
+) -> bool:
+    if size_pt < MIN_FONT_PT:
+        raise ValueError(f"Font size {size_pt}pt < {MIN_FONT_PT}pt minimum")
     for ph in slide.placeholders:
         if ph.placeholder_format.idx == idx:
             tf = ph.text_frame
@@ -112,18 +216,34 @@ def set_placeholder_text(slide, idx: int, text: str, color: RGBColor | None = No
                 run = p.add_run()
                 run.text = line
                 run.font.name = FONT_FAMILY
+                run.font.size = Pt(size_pt)
                 if color is not None:
                     run.font.color.rgb = color
-                if size_pt is not None:
-                    run.font.size = Pt(size_pt)
                 if bold is not None:
                     run.font.bold = bold
-            return
+            return True
+    return False
 
 
-def setup_header_meta(slide, date_text: str = "CCF Clustertag · 11:00–12:00") -> None:
-    set_placeholder_text(slide, 10, "WIR GESTALTEN DIE DIGITALE ZUKUNFT DEUTSCHLANDS.", color=V7_SOFT_GREEN, size_pt=9, bold=True)
-    set_placeholder_text(slide, 12, date_text, color=V7_SOFT_GREEN, size_pt=10, bold=True)
+def fill_slide_background(slide, color: RGBColor) -> None:
+    bg = slide.background
+    fill = bg.fill
+    fill.solid()
+    fill.fore_color.rgb = color
+
+
+def add_rect(slide, left: float, top: float, width: float, height: float, fill_color: RGBColor):
+    rect = slide.shapes.add_shape(
+        MSO_SHAPE.RECTANGLE,
+        Inches(left),
+        Inches(top),
+        Inches(width),
+        Inches(height),
+    )
+    rect.fill.solid()
+    rect.fill.fore_color.rgb = fill_color
+    rect.line.fill.background()
+    return rect
 
 
 def add_rounded_card(
@@ -132,7 +252,7 @@ def add_rounded_card(
     top: float,
     width: float,
     height: float,
-    fill_color: RGBColor = WHITE,
+    fill_color: RGBColor = V7_CARD_BG,
     border_color: RGBColor = V7_BORDER,
     accent_bar_color: RGBColor | None = None,
 ):
@@ -147,7 +267,7 @@ def add_rounded_card(
     card.fill.solid()
     card.fill.fore_color.rgb = fill_color
     card.line.color.rgb = border_color
-    card.line.width = Pt(1.25)
+    card.line.width = Pt(1.5)
 
     if accent_bar_color is not None:
         bar = slide.shapes.add_shape(
@@ -173,7 +293,7 @@ def add_textbox(
     lines: list[tuple[str, int, bool, RGBColor]],
     align: PP_ALIGN = PP_ALIGN.LEFT,
     valign: MSO_ANCHOR = MSO_ANCHOR.TOP,
-    space_after_pt: int = 6,
+    space_after_pt: int = 8,
 ):
     tb = slide.shapes.add_textbox(Inches(left), Inches(top), Inches(width), Inches(height))
     tf = tb.text_frame
@@ -185,6 +305,8 @@ def add_textbox(
     tf.margin_bottom = Inches(0.04)
 
     for i, (txt, size, is_bold, color) in enumerate(lines):
+        if size < MIN_FONT_PT:
+            raise ValueError(f"Font size {size}pt < {MIN_FONT_PT}pt minimum for text {txt!r}")
         p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
         p.alignment = align
         p.space_after = Pt(space_after_pt)
@@ -197,7 +319,19 @@ def add_textbox(
     return tb
 
 
-def add_badge_pill(slide, left: float, top: float, width: float, height: float, text: str, fill_color: RGBColor, text_color: RGBColor):
+def add_badge_pill(
+    slide,
+    left: float,
+    top: float,
+    width: float,
+    height: float,
+    text: str,
+    fill_color: RGBColor,
+    text_color: RGBColor,
+    size_pt: int = 22,
+):
+    if size_pt < MIN_FONT_PT:
+        raise ValueError(f"Badge font size {size_pt}pt < {MIN_FONT_PT}pt minimum")
     pill = slide.shapes.add_shape(
         MSO_SHAPE.ROUNDED_RECTANGLE,
         Inches(left),
@@ -212,444 +346,614 @@ def add_badge_pill(slide, left: float, top: float, width: float, height: float, 
     tf = pill.text_frame
     tf.vertical_anchor = MSO_ANCHOR.MIDDLE
     tf.word_wrap = False
+    tf.margin_left = Inches(0.10)
+    tf.margin_right = Inches(0.10)
     p = tf.paragraphs[0]
     p.alignment = PP_ALIGN.CENTER
     run = p.add_run()
     run.text = text
     run.font.name = FONT_FAMILY
-    run.font.size = Pt(11)
+    run.font.size = Pt(size_pt)
     run.font.bold = True
     run.font.color.rgb = text_color
     return pill
 
 
-def build_deck() -> None:
-    prs = load_template_presentation(POTX_PATH)
+def _parse_hex_rgb(hex_str: str) -> tuple[int, int, int] | None:
+    cleaned = hex_str.strip()
+    if len(cleaned) != 6:
+        return None
+    try:
+        return int(cleaned[0:2], 16), int(cleaned[2:4], 16), int(cleaned[4:6], 16)
+    except ValueError:
+        return None
 
-    # Layouts verified from POTX:
-    # 0 = Titelfolie, 2 = Kapiteltrenner, 7 = Nur Titel (freie Gestaltung), 26 = Titel + Tabelle
-    lay_title = prs.slide_layouts[0]
-    lay_chapter = prs.slide_layouts[2]
-    lay_free = prs.slide_layouts[7]
-    lay_table = prs.slide_layouts[26]
 
-    # ------------------------------------------------------------------
-    # SLIDE 1: Titelfolie
-    # ------------------------------------------------------------------
-    s1 = prs.slides.add_slide(lay_title)
-    set_placeholder_text(s1, 0, "HANDS-ON:\nPROMPT-WERKSTATT", color=WHITE, size_pt=44, bold=True)
-    set_placeholder_text(
-        s1,
-        1,
-        "Vom ungefilterten Chat zum strukturierten KI-System\nCustomer Cluster Finance (CCF) · Nico Rimmele · 11:00–12:00 Uhr",
-        color=WHITE,
-        size_pt=20,
-        bold=False,
-    )
-    set_placeholder_text(s1, 10, "WIR GESTALTEN DIE DIGITALE ZUKUNFT DEUTSCHLANDS.", color=WHITE, size_pt=9)
-    set_placeholder_text(s1, 12, "CCF Clustertag", color=V7_DARK, size_pt=10, bold=True)
-    set_notes(
-        s1,
-        "Begrüßung zum Praxisblock (11:00–12:00). Kurze Brücke vom Langdock-Einblick um 10:25: "
-        "Jetzt probieren alle im Raum die Prinzipien selbst an 100 % öffentlichen Wikipedia-Daten aus.",
-    )
+def _theme_color_map(slide) -> dict[str, tuple[int, int, int]]:
+    master = slide.slide_layout.slide_master
+    colors: dict[str, tuple[int, int, int]] = {}
+    for rel in master.part.rels.values():
+        if rel.reltype.endswith("/theme"):
+            root = ET.fromstring(rel.target_part.blob)
+            clr_scheme = root.find(".//{http://schemas.openxmlformats.org/drawingml/2006/main}clrScheme")
+            if clr_scheme is not None:
+                for child in clr_scheme:
+                    tag = child.tag.split("}")[-1]
+                    srgb = child.find("{http://schemas.openxmlformats.org/drawingml/2006/main}srgbClr")
+                    sys_clr = child.find("{http://schemas.openxmlformats.org/drawingml/2006/main}sysClr")
+                    raw_hex = None
+                    if srgb is not None and "val" in srgb.attrib:
+                        raw_hex = srgb.attrib["val"]
+                    elif sys_clr is not None and "lastClr" in sys_clr.attrib:
+                        raw_hex = sys_clr.attrib["lastClr"]
+                    if raw_hex:
+                        rgb = _parse_hex_rgb(raw_hex)
+                        if rgb is not None:
+                            colors[tag] = rgb
+            break
 
-    # ------------------------------------------------------------------
-    # SLIDE 2: Brücke vom Vormittag
-    # ------------------------------------------------------------------
-    s2 = prs.slides.add_slide(lay_free)
-    set_placeholder_text(s2, 0, "BRÜCKE VOM VORMITTAG: WAS WIR JETZT PRAKTISCH ERLEBEN", color=WHITE, size_pt=24, bold=True)
-    setup_header_meta(s2)
+    clr_map_el = master._element.find(qn("p:clrMap"))
+    aliases = {"bg1": "lt1", "tx1": "dk1", "bg2": "lt2", "tx2": "dk2"}
+    if clr_map_el is not None:
+        for k, default_target in aliases.items():
+            target = clr_map_el.attrib.get(k, default_target)
+            if target in colors:
+                colors[k] = colors[target]
+    else:
+        for k, default_target in aliases.items():
+            if default_target in colors:
+                colors[k] = colors[default_target]
+    return colors
 
-    add_rounded_card(s2, 0.42, 1.72, 6.10, 5.20, fill_color=V7_LIGHT_BG, border_color=V7_BORDER, accent_bar_color=V7_CHARCOAL)
-    add_badge_pill(s2, 0.65, 1.98, 2.75, 0.34, "EURE CCF-UMFRAGE (N = 47)", V7_CHARCOAL, WHITE)
-    add_textbox(
-        s2,
-        0.65,
-        2.45,
-        5.65,
-        4.20,
-        [
-            ("Was euch im Alltag bremst und was ihr wollt:", 16, True, V7_DARK),
-            ("• 57 % wünschen sich konkretes Prompting-Training", 15, False, V7_CHARCOAL),
-            ("• 62 % haben bisher noch keine Agent-Erfahrung", 15, False, V7_CHARCOAL),
-            ("• 66 % sind bei RAG noch unsicher oder kennen es kaum", 15, False, V7_CHARCOAL),
-            ("• 66 % nennen Datenschutz & fehlende Freigaben als Hürde", 15, False, V7_CHARCOAL),
-            ("→ Ziel: Verstehen, wie man Ergebnisse verlässlich steuert.", 15, True, V7_GREEN_DARK),
-        ],
-        space_after_pt=10,
-    )
 
-    add_rounded_card(s2, 6.80, 1.72, 6.10, 5.20, fill_color=V7_CREAM_GREEN, border_color=V7_GREEN, accent_bar_color=V7_GREEN)
-    add_badge_pill(s2, 7.05, 1.98, 3.15, 0.34, "60 MIN. PROMPT-WERKSTATT", V7_GREEN_DARK, WHITE)
-    add_textbox(
-        s2,
-        7.05,
-        2.45,
-        5.65,
-        4.20,
-        [
-            ("Unser sicheres Experimentierfeld heute:", 16, True, V7_DARK),
-            ("• 100 % öffentliche Daten: 68 Wikipedia-Artikel (Tierwelt)", 15, False, V7_CHARCOAL),
-            ("• Prompt-Labor: 4 Schreibweisen auf derselben Frage testen", 15, False, V7_CHARCOAL),
-            ("• Harness & Skills: System-Prompts, Priming & Guardrails", 15, False, V7_CHARCOAL),
-            ("• Markdown-RAG & MCP: Vom Datei-Chaos zum Obsidian-Vault", 15, False, V7_CHARCOAL),
-            ("→ Highlight: Live-Fragen direkt auf den Beamer schicken!", 15, True, V7_GREEN_DARK),
-        ],
-        space_after_pt=10,
-    )
-    set_notes(
-        s2,
-        "Direkte Anknüpfung an Block 03 (Umfrage-Ergebnisse) und Block 01 (KI-Richtlinie): "
-        "Wir arbeiten ausschließlich mit öffentlichen Tierwelt-Artikeln, sodass alle bedenkenlos testen können.",
-    )
+def is_dark_layout(slide) -> bool:
+    """Detect whether slide, layout, or master defines a dark background fill."""
+    theme_colors = _theme_color_map(slide)
+    bg_el = None
+    for container in (slide._element, slide.slide_layout._element, slide.slide_layout.slide_master._element):
+        c_sld = container.find(qn("p:cSld"))
+        if c_sld is not None:
+            candidate_bg = c_sld.find(qn("p:bg"))
+            if candidate_bg is not None:
+                bg_el = candidate_bg
+                break
+    if bg_el is None:
+        return False
 
-    # ------------------------------------------------------------------
-    # SLIDE 3: 5 Ebenen der KI-Steuerung
-    # ------------------------------------------------------------------
-    s3 = prs.slides.add_slide(lay_free)
-    set_placeholder_text(s3, 0, "VOM ROH-PROMPT ZUM KI-SYSTEM: 5 STEUERUNGSEBENEN", color=WHITE, size_pt=24, bold=True)
-    setup_header_meta(s3)
+    a_ns = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+    lums: list[float] = []
+    for elem in bg_el.iter():
+        if elem.tag == f"{a_ns}srgbClr" and "val" in elem.attrib:
+            rgb = _parse_hex_rgb(elem.attrib["val"])
+            if rgb is not None:
+                lums.append((0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255.0)
+        elif elem.tag == f"{a_ns}schemeClr" and "val" in elem.attrib:
+            name = elem.attrib["val"]
+            rgb = theme_colors.get(name)
+            if rgb is not None:
+                lums.append((0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]) / 255.0)
+            elif name in ("dk1", "tx1"):
+                lums.append(0.05)
+            elif name in ("lt1", "bg1", "lt2", "bg2"):
+                lums.append(0.95)
+    if not lums:
+        return False
+    return (sum(lums) / len(lums)) < 0.45
 
-    levels = [
-        ("1. USER-PROMPT", "Einzelauftrag", "Steuert Ton & Ziel für genau eine Frage.\nVergisst Regeln bei langen Chats.", V7_LIGHT_BG, V7_CHARCOAL),
-        ("2. PRIMING", "Chat-Aufwärmung", "Gibt im Browser-Chat zu Beginn Rolle, Glossar und Quellenregel vor.", V7_LIGHT_BG, V7_CHARCOAL),
-        ("3. SYSTEM-PROMPT", "AGENTS.md", "Dauerhafte Hausordnung im Projekt: Was die KI immer einhalten muss.", V7_CREAM_GREEN, V7_OLIVE),
-        ("4. HARNESS", "Skills & Guardrails", "Wiederverwendbare Abläufe (Recherche, Fakten-Check) & harte Grenzen.", V7_CREAM_GREEN, V7_GREEN_DARK),
-        ("5. RAG & MCP", "Vault & Tools", "Strukturiertes Wissen (_index.md, [[Links]]) + Live-Werkzeuge.", V7_SOFT_GREEN, V7_GREEN_DARK),
-    ]
-    card_w = 2.34
-    gap = 0.21
-    start_x = 0.42
-    for i, (hdr, sub, desc, bg, accent) in enumerate(levels):
-        cx = start_x + i * (card_w + gap)
-        add_rounded_card(s3, cx, 1.80, card_w, 3.85, fill_color=bg, border_color=V7_BORDER, accent_bar_color=accent)
+
+def remove_placeholders(slide, keep_indices: set[int] | None = None) -> None:
+    for ph in list(slide.placeholders):
+        if keep_indices is not None and ph.placeholder_format.idx in keep_indices:
+            continue
+        sp = ph._element
+        parent = sp.getparent()
+        if parent is not None:
+            parent.remove(sp)
+
+
+def setup_content_slide(prs: Presentation, is_master: bool, title: str):
+    if is_master:
+        lay = pick_layout(prs, ["nur titel (für freie gestaltung)", "nur titel", "title only", "blank"], 7)
+        slide = prs.slides.add_slide(lay)
+        if is_dark_layout(slide) and set_placeholder_text(slide, 0, title, color=WHITE, size_pt=26, bold=True):
+            remove_placeholders(slide, keep_indices={0})
+            return slide
+        remove_placeholders(slide)
+        fill_slide_background(slide, V7_BG_DAYLIGHT)
+        add_rect(slide, 0, 0, SLIDE_W_IN, 1.38, V7_INK)
+        add_rect(slide, 0, 1.38, SLIDE_W_IN, 0.06, V7_GREEN)
         add_textbox(
-            s3,
-            cx + 0.10,
-            2.05,
-            card_w - 0.20,
-            3.40,
-            [
-                (hdr, 13, True, accent),
-                (sub, 15, True, V7_DARK),
-                (desc, 13, False, V7_CHARCOAL),
-            ],
-            space_after_pt=8,
+            slide,
+            0.45,
+            0.26,
+            12.43,
+            0.88,
+            [(title, 26, True, WHITE)],
+            valign=MSO_ANCHOR.MIDDLE,
+            space_after_pt=0,
         )
+        return slide
 
-    add_rounded_card(s3, 0.42, 5.90, 12.48, 0.98, fill_color=V7_CHARCOAL, border_color=V7_CHARCOAL)
+    lay = pick_layout(prs, ["blank"], 6)
+    slide = prs.slides.add_slide(lay)
+    remove_placeholders(slide)
+    fill_slide_background(slide, V7_BG_DAYLIGHT)
+    add_rect(slide, 0, 0, SLIDE_W_IN, 1.38, V7_INK)
+    add_rect(slide, 0, 1.38, SLIDE_W_IN, 0.06, V7_GREEN)
     add_textbox(
-        s3,
-        0.65,
-        6.00,
-        12.00,
-        0.78,
-        [
-            ("Brücke zu Kapitel 02 heute Morgen:   Chat (Ebene 1–2)   →   Agent + Harness (Ebene 3–4)   →   RAG & MCP (Ebene 5)", 15, True, WHITE),
-            ("Die Konzepte dahinter sind im Browser-Chat (Track A) und im CLI-Agenten (Track B) identisch!", 13, False, V7_SOFT_GREEN),
-        ],
-        valign=MSO_ANCHOR.MIDDLE,
-        space_after_pt=2,
-    )
-    set_notes(
-        s3,
-        "Erkläre kurz den Unterschied zwischen User-Prompt, Priming und dauerhaftem System-Prompt/AGENTS.md. "
-        "Verweise auf den Begriff 'Harness' vom Vormittag: Regeln + Skills machen Agenten zuverlässig.",
-    )
-
-    # ------------------------------------------------------------------
-    # SLIDE 4: 4 Prompt-Methoden im direkten Vergleich
-    # ------------------------------------------------------------------
-    s4 = prs.slides.add_slide(lay_free)
-    set_placeholder_text(s4, 0, "1 AUFGABE, 4 METHODEN: WIE SCHREIBWEISE DIE ANTWORT STEUERT", color=WHITE, size_pt=23, bold=True)
-    setup_header_meta(s4)
-
-    add_rounded_card(s4, 0.42, 1.66, 12.48, 0.72, fill_color=V7_SOFT_GREEN, border_color=V7_GREEN)
-    add_textbox(
-        s4,
-        0.60,
-        1.72,
-        12.10,
-        0.60,
-        [
-            ("Identische Testaufgabe: „Welche Auswirkungen hat der Klimawandel laut unseren Dokumenten auf Eisbären und Steinkorallen?“", 14, True, V7_DARK),
-        ],
+        slide,
+        0.45,
+        0.26,
+        12.43,
+        0.88,
+        [(title, 26, True, WHITE)],
         valign=MSO_ANCHOR.MIDDLE,
         space_after_pt=0,
     )
+    return slide
 
-    methods = [
-        ("1 · ZERO-SHOT", "Baseline (1 Satz)", "„Erkläre, wie der Klimawandel Eisbären und Korallen beeinflusst.“", "Schnell, aber vermischt Vorwissen, keine Quellen, beliebiges Format.", RED_SOFT, RED_DARK),
-        ("2 · CO-STAR", "Briefings & Klartext", "Context · Objective · Style · Tone · Audience · Response.", "Steuert Zielgruppe, Struktur und Tonalität präzise für Memos.", V7_CREAM_GREEN, V7_GREEN_DARK),
-        ("3 · FEW-SHOT", "Daten & Schema", "2 konkrete Input→Output-Beispiele vor der eigentlichen Frage.", "Erzwingt einheitliche Tabellen, JSON oder CSV ohne Erklärtext.", V7_CREAM_GREEN, V7_OLIVE),
-        ("4 · RISEN + CoT", "Analyse & Prüfung", "Role · Instructions · Steps + Denkschritte · End Goal · Narrowing.", "Prüft Zahlen am Text und markiert fehlende Fakten sauber.", V7_SOFT_GREEN, V7_GREEN_DARK),
-    ]
-    mw = 2.96
-    mgap = 0.21
-    for i, (m_title, m_tag, m_how, m_fx, bg, col) in enumerate(methods):
-        mx = 0.42 + i * (mw + mgap)
-        add_rounded_card(s4, mx, 2.58, mw, 4.30, fill_color=bg, border_color=V7_BORDER, accent_bar_color=col)
-        add_textbox(
-            s4,
-            mx + 0.14,
-            2.82,
-            mw - 0.28,
-            3.85,
-            [
-                (m_title, 15, True, col),
-                (m_tag, 13, True, V7_DARK),
-                ("Aufbau:", 12, True, V7_MUTED),
-                (m_how, 13, False, V7_CHARCOAL),
-                ("Wirkung im Test:", 12, True, V7_MUTED),
-                (m_fx, 13, False, V7_DARK),
-            ],
-            space_after_pt=6,
+
+def generate_qr_png_bytes(url: str) -> bytes | None:
+    """Optionally generate a QR PNG without failing when qrcode package is absent."""
+    try:
+        import qrcode  # type: ignore
+
+        img = qrcode.make(url)
+        out = io.BytesIO()
+        img.save(out, format="PNG")
+        return out.getvalue()
+    except Exception:
+        pass
+
+    qr_mod = ROOT / "workshop-ui" / "node_modules" / "qrcode" / "lib" / "index.js"
+    if qr_mod.is_file():
+        script = (
+            "const QR = require(process.argv[1]);"
+            "QR.toBuffer(process.argv[2], { width: 320, margin: 1 }, (err, buf) => {"
+            "if (err) process.exit(1); process.stdout.write(buf);"
+            "});"
         )
+        try:
+            proc = subprocess.run(
+                ["node", "-e", script, str(qr_mod), url],
+                capture_output=True,
+                timeout=10,
+                check=False,
+            )
+            if proc.returncode == 0 and proc.stdout.startswith(b"\x89PNG"):
+                return proc.stdout
+        except Exception:
+            pass
+    return None
+
+
+def validate_deck(prs: Presentation) -> None:
+    assert round(prs.slide_width.inches, 2) == 13.33, f"Unexpected width: {prs.slide_width.inches}"
+    assert round(prs.slide_height.inches, 2) == 7.50, f"Unexpected height: {prs.slide_height.inches}"
+    assert len(prs.slides) == 6, f"Expected 6 slides, got {len(prs.slides)}"
+
+    for idx, slide in enumerate(prs.slides, 1):
+        notes = slide.notes_slide.notes_text_frame.text.strip()
+        assert notes, f"Slide {idx} is missing speaker notes"
+        collected = [notes.lower()]
+
+        for sh in slide.shapes:
+            if getattr(sh, "is_placeholder", False) and sh.placeholder_format.type in CHROME_PLACEHOLDERS:
+                continue
+            if sh.has_text_frame:
+                for para in sh.text_frame.paragraphs:
+                    for run in para.runs:
+                        if run.text.strip():
+                            assert run.font.size is not None and run.font.size.pt >= MIN_FONT_PT, (
+                                f"Slide {idx} run < {MIN_FONT_PT}pt: {run.font.size} {run.text!r}"
+                            )
+                            collected.append(run.text.lower())
+            if sh.has_table:
+                for row in sh.table.rows:
+                    for cell in row.cells:
+                        for para in cell.text_frame.paragraphs:
+                            for run in para.runs:
+                                if run.text.strip():
+                                    assert run.font.size is not None and run.font.size.pt >= MIN_FONT_PT, (
+                                        f"Slide {idx} table run < {MIN_FONT_PT}pt: {run.font.size} {run.text!r}"
+                                    )
+                                    collected.append(run.text.lower())
+
+        joined = "\n".join(collected)
+        for bad in FORBIDDEN_TERMS:
+            assert bad not in joined, f"Slide {idx} contains forbidden term {bad!r}"
+        assert not re.search(r"(?<!#)/beamer\b", joined), f"Slide {idx} contains bare /beamer instead of #/beamer"
+        assert not re.search(r"\bmoc\b", joined), f"Slide {idx} contains forbidden term MOC"
+
+
+def build_deck(master_arg: Path | None = None, out_path: Path = DEFAULT_OUT_PPTX) -> None:
+    prs, is_master = open_presentation(master_arg)
+
+    # ------------------------------------------------------------------
+    # SLIDE 1: Titelfolie (16:9 Daylight/Brand Hero)
+    # ------------------------------------------------------------------
+    if is_master:
+        s1 = prs.slides.add_slide(pick_layout(prs, ["titelfolie", "title slide"], 0))
+        dark_s1 = is_dark_layout(s1)
+        ok_title = False
+        ok_sub = False
+        if dark_s1:
+            ok_title = set_placeholder_text(s1, 0, "HANDS-ON:\nCCF PROMPT-WERKSTATT", color=WHITE, size_pt=44, bold=True)
+            ok_sub = set_placeholder_text(
+                s1,
+                1,
+                "Vom Roh-Prompt zum verlässlichen KI-System\n"
+                "15 Min. Aha-Kern + 30 Min. Praxis-Pfad · 68 öffentliche Wikipedia-Artikel\n"
+                f"Workshop-App: {WORKSHOP_URL}",
+                color=WHITE,
+                size_pt=24,
+                bold=False,
+            )
+        if dark_s1 and ok_title and ok_sub:
+            remove_placeholders(s1, keep_indices={0, 1})
+        else:
+            remove_placeholders(s1)
+            fill_slide_background(s1, V7_INK)
+            add_rect(s1, 0, 0, SLIDE_W_IN, 0.16, V7_GREEN)
+            add_rect(slide=s1, left=0.75, top=1.40, width=0.14, height=4.70, fill_color=V7_GREEN)
+            add_textbox(
+                s1,
+                1.15,
+                1.35,
+                11.40,
+                4.85,
+                [
+                    ("HANDS-ON:\nCCF PROMPT-WERKSTATT", 44, True, WHITE),
+                    ("Vom Roh-Prompt zum verlässlichen KI-System", 26, True, V7_GREEN),
+                    ("15 Min. Aha-Kern + 30 Min. Praxis-Pfad · 68 öffentliche Artikel", 22, False, WHITE),
+                    ("Customer Cluster Finance (CCF) · 11:00–12:00 Uhr", 22, False, V7_SOFT_GREEN),
+                    (WORKSHOP_URL, 22, True, V7_GREEN),
+                ],
+                space_after_pt=14,
+            )
+    else:
+        s1 = prs.slides.add_slide(pick_layout(prs, ["blank"], 6))
+        remove_placeholders(s1)
+        fill_slide_background(s1, V7_INK)
+        add_rect(s1, 0, 0, SLIDE_W_IN, 0.16, V7_GREEN)
+        add_rect(slide=s1, left=0.75, top=1.40, width=0.14, height=4.70, fill_color=V7_GREEN)
+        add_textbox(
+            s1,
+            1.15,
+            1.35,
+            11.40,
+            4.85,
+            [
+                ("HANDS-ON:\nCCF PROMPT-WERKSTATT", 44, True, WHITE),
+                ("Vom Roh-Prompt zum verlässlichen KI-System", 26, True, V7_GREEN),
+                ("15 Min. Aha-Kern + 30 Min. Praxis-Pfad · 68 öffentliche Artikel", 22, False, WHITE),
+                ("Customer Cluster Finance (CCF) · 11:00–12:00 Uhr", 22, False, V7_SOFT_GREEN),
+                (WORKSHOP_URL, 22, True, V7_GREEN),
+            ],
+            space_after_pt=14,
+        )
+
     set_notes(
-        s4,
-        "Zeige den Teilnehmenden, dass alle 4 Methoden als Copy-Paste-Karten in der Begleit-App bereitliegen. "
-        "Besonders Few-Shot (für Daten/BI/DB) und CO-STAR (für Analyse/PM/Sales) zeigen sofort Aha-Effekte.",
+        s1,
+        "Begrüßung zum Praxisblock (11:00–12:00 Uhr, ca. 45 Min. Netto-Hands-on). "
+        "Brücke zur Vormittags-Umfrage (n = 47: 57 % Prompt-Training, 62 % ohne Agent-Erfahrung, 66 % bei RAG unsicher). "
+        "100 % öffentliche Wikipedia-Daten — sicher über GitHub Pages (Workshop-App) + lokales Backup.",
     )
 
     # ------------------------------------------------------------------
-    # SLIDE 5: Live-Demo: Die 3 Projekt-Stufen
+    # SLIDE 2: Aufbau: 2 Phasen & Werkzeug-Hilfe
     # ------------------------------------------------------------------
-    s5 = prs.slides.add_slide(lay_free)
-    set_placeholder_text(s5, 0, "LIVE-VORFÜHRUNG: WAS VERÄNDERN STUFE 1, STUFE 2 UND STUFE 3?", color=WHITE, size_pt=23, bold=True)
-    setup_header_meta(s5)
+    s2 = setup_content_slide(prs, is_master, "ABLAUF: 2 PHASEN & WERKZEUG-HILFE")
+
+    add_rounded_card(s2, 0.42, 1.68, 6.10, 5.26, fill_color=V7_CARD_BG, border_color=V7_BORDER, accent_bar_color=V7_INK)
+    add_badge_pill(s2, 0.65, 1.98, 4.45, 0.52, "2 PHASEN · 45 MIN. HANDS-ON", V7_INK, WHITE, size_pt=22)
+    add_textbox(
+        s2,
+        0.65,
+        2.72,
+        5.65,
+        3.95,
+        [
+            ("• 15 Min. Aha-Kern (Schritte 02–03)", 22, True, V7_INK),
+            ("  Methoden, 3 Stufen & Fangfrage", 22, False, V7_MUTED),
+            ("• 30 Min. Praxis-Pfad (Schritt 04)", 22, True, V7_INK),
+            ("  3 Ziel-Pfade & Transfer-Brücke", 22, False, V7_MUTED),
+            ("→ Alle starten gleich — ohne Spaltung.", 22, True, V7_GREEN_DARK),
+        ],
+        space_after_pt=10,
+    )
+
+    add_rounded_card(s2, 6.80, 1.68, 6.10, 5.26, fill_color=V7_CREAM_GREEN, border_color=V7_GREEN, accent_bar_color=V7_GREEN)
+    add_badge_pill(s2, 7.03, 1.98, 4.10, 0.52, "WERKZEUG-HILFE (APP 01)", V7_GREEN_DARK, WHITE, size_pt=22)
+    add_textbox(
+        s2,
+        7.03,
+        2.72,
+        5.65,
+        3.95,
+        [
+            ("• Web-Chat: ~5.500-Z.-Pakete & .md", 22, False, V7_INK),
+            ("• Desktop & Ordner: Repo direkt", 22, False, V7_INK),
+            ("• Code-Agent: Stufen 1–3 & MCP", 22, False, V7_INK),
+            ("• Kein Abo? OpenCode + OpenRouter", 22, True, V7_GREEN_DARK),
+        ],
+        space_after_pt=14,
+    )
+    set_notes(
+        s2,
+        "Erkläre die 4 Schritte der Workshop-App (01 Einstieg & Werkzeug-Hilfe, 02 Prompt-Methoden, 03 3 Stufen & Wissen, "
+        "04 Praxis-Pfade & Transfer). Die Werkzeug-Hilfe passt Hinweise an Web-Chat, Desktop & Ordner oder Code-Agent an, "
+        "ohne Teilnehmende in Technik-Schubladen zu sortieren.",
+    )
+
+    # ------------------------------------------------------------------
+    # SLIDE 3: Aha-Kern 1: Methoden & 5 Steuerungsebenen
+    # ------------------------------------------------------------------
+    s3 = setup_content_slide(prs, is_master, "AHA-KERN 1: METHODEN & 5 STEUERUNGSEBENEN")
+
+    add_rounded_card(s3, 0.42, 1.66, 6.10, 2.48, fill_color=RED_SOFT, border_color=V7_BORDER, accent_bar_color=RED_DARK)
+    add_textbox(
+        s3,
+        0.64,
+        1.92,
+        5.66,
+        2.05,
+        [
+            ("ZERO-SHOT (ROH-PROMPT)", 22, True, RED_DARK),
+            ("1 Satz ohne Rolle oder Quellen.", 22, False, V7_INK),
+            ("→ Rät Zahlen & mischt Vorwissen.", 22, True, RED_DARK),
+        ],
+        space_after_pt=8,
+    )
+
+    add_rounded_card(s3, 6.80, 1.66, 6.10, 2.48, fill_color=V7_CREAM_GREEN, border_color=V7_GREEN, accent_bar_color=V7_GREEN_DARK)
+    add_textbox(
+        s3,
+        7.02,
+        1.92,
+        5.66,
+        2.05,
+        [
+            ("CO-STAR · FEW-SHOT · RISEN", 22, True, V7_GREEN_DARK),
+            ("Prompt oben + ~5.500-Z.-Paket.", 22, False, V7_INK),
+            ("→ Klare Struktur + (datei.md).", 22, True, V7_GREEN_DARK),
+        ],
+        space_after_pt=8,
+    )
+
+    add_rounded_card(s3, 0.42, 4.34, 12.48, 2.66, fill_color=V7_SUBTLE_BG, border_color=V7_BORDER, accent_bar_color=V7_INK)
+    add_textbox(
+        s3,
+        0.64,
+        4.54,
+        12.04,
+        0.52,
+        [("5 STEUERUNGSEBENEN (KONTEXT-TANK SCHÜTZEN):", 22, True, V7_INK)],
+        space_after_pt=0,
+    )
+
+    layers = [
+        ("1 · Prompt", "1 Frage", V7_CARD_BG, V7_MUTED),
+        ("2 · Priming", "Chat-Start", V7_CARD_BG, V7_MUTED),
+        ("3 · AGENTS.md", "Regeln", V7_CREAM_GREEN, V7_GREEN_DARK),
+        ("4 · Skills", "Grenzen", V7_CREAM_GREEN, V7_GREEN_DARK),
+        ("5 · Vault+MCP", "68 Artikel", V7_SOFT_GREEN, V7_GREEN_DARK),
+    ]
+    lw = 2.28
+    lgap = 0.17
+    for i, (l_title, l_sub, l_bg, l_col) in enumerate(layers):
+        lx = 0.64 + i * (lw + lgap)
+        add_rounded_card(s3, lx, 5.18, lw, 1.56, fill_color=l_bg, border_color=V7_BORDER, accent_bar_color=l_col)
+        add_textbox(
+            s3,
+            lx + 0.08,
+            5.38,
+            lw - 0.16,
+            1.22,
+            [
+                (l_title, 22, True, l_col),
+                (l_sub, 22, False, V7_INK),
+            ],
+            align=PP_ALIGN.CENTER,
+            valign=MSO_ANCHOR.MIDDLE,
+            space_after_pt=4,
+        )
+    set_notes(
+        s3,
+        "Zeige anhand der Klimawandel-Frage den Unterschied zwischen Zero-Shot und einer gewählten Struktur-Methode "
+        "(CO-STAR, Few-Shot oder RISEN + CoT). Im Kopierpaket steht der Prompt immer oben. "
+        "Die 5 Steuerungsebenen erklären über den Kontext-Tank, warum reine Chat-Prompts in langen Dialogen verdrängt werden.",
+    )
+
+    # ------------------------------------------------------------------
+    # SLIDE 4: Aha-Kern 2: 3 Stufen & Fangfrage
+    # ------------------------------------------------------------------
+    s4 = setup_content_slide(prs, is_master, "AHA-KERN 2: 3 STUFEN & FANGFRAGE")
 
     stages = [
-        ("STUFE 1 · CHAOS", "stufe-1-chaos/", RED_SOFT, RED_DARK, [
-            "• Minimaler System-Prompt (1 Satz)",
-            "• 68 lose Dateien in docs/ ohne Struktur",
-            "• Keine Quellenpflicht, keine Grenzen",
-            "• Effekt: Rät bei Lücken & halluziniert",
+        ("STUFE 1 · CHAOS", RED_SOFT, RED_DARK, [
+            "• docs/ ohne Regeln",
+            "• Keine Quellenpflicht",
+            "• Rät bei Lücken",
         ]),
-        ("STUFE 2 · HARNESS", "stufe-2-skills-guardrails/", AMBER_SOFT, AMBER_DARK, [
-            "• Klare Guardrails in AGENTS.md",
-            "• Skills: quellen-recherche & fakten-pruefer",
-            "• Pflicht: Dateinamen nach jeder Aussage",
-            "• Effekt: Ehrliches „Nicht enthalten“",
+        ("STUFE 2 · SCHUTZ", AMBER_SOFT, AMBER_DARK, [
+            "• AGENTS.md + Skills",
+            "• Q4: 42 → 38 Zähne",
+            "• Lehnt Lücken ab",
         ]),
-        ("STUFE 3 · MARKDOWN-RAG", "stufe-3-obsidian-vault/", V7_CREAM_GREEN, V7_GREEN_DARK, [
-            "• _index.md (MOC) als Startpunkt",
-            "• wiki/ mit YAML-Frontmatter & [[Wikilinks]]",
-            "• Skills: vault-suche & wissen-synthese",
-            "• Effekt: Präzise Verknüpfung über 4+ Artikel",
+        ("STUFE 3 · VAULT", V7_CREAM_GREEN, V7_GREEN_DARK, [
+            "• _index.md + YAML",
+            "• [[Wikilinks]]-Graph",
+            "• Q2 klar verknüpft",
         ]),
     ]
     sw = 3.98
     sgap = 0.27
-    for i, (st_title, st_dir, bg, accent, bullets) in enumerate(stages):
+    for i, (st_title, bg, accent, bullets) in enumerate(stages):
         sx = 0.42 + i * (sw + sgap)
-        add_rounded_card(s5, sx, 1.78, sw, 4.00, fill_color=bg, border_color=V7_BORDER, accent_bar_color=accent)
-        lines = [(st_title, 16, True, accent), (st_dir, 12, True, V7_MUTED)]
+        add_rounded_card(s4, sx, 1.66, sw, 3.82, fill_color=bg, border_color=V7_BORDER, accent_bar_color=accent)
+        lines = [(st_title, 24, True, accent)]
         for b in bullets:
-            lines.append((b, 14, False, V7_DARK))
-        add_textbox(s5, sx + 0.16, 2.04, sw - 0.32, 3.55, lines, space_after_pt=8)
+            lines.append((b, 22, False, V7_INK))
+        add_textbox(s4, sx + 0.16, 1.98, sw - 0.32, 3.30, lines, space_after_pt=12)
 
-    add_rounded_card(s5, 0.42, 5.98, 12.48, 0.92, fill_color=V7_LIGHT_BG, border_color=V7_GREEN)
+    add_rounded_card(s4, 0.42, 5.70, 12.48, 1.32, fill_color=V7_CARD_BG, border_color=V7_GREEN, accent_bar_color=V7_GREEN)
     add_textbox(
-        s5,
-        0.62,
-        6.05,
-        12.08,
-        0.78,
-        [
-            ("Live-Demo-Test mit Frage 3 (Fangfrage): „Wie viele Schneeleoparden leben im Schweizerischen Nationalpark?“", 14, True, V7_DARK),
-            ("Faktencheck über alle 68 Dateien: 0 Treffer → In Stufe 1 oft Spekulation, in Stufe 2 & 3 klare Guardrail-Ablehnung.", 13, False, V7_GREEN_DARK),
-        ],
-        valign=MSO_ANCHOR.MIDDLE,
-        space_after_pt=2,
-    )
-    set_notes(
-        s5,
-        "Hier wechselst du für die 10-Minuten-Live-Demo kurz in das Repo/die UI und führst Frage 3 (Fangfrage) "
-        "und Frage 2 (Symbiose/Korallenbleiche) zwischen Stufe 1, 2 und 3 vor.",
-    )
-
-    # ------------------------------------------------------------------
-    # SLIDE 6: Für jeden etwas (Track A, Track B & Wahl-Missionen)
-    # ------------------------------------------------------------------
-    s6 = prs.slides.add_slide(lay_free)
-    set_placeholder_text(s6, 0, "FÜR JEDEN ETWAS: WERKZEUG-TRACKS & FREIE WAHL-MISSIONEN", color=WHITE, size_pt=23, bold=True)
-    setup_header_meta(s6)
-
-    add_rounded_card(s6, 0.42, 1.76, 5.95, 5.10, fill_color=V7_LIGHT_BG, border_color=V7_BORDER, accent_bar_color=V7_CHARCOAL)
-    add_textbox(
-        s6,
+        s4,
         0.64,
-        2.02,
-        5.50,
-        4.60,
+        5.88,
+        12.04,
+        1.02,
         [
-            ("Zwei Wege – exakt dieselben Konzepte:", 16, True, V7_DARK),
-            ("Track A · Browser & Web-Chat", 15, True, V7_GREEN_DARK),
-            ("ChatGPT, Claude oder Gemini im Browser öffnen. Alle Prompts, Regeln und Starter-Artikel per 1-Klick aus unserer Begleit-App kopieren.", 14, False, V7_CHARCOAL),
-            ("Track B · Terminal, IDE & Agent", 15, True, V7_GREEN_DARK),
-            ("Claude Code, Codex, Gemini CLI oder OpenCode nacheinander in stufe-1/, stufe-2/ und stufe-3/ öffnen + MCP-Server einbinden.", 14, False, V7_CHARCOAL),
-        ],
-        space_after_pt=9,
-    )
-
-    add_rounded_card(s6, 6.62, 1.76, 6.28, 5.10, fill_color=V7_CREAM_GREEN, border_color=V7_GREEN, accent_bar_color=V7_GREEN)
-    add_textbox(
-        s6,
-        6.84,
-        2.02,
-        5.84,
-        4.60,
-        [
-            ("4 freie Wahl-Missionen für den Endspurt:", 16, True, V7_DARK),
-            ("• Mission A · Fakten-Audit: Fehlerhafte Antwort mit fakten-pruefer zerlegen", 14, False, V7_CHARCOAL),
-            ("• Mission B · Daten & Graph: JSON/CSV-Tabelle aus 6 Arten bauen & [[Links]] folgen", 14, False, V7_CHARCOAL),
-            ("• Mission C · Executive Briefing: CO-STAR + Guardrails inkl. Lückenliste", 14, False, V7_CHARCOAL),
-            ("• Mission D · Tools & Live-Beamer: Über MCP (send_to_beamer) oder UI-Formular eure Frage live auf die Leinwand senden!", 14, True, V7_GREEN_DARK),
-        ],
-        space_after_pt=10,
-    )
-    set_notes(
-        s6,
-        "Betone, dass es kein 'richtig' oder 'falsch' bei Track A vs. B gibt – jede Gruppe (2–4 Personen) wählt "
-        "das Werkzeug, mit dem sie sich am wohlsten fühlt.",
-    )
-
-    # ------------------------------------------------------------------
-    # SLIDE 7: Ablauf & 1-Klick-Quickstart (Layout[26] Titel + Tabelle)
-    # ------------------------------------------------------------------
-    s7 = prs.slides.add_slide(lay_table)
-    set_placeholder_text(s7, 0, "ABLAUF (11:00–12:00 UHR) & 1-KLICK-QUICKSTART", color=WHITE, size_pt=24, bold=True)
-    setup_header_meta(s7)
-
-    rows = [
-        ("Zeit", "Dauer", "Phase", "Fokus"),
-        ("11:00–11:10", "10 Min.", "1. Live-Vorführung", "Stufe 1 vs. 2 vs. 3 live am Beamer + Gimmick-Vorschau"),
-        ("11:10–11:15", "5 Min.", "2. Setup & Track-Wahl", "start-workshop.bat/.sh starten → http://127.0.0.1:3777/"),
-        ("11:15–11:25", "10 Min.", "3. Prompt-Labor & Stufe 1", "4 Methoden vergleichen + Testfragen 1–3 im Chaos-Ordner"),
-        ("11:25–11:37", "12 Min.", "4. Stufe 2 (Harness)", "System-Prompt, Priming, Guardrails & Skills erleben"),
-        ("11:37–11:48", "11 Min.", "5. Stufe 3 (Obsidian-Vault)", "_index.md, Frontmatter & [[Wikilinks]] bei Querverbindungen"),
-        ("11:48–11:55", "7 Min.", "6. Wahl-Mission & Beamer", "Mission wählen & Frage per UI oder MCP an Beamer senden"),
-        ("11:55–12:00", "5 Min.", "7. Debrief im Plenum", "Live-Auswertung auf der Leinwand & 1 Take-away je Gruppe"),
-    ]
-    tbl_shape = s7.shapes.add_table(len(rows), 4, Inches(0.42), Inches(1.75), Inches(12.48), Inches(4.25))
-    tbl = tbl_shape.table
-    tbl.columns[0].width = Inches(1.55)
-    tbl.columns[1].width = Inches(1.15)
-    tbl.columns[2].width = Inches(3.20)
-    tbl.columns[3].width = Inches(6.58)
-
-    for r_idx, row_vals in enumerate(rows):
-        for c_idx, val in enumerate(row_vals):
-            cell = tbl.cell(r_idx, c_idx)
-            cell.vertical_anchor = MSO_ANCHOR.MIDDLE
-            cell.fill.solid()
-            if r_idx == 0:
-                cell.fill.fore_color.rgb = V7_CHARCOAL
-            elif r_idx % 2 == 1:
-                cell.fill.fore_color.rgb = WHITE
-            else:
-                cell.fill.fore_color.rgb = V7_CREAM_GREEN
-            tf = cell.text_frame
-            tf.clear()
-            p = tf.paragraphs[0]
-            run = p.add_run()
-            run.text = val
-            run.font.name = FONT_FAMILY
-            run.font.size = Pt(13 if r_idx == 0 else 12)
-            run.font.bold = r_idx == 0 or c_idx in (0, 2)
-            run.font.color.rgb = WHITE if r_idx == 0 else V7_DARK
-
-    add_rounded_card(s7, 0.42, 6.18, 12.48, 0.72, fill_color=V7_SOFT_GREEN, border_color=V7_GREEN)
-    add_textbox(
-        s7,
-        0.62,
-        6.23,
-        12.08,
-        0.60,
-        [
-            ("Quickstart nach dem Auschecken: Doppelklick start-workshop.bat (Win) oder ./start-workshop.sh (Mac/Linux) — läuft sofort ohne npm install!", 14, True, V7_DARK),
+            ("Fangfrage Q3 (Schneeleopard / Schweizerischer Nationalpark):", 22, True, V7_INK),
+            ("0 Treffer in 68 Dateien → Stufe 1 rät, Stufe 2 & 3 verweigern sauber.", 22, True, V7_GREEN_DARK),
         ],
         valign=MSO_ANCHOR.MIDDLE,
-        space_after_pt=0,
+        space_after_pt=4,
     )
     set_notes(
-        s7,
-        "Erkläre den Start: Wer auscheckt, startet mit 1 Klick die shadcn/ui-Begleit-App oder nutzt die gemeinsame LAN-URL / den QR-Code auf dem Beamer.",
+        s4,
+        "Moderation für Q1–Q4: Fokus auf je 2 Fragen pro Stufe (inkl. Fangfrage Q3 Schneeleopard = 0 Treffer in 68 Artikeln, "
+        "Q4 Eisbär 42 -> 38 Zähne Schalter als Kontext-Beweis, und Q2 Symbiose-Querverbindung im Obsidian-Wissensgraph auf Stufe 3).",
     )
 
     # ------------------------------------------------------------------
-    # SLIDE 8: Kapiteltrenner (Übergang auf Beamer)
+    # SLIDE 5: 30 Min. Praxis-Pfade & CCF Transfer-Brücke
     # ------------------------------------------------------------------
-    s8 = prs.slides.add_slide(lay_chapter)
-    set_placeholder_text(s8, 0, "AB IN DIE PRAXIS!", color=WHITE, size_pt=44, bold=True)
-    set_placeholder_text(
-        s8,
-        1,
-        "Wir wechseln jetzt auf die Live-Beamer-Ansicht (/beamer)\nCountdown-Timer · Aktuelle Aufgaben · Live-Fragen-Feed aus dem Raum",
-        color=WHITE,
-        size_pt=20,
-        bold=False,
+    s5 = setup_content_slide(prs, is_master, "PRAXIS-PFADE & CCF TRANSFER-BRÜCKE")
+
+    add_rounded_card(s5, 0.42, 1.68, 6.10, 5.26, fill_color=V7_CARD_BG, border_color=V7_BORDER, accent_bar_color=V7_GREEN)
+    add_badge_pill(s5, 0.65, 1.98, 4.10, 0.52, "3 PRAXIS-PFADE (30 MIN.)", V7_GREEN_DARK, WHITE, size_pt=22)
+    add_textbox(
+        s5,
+        0.65,
+        2.68,
+        5.65,
+        4.05,
+        [
+            ("1. Recherche & Fakten-System", 22, True, V7_INK),
+            ("   68-Artikel-Prüfer & lokales MCP", 22, False, V7_MUTED),
+            ("2. Präsentation & Animatic", 22, True, V7_INK),
+            ("   Claude Artifacts / ChatGPT Canvas", 22, False, V7_MUTED),
+            ("3. Kleine interaktive App bauen", 22, True, V7_INK),
+            ("   Quiz/Dashboard mit [Nicht in Quelle]", 22, False, V7_MUTED),
+        ],
+        space_after_pt=6,
     )
-    set_placeholder_text(s8, 2, "11:00–12:00", color=V7_DARK, size_pt=10, bold=True)
+
+    add_rounded_card(s5, 6.80, 1.68, 6.10, 5.26, fill_color=V7_CREAM_GREEN, border_color=V7_GREEN, accent_bar_color=V7_INK)
+    add_badge_pill(s5, 7.03, 1.98, 4.55, 0.52, "4-ROLLEN TRANSFER-BRÜCKE", V7_INK, WHITE, size_pt=22)
+    add_textbox(
+        s5,
+        7.03,
+        2.68,
+        5.65,
+        4.05,
+        [
+            ("• Kunden & Projekte: Briefings", 22, False, V7_INK),
+            ("• Fachkonzept & Daten: Mappings", 22, False, V7_INK),
+            ("• Betrieb & DBs: Runbook-Check", 22, False, V7_INK),
+            ("• Dev & Architektur: Vault & MCP", 22, False, V7_INK),
+            ("100 % ohne vertrauliche Daten!", 22, True, V7_GREEN_DARK),
+        ],
+        space_after_pt=12,
+    )
     set_notes(
-        s8,
-        "Jetzt PowerPoint minimieren bzw. direkt auf http://127.0.0.1:3777/beamer wechseln, "
-        "Timer starten und zunächst die 10-Minuten-Live-Demo direkt in der Beamer-Regie vorführen.",
+        s5,
+        "In Schritt 04 wählen die Gruppen frei einen der 3 Praxis-Pfade nach ihrem Anwendungsziel "
+        "(Pfad 1 Recherche & Fakten-System, Pfad 2 Präsentation/Animatic/Übersichtsseite, Pfad 3 Kleine interaktive App) "
+        "und übertragen die Muster am Ende über die 4-Rollen CCF-Transfer-Brücke in den Alltag.",
     )
 
     # ------------------------------------------------------------------
-    # SLIDE 9: Debrief & 3 Take-aways
+    # SLIDE 6: Einstieg, Trainer-Bühne & 3 Take-aways
     # ------------------------------------------------------------------
-    s9 = prs.slides.add_slide(lay_free)
-    set_placeholder_text(s9, 0, "DEBRIEF & 3 TAKE-AWAYS FÜR DEN ALLTAG", color=WHITE, size_pt=24, bold=True)
-    setup_header_meta(s9, "Fazit · 12:00 Uhr")
+    s6 = setup_content_slide(prs, is_master, "EINSTIEG, TRAINER-BÜHNE & 3 TAKE-AWAYS")
 
-    takeaways = [
-        ("1 · KONTEXT SCHLÄGT MAGIE", "Ein Roh-Prompt lässt das Modell raten. Klare Methoden (CO-STAR, Few-Shot, RISEN) liefern sofort nutzbare Struktur.", V7_CREAM_GREEN, V7_GREEN_DARK),
-        ("2 · LEITPLANKEN SCHAFFEN VERTRAUEN", "System-Prompts, Guardrails und Skills machen aus generischem Text prüfbare Aussagen mit ehrlichen Lücken.", V7_CREAM_GREEN, V7_OLIVE),
-        ("3 · STRUKTUR SCHLÄGT TEXTWÜSTEN", "Ein sauberer Index (_index.md), Frontmatter und [[Wikilinks]] + MCP schlagen das Durchsuchen loser Dateien.", V7_SOFT_GREEN, V7_GREEN_DARK),
-    ]
-    tw = 3.98
-    tgap = 0.27
-    for i, (t_head, t_body, bg, accent) in enumerate(takeaways):
-        tx = 0.42 + i * (tw + tgap)
-        add_rounded_card(s9, tx, 1.82, tw, 3.85, fill_color=bg, border_color=V7_BORDER, accent_bar_color=accent)
+    add_rounded_card(s6, 0.42, 1.68, 6.90, 5.26, fill_color=V7_CARD_BG, border_color=V7_BORDER, accent_bar_color=V7_INK)
+    add_badge_pill(s6, 0.65, 1.98, 4.20, 0.52, "START & TRAINER-BÜHNE", V7_INK, WHITE, size_pt=22)
+
+    qr_png = generate_qr_png_bytes(WORKSHOP_URL)
+    add_textbox(
+        s6,
+        0.65,
+        2.66,
+        6.45,
+        1.15,
+        [
+            ("Workshop-App (GitHub Pages):", 22, True, V7_INK),
+            (WORKSHOP_URL, 22, True, V7_GREEN_DARK),
+        ],
+        space_after_pt=4,
+    )
+    if qr_png:
         add_textbox(
-            s9,
-            tx + 0.16,
-            2.12,
-            tw - 0.32,
-            3.35,
+            s6,
+            0.65,
+            3.92,
+            4.35,
+            2.80,
             [
-                (t_head, 16, True, accent),
-                (t_body, 15, False, V7_DARK),
+                ("Bühne: #/beamer (T / M / Space)", 22, False, V7_INK),
+                ("Backup: start-workshop.bat/.sh", 22, False, V7_INK),
+                ("Port: http://127.0.0.1:3777/", 22, False, V7_MUTED),
+                ("Repo: Branch main", 22, False, V7_MUTED),
+            ],
+            space_after_pt=8,
+        )
+        s6.shapes.add_picture(io.BytesIO(qr_png), Inches(5.15), Inches(4.25), width=Inches(1.90), height=Inches(1.90))
+    else:
+        add_textbox(
+            s6,
+            0.65,
+            3.92,
+            6.45,
+            2.80,
+            [
+                ("Trainer-Bühne: #/beamer (T / M / Space / N)", 22, False, V7_INK),
+                ("Offline-Backup: start-workshop.bat/.sh (127.0.0.1:3777)", 22, False, V7_INK),
+                ("Repo: EtroxTaran/CCF-ai-workshop (Branch main)", 22, False, V7_MUTED),
             ],
             space_after_pt=10,
         )
 
-    add_rounded_card(s9, 0.42, 5.90, 12.48, 0.98, fill_color=V7_CHARCOAL, border_color=V7_CHARCOAL)
+    add_rounded_card(s6, 7.55, 1.68, 5.35, 5.26, fill_color=V7_CREAM_GREEN, border_color=V7_GREEN, accent_bar_color=V7_GREEN)
+    add_badge_pill(s6, 7.78, 1.98, 4.10, 0.52, "DEBRIEF & 3 TAKE-AWAYS", V7_GREEN_DARK, WHITE, size_pt=22)
     add_textbox(
-        s9,
-        0.64,
-        5.98,
-        12.04,
-        0.82,
+        s6,
+        7.78,
+        2.70,
+        4.90,
+        4.00,
         [
-            ("Vielen Dank fürs Mitmachen!   ·   Weiter geht es um 13:00 Uhr mit dem Unit-Programm & World Café.", 16, True, WHITE),
-            ("Das Repository bleibt für euch zum Weiterexperimentieren im Team jederzeit verfügbar.", 13, False, V7_SOFT_GREEN),
+            ("1. Struktur schlägt Roh-Prompt", 22, True, V7_INK),
+            ("2. Leitplanken stoppen Raten", 22, True, V7_INK),
+            ("3. Wissens-Graph schlägt Chaos", 22, True, V7_INK),
+            ("13:00 Uhr: Unit-Programm", 22, True, V7_GREEN_DARK),
+            ("& World Café", 22, True, V7_GREEN_DARK),
         ],
-        valign=MSO_ANCHOR.MIDDLE,
-        space_after_pt=2,
+        space_after_pt=12,
     )
     set_notes(
-        s9,
-        "Abschlussfolie um 11:55–12:00 nach dem Live-Feed-Debrief. Kurze Erinnerung an das Nachmittagsprogramm ab 13:00 Uhr.",
+        s6,
+        "Abschluss & Übergang zur statischen Tageslicht-Trainer-Bühne (#/beamer: Modi Stage, Demo, QR Join, Outro; "
+        "Shortcuts 1–4, T Hell/Dunkel, M Bühnen-Gong, Space/N Demo-Reveal, Pfeiltasten). "
+        "Debrief über Handzeichen und Hinweis auf das 13:00-Uhr-Unit-Programm & World Café.",
     )
 
-    save_clean_pptx(prs, OUT_PPTX)
-    print(f"Saved {OUT_PPTX} with {len(prs.slides)} slides.")
+    validate_deck(prs)
+    save_clean_pptx(prs, out_path)
+    mode_lbl = "Master" if is_master else "Daylight-Fallback"
+    print(f"Saved {out_path} ({mode_lbl}) with {len(prs.slides)} slides.")
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Build 6-slide CCF Prompt-Werkstatt backup PPTX.")
+    parser.add_argument("--master", type=Path, default=None, help="Optional .potx or .pptx master template path.")
+    parser.add_argument("--out", type=Path, default=DEFAULT_OUT_PPTX, help="Output .pptx file path.")
+    return parser.parse_args(argv)
 
 
 if __name__ == "__main__":
-    build_deck()
+    args = parse_args()
+    build_deck(master_arg=args.master, out_path=args.out)

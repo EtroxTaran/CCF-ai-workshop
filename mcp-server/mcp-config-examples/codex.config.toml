@@ -1,6 +1,3 @@
 [mcp_servers.workshop-wildlife]
 command = "node"
 args = ["./mcp-server/server.mjs"]
-
-[mcp_servers.workshop-wildlife.env]
-BEAMER_URL = "http://127.0.0.1:3777/api/submissions"
