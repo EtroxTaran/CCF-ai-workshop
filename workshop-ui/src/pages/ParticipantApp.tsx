@@ -443,11 +443,11 @@ export function ParticipantApp() {
       <header className="sticky top-0 z-40 h-14 border-b bg-background/90 backdrop-blur-md">
         <div className="mx-auto flex h-full max-w-[1320px] items-center justify-between gap-2 px-2.5 sm:px-4">
           <div className="flex min-w-0 items-center gap-1.5 lg:gap-2">
-            <Virtual7Logo compact className="lg:hidden" />
+            <Virtual7Logo compact className="shrink-0 lg:hidden" />
             <Virtual7Logo className="hidden h-7 lg:block" />
             <Separator orientation="vertical" className="hidden h-5 lg:block" />
             <span className="whitespace-nowrap font-display text-sm font-bold tracking-tight">
-              <span className="lg:hidden">CCF</span>
+              <span className="hidden sm:inline lg:hidden">CCF</span>
               <span className="hidden lg:inline">Workshop-App</span>
             </span>
           </div>
@@ -474,7 +474,7 @@ export function ParticipantApp() {
                       markChecked("chk-setup");
                     }}
                     title={`${mode.label} (${mode.badge})`}
-                    className={`min-h-[36px] rounded-md px-2 py-1 font-medium transition-colors sm:px-2.5 ${
+                    className={`min-h-[34px] rounded-md px-1.5 py-1 font-medium transition-colors sm:min-h-[36px] sm:px-2.5 ${
                       isActive
                         ? "bg-card text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
@@ -492,7 +492,7 @@ export function ParticipantApp() {
               type="button"
               size="icon"
               variant="outline"
-              className="h-9 w-9 shrink-0"
+              className="h-8 w-8 shrink-0 sm:h-9 sm:w-9"
               onClick={() => setTourOpen(true)}
               aria-label="Orientierungstour öffnen"
               title="Kurze Orientierungstour (?)"
@@ -508,7 +508,7 @@ export function ParticipantApp() {
                   size="sm"
                   variant="outline"
                   data-tour="checklist-trigger"
-                  className="num-tabular h-9 gap-1.5 px-2 text-xs sm:px-2.5"
+                  className="num-tabular h-8 gap-1 px-2 text-xs sm:h-9 sm:gap-1.5 sm:px-2.5"
                   aria-label={`Fortschritt & Checkliste öffnen (${completedCount} von ${CHECKLIST_ITEMS.length})`}
                   title="Fortschritt & Checkliste öffnen"
                 >
@@ -588,7 +588,7 @@ export function ParticipantApp() {
             <a
               href="#/beamer"
               data-tour="beamer-link"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-lg border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground sm:h-9 sm:w-9"
               title="Zur Trainer-Bühne (#/beamer)"
               aria-label="Zur Trainer-Bühne wechseln"
             >
@@ -674,7 +674,7 @@ export function ParticipantApp() {
         {/* Focused Editorial Content Canvas */}
         <main className="min-w-0 flex-1 px-4 pb-28 pt-6 sm:px-8 lg:px-12 lg:py-10">
           <div className="mx-auto max-w-[940px]">
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={step}
                 initial={prefersReduced ? false : { opacity: 0, y: 8 }}
