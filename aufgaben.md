@@ -6,9 +6,9 @@
 > - **Lokales Offline-Backup:** `start-workshop.bat` (Windows) oder `./start-workshop.sh` (macOS/Linux) → `http://127.0.0.1:3777/`
 >
 > In Schritt `01` wählt ihr über die umschaltbare **Werkzeug-Hilfe** einfach eure gewohnte Arbeitsweise – das Lernziel ist für alle identisch:
-> - **Web-Chat** (Claude.ai, ChatGPT, Copilot): ~5.500-Zeichen-Kompakt-Pakete (Prompt immer oben) oder 1-Klick-`.md`-Download; Artifacts/Canvas für Praxis-Pfad 2 & 3. *(Kein eigenes KI-Abo? Aufklappbare Hilfe zu **OpenCode + OpenRouter** in Schritt 01 nutzen!)*
-> - **Desktop & Ordner** (Claude Cowork, ChatGPT Projects): Repository (`Branch main`) direkt als Ordner öffnen.
-> - **Code-Agent** (Claude Code, Codex, Gemini CLI, OpenCode, VS Code): Nacheinander `stufe-1-chaos/`, `stufe-2-skills-guardrails/` und `stufe-3-obsidian-vault/` öffnen (optional mit lokalem MCP-Server `mcp-server/server.mjs`).
+> - **Web-Chat** (Claude.ai, ChatGPT, Gemini, Copilot): Keine Installation nötig! Kompakte Kopierpakete (~6.000 Zeichen, Prompt immer oben), `Frage + Texte komplett`-Buttons, `.md`-Upload (einfache Textdateien — einfach per `+` / `📎` hochladen, nicht am PC öffnen nötig!) sowie **Hilfe, Glossar & FAQ** direkt im Kopf der App.
+> - **Desktop & Ordner** (Claude Cowork, ChatGPT / Claude Projects): Ohne Terminal! In Schritt `01` einfach das Material als **ZIP laden** (`Branch main`), entpacken und den Ordner in **Claude Cowork** öffnen (oder `alle-68-artikel-wissensbasis.md` + Chat-Regeln in **Projects** hochladen).
+> - **Code-Agent** (Claude Code, OpenCode, Codex, Gemini CLI, VS Code, Cursor): Repository (`Branch main`) klonen, nacheinander `stufe-1-chaos/`, `stufe-2-skills-guardrails/` (bewusst ohne MCP) und `stufe-3-obsidian-vault/` (mit lokalem MCP-Server `mcp-server/server.mjs`) öffnen. Optional: **OpenCode** kostenlos testen oder `sandbox/` für eigene Tests nutzen.
 
 ---
 
@@ -18,7 +18,7 @@
 |---|---|---|---|
 | 11:00–11:10 | 10 Min. | **Einstieg & Werkzeug-Hilfe (App Schritt 01)** | Kurze Demo über die **Trainer-Bühne (`#/beamer`)**, Workshop-App öffnen, Werkzeug-Hilfe wählen. |
 | 11:10–11:25 | 15 Min. | **Phase 1: Gemeinsamer Aha-Kern (Schritte 02 & 03)** | 1 Prompt-Vergleich + 5 Steuerungsebenen + `Stufe 1 → 2 → 3` mit Fokus-Fragen (inkl. Fangfrage & `38 Zähne`-Test). |
-| 11:25–11:55 | 30 Min. | **Phase 2: Freier Praxis-Pfad & Transfer-Brücke (Schritt 04)** | 1 von 3 zielorientierten Praxis-Pfaden frei wählen + abschließend die **4-Rollen CCF-Transfer-Brücke** durchgehen. |
+| 11:25–11:55 | 30 Min. | **Phase 2: Freier Praxis-Pfad & Transfer-Brücke (Schritt 04)** | 1 von 3 zielorientierten Praxis-Pfaden frei wählen + abschließend die **5-Rollen CCF-Transfer-Brücke** (inkl. *Office Management, Assistenz & Orga*) durchgehen. |
 | 11:55–12:00 | 5 Min. | **Debrief im Plenum (`#/beamer` Outro)** | Handzeichen-Auswertung an der Trainer-Bühne & 3 Kernaussagen mit in den Nachmittag (13:00 Uhr) nehmen. |
 
 ---
@@ -88,20 +88,21 @@ Erlebt dieselben Fragen nacheinander in **Stufe 1 (`stufe-1-chaos/`)**, **Stufe 
 
 ---
 
-## Teil 3: Praxis-Pfade (30 Min.) & 4-Rollen Transfer-Brücke (App Schritt 04)
+## Teil 3: Praxis-Pfade (30 Min.) & 5-Rollen Transfer-Brücke (App Schritt 04)
 
-Wählt in den zweiten 30 Minuten frei **einen der 3 zielorientierten Praxis-Pfade**:
+Wählt in den zweiten 30 Minuten frei **einen der 3 zielorientierten Praxis-Pfade** (im `Web-Chat` kopiert *„Prompt + 12 Artikel kopieren“* direkt alle passenden Quelltexte mit!):
 
 1. **Pfad 1 · Recherche & Fakten-System:**
-   - Nutzt den eingebauten **68-Artikel-Faktenprüfer & Such-Lab** direkt in der Workshop-App (testet z. B. `walross`, `alpensteinbock`, Eisbär-Fakten vs. Fangfrage) und zerlegt fehlerhafte Antworten mit `fakten-pruefer`.
-   - In der Arbeitsweise **`Code-Agent`** bindet ihr zusätzlich den lokalen MCP-Server (`mcp-server/server.mjs`, bereits in `.mcp.json` / `.vscode/mcp.json` konfiguriert) mit `search_wildlife_vault`, `verify_claim_against_corpus`, `read_vault_article` und den MCP-Resources (`_index.md`, `wiki/`) ein.
+   - Nutzt den eingebauten **68-Artikel-Faktenprüfer & Such-Lab** direkt in der Workshop-App (komplett im Browser ohne Konto; testet z. B. `walross`, `alpensteinbock`, Eisbär-Fakten vs. Fangfrage) und zerlegt fehlerhafte Antworten mit `fakten-pruefer`.
+   - In der Arbeitsweise **`Code-Agent`** bindet ihr ab Stufe 3 zusätzlich den lokalen MCP-Server (`mcp-server/server.mjs`, bereits in `.mcp.json`, `opencode.json`, `.gemini/settings.json`, `.codex/config.toml` & `.vscode/mcp.json` konfiguriert) mit `search_wildlife_vault`, `verify_claim_against_corpus`, `read_vault_article` und den MCP-Resources (`_index.md`, `wiki/`) ein.
 2. **Pfad 2 · Präsentation, Animatic & Übersichtsseite:**
-   - Nutzt die fertigen 1-Klick-Rezepte in Schritt 04 für eine interaktive HTML-Übersichtsseite / Animatic in **Claude Artifacts** oder **ChatGPT Canvas** (inkl. Design- und Animations-Leitplanken) sowie ein 5-Folien-Management-Briefing zur Korallenbleiche mit expliziter Lückenliste.
+   - Nutzt die fertigen 1-Klick-Rezepte in Schritt 04 für eine interaktive HTML-Übersichtsseite / Animatic in **Claude Artifacts** oder **ChatGPT Canvas** (inkl. Design- und Animations-Leitplanken) sowie ein 5-Folien-Management-Briefing zur Korallenbleiche mit Lückenblock.
 3. **Pfad 3 · Kleine interaktive App bauen:**
    - Nutzt die fertigen Rezepte für ein Tierwelt-Fakten-Quiz oder ein Ökosystem-Vergleichs-Dashboard (als Artifact/Canvas oder lokal via `Desktop & Ordner` / `Code-Agent`) mit strikter Quellen-Bindung (`[Nicht in Quelle]`).
 
-### Abschluss: 4-Rollen CCF-Transfer-Brücke
-Übertragt zum Schluss in Schritt 04 die erlebten Muster (ohne vertrauliche Daten) auf typische CCF-Alltagssituationen:
+### Abschluss: 5-Rollen CCF-Transfer-Brücke
+Übertragt zum Schluss in Schritt 04 die erlebten Muster (ohne vertrauliche Daten) auf typische CCF-Alltagssituationen — alle Starter-Prompts sind in der App direkt lesbar:
+- **Office Management, Assistenz & Orga** (Protokolle, Event-Checklisten, Einladungsmails & Statusübersichten mit Lücken-Kennzeichnung)
 - **Kunden & Projekte** (Angebote, Kundenbriefings, Projektstatus mit Lückenblock)
 - **Fachkonzept & Daten** (Anforderungsanalyse, Glossar- und Feldmapping-Prüfung)
 - **Betrieb & Datenbanken** (Runbooks, Incident-Checklisten, Konfigurations-Guardrails)

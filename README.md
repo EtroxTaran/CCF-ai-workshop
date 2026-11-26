@@ -4,27 +4,32 @@
 
 ---
 
-## Direkt starten: GitHub Pages (empfohlen) & Offline-Backup
+## Ohne Vorkenntnisse in 30 Sekunden starten (wähle deinen Weg)
 
-- **Primär (Zero-Install HTTPS über GitHub Pages):**
-  - **Workshop-App:** https://etroxtaran.github.io/CCF-ai-workshop/
-  - **Trainer-Bühne:** https://etroxtaran.github.io/CCF-ai-workshop/#/beamer
-- **Lokales Offline-Backup (falls ohne Internet oder für `Desktop & Ordner` / `Code-Agent`):**
-  - **Repository klonen (Branch `main`):**
-    ```bash
-    git clone -b main https://github.com/EtroxTaran/CCF-ai-workshop.git
-    ```
-  - **Windows:** Doppelklick auf `start-workshop.bat` → `http://127.0.0.1:3777/`
-  - **macOS / Linux:** `./start-workshop.sh` → `http://127.0.0.1:3777/`
-  - **Über deinen KI-Agenten (`Code-Agent`):** Öffne diesen Ordner in Claude Code, Codex, Gemini CLI, OpenCode oder VS Code und sage: *„Starte die Workshop-App für mich.“*
-
-> **Hinweis:** `workshop-ui/dist/` liegt bereits fertig gebaut vor – du brauchst **kein `npm install`**. `start-workshop.bat`/`.sh` und `start-beamer.bat`/`.sh` nutzen `workshop-ui/server.mjs` und greifen ohne Node.js automatisch auf Python `http.server` zurück.
+1. **`Web-Chat` — Keine Installation (für Büro, Orga, Vertrieb & alle im Browser):**
+   - Öffne direkt die **Workshop-App:** https://etroxtaran.github.io/CCF-ai-workshop/
+   - Öffne in einem **zweiten Browser-Tab** ChatGPT, Claude.ai, Gemini oder Copilot (kostenlose Accounts genügen; Direktlinks findest du in Schritt 01 & im Menü **Hilfe**).
+   - *Was ist eigentlich eine `.md`-Datei?* Eine ganz normale Textdatei mit `#`-Überschriften. Du musst sie am PC **nicht selbst öffnen** — lade sie per `+` / Büroklammer (`📎`) hoch oder nutze einfach die **`Kompakt-Paket kopieren`**-Buttons (Prompt steht automatisch immer ganz oben!).
+2. **`Desktop & Ordner` — Ordner herunterladen ohne `Git` (für Claude Cowork oder ChatGPT/Claude Projects):**
+   - Lade das Paket als ZIP herunter: https://github.com/EtroxTaran/CCF-ai-workshop/archive/refs/heads/main.zip (Windows: Rechtsklick → *„Alle extrahieren…“*, Mac: Doppelklick).
+   - **Claude Cowork (Desktop):** Entpackten Ordner (z. B. `stufe-2-skills-guardrails/`) direkt öffnen — `AGENTS.md` greift automatisch.
+   - **ChatGPT / Claude.ai Projects:** Lade in der Workshop-App mit 1 Klick `alle-68-artikel-wissensbasis.md` herunter, ins Projekt hoch und kopiere die Chat-Regeln in die Projekt-Anweisungen.
+3. **`Code-Agent` — Für Entwickler im Terminal oder der IDE (Branch `main`):**
+   ```bash
+   git clone -b main https://github.com/EtroxTaran/CCF-ai-workshop.git
+   cd CCF-ai-workshop
+   ```
+   - Direkt vorkonfiguriert für **Claude Code, OpenCode, Gemini CLI, Codex, VS Code & Cursor** (optional lokale User-Config per `node mcp-server/setup-client.mjs --client <name> --scope user`).
+   - Alle Dateien liegen als normale Klartext-Dateien (`.md`) und JSON-Konfigs vor; eigene Testdateien kannst du in `sandbox/` ablegen (wird per `.gitignore` ignoriert).
+   - **Lokales App-Offline-Backup:** Doppelklick auf `start-workshop.bat` (Windows) oder `./start-workshop.sh` (macOS/Linux) → `http://127.0.0.1:3777/`.
+   - **Hinweis:** `workshop-ui/dist/` liegt bereits fertig gebaut vor — du brauchst **kein `npm install`** (Node `>= 18` für `server.mjs`/MCP empfohlen; Launcher fallen bei Bedarf auf Python `http.server` zurück).
 
 ### Was die Workshop-App (4 Schritte) bietet
-- **`01 · Einstieg & Werkzeug-Hilfe`**: Umschaltbar zwischen `Web-Chat`, `Desktop & Ordner` und `Code-Agent` (inkl. kompakter Hilfe *„Kein eigenes KI-Abo? → OpenCode + OpenRouter“*), `HeroBeforeAfterAnimatic`, `ToolHotspotGuide` und 15s-Spotlight-Tour über `?`.
-- **`02 · Aha-Kern 1: Prompt-Methoden`**: Vergleich Zero-Shot vs. `CO-STAR`, `Few-Shot` und `RISEN + CoT` mit kompakten Kopierpaketen (~5.500 Zeichen, Prompt immer oben, `(datei.md)`-Quellenmarker, `.md`-Download), Side-by-Side-Ergebnisvorschau, `WebChatWorkflowPlayer` sowie den 5 Steuerungsebenen inkl. `ContextWindowAnimatic`.
-- **`03 · Aha-Kern 2: 3 Stufen & Wissen`**: Experiment über `Stufe 1 → 2 → 3` mit je 2 Fokus-Fragen (+ Toggle *„Alle 4 Fragen anzeigen“*), Fangfrage (`Schneeleopard`), Q4-`38 Zähne`-Schalter, `GuardrailShieldAnimatic`, `Stage3AgentWalkPlayer`, interaktivem Obsidian-Wissensgraph auf Stufe 3, aktiver Selbst-Reflexion und Checklisten-Drawer.
-- **`04 · Praxis-Pfade & Transfer`**: 3 zielorientierte Praxis-Pfade inkl. eingebautem **68-Artikel-Faktenprüfer & Such-Lab**, `McpPacketAnimatic` sowie der abschließenden **4-Rollen CCF-Transfer-Brücke**.
+- **Durchgängige Anfänger-Hilfen:** Interaktive Tooltips bei jedem Fachbegriff, das Menü **Hilfe, Glossar & FAQ** oben rechts (inkl. Schnellstart & `.md`-Erklärung), die 15s-Spotlight-Tour sowie Audio-Kurzhilfen mit ausklappbarem Text (`scripts/generate_voice_guides.py` für ElevenLabs-MP3).
+- **`01 · Einstieg & Werkzeug-Hilfe`**: Umschaltbar zwischen `Web-Chat`, `Desktop & Ordner` und `Code-Agent`, Direktlinks zu kostenlosen KI-Chats, 1-Klick-ZIP- & `.md`-Downloads, `HeroBeforeAfterAnimatic` und `ToolHotspotGuide`.
+- **`02 · Aha-Kern 1: Prompt-Methoden`**: Vergleich Zero-Shot (neutral ohne strenge Leitplanke als echte Baseline) vs. `CO-STAR`, `Few-Shot` und `RISEN + CoT` mit kompakten Kopierpaketen (~6.000 Zeichen, Prompt immer oben, `(datei.md)`-Quellenmarker, `.md`-Download), `WebChatWorkflowPlayer` sowie den 5 Steuerungsebenen inkl. `ContextWindowAnimatic`.
+- **`03 · Aha-Kern 2: 3 Stufen & Wissen`**: Experiment über `Stufe 1 → 2 → 3` mit kompakten Web-Paketen (inkl. Warte-Anweisung, `Frage + Texte komplett`-Buttons für Fragen 1–3), Fangfrage (`Schneeleopard`), Q4-`38 Zähne`-Schalter, `GuardrailShieldAnimatic`, `Stage3AgentWalkPlayer`, interaktivem Obsidian-Wissensgraph auf Stufe 3 und Checklisten-Drawer.
+- **`04 · Praxis-Pfade & Transfer`**: 3 zielorientierte Praxis-Pfade (inkl. `Prompt + 12 Artikel kopieren` & Artifacts/Canvas-Hinweis im `Web-Chat`), eingebautem **68-Artikel-Faktenprüfer & Such-Lab**, `McpPacketAnimatic`, **6-Client MCP-Setup** (`Code-Agent`) sowie der abschließenden **5-Rollen CCF-Transfer-Brücke** (inkl. *Office Management, Assistenz & Orga*).
 
 ---
 
@@ -37,12 +42,12 @@ Alle Teilnehmenden durchlaufen zunächst gemeinsam denselben **Aha-Kern** und w�
    - **Pfad 1 · Recherche & Fakten-System:** Querverbindungs-Synthese, Fakten-Audit gegen den Eisbär-Mythos, 68-Artikel-In-Browser-Faktenprüfer & Such-Lab sowie optional lokaler MCP-Server (`Code-Agent`).
    - **Pfad 2 · Präsentation, Animatic & Übersichtsseite:** Fertige Rezepte für interaktive HTML-Übersichtsseiten / Animatics in **Claude Artifacts** oder **ChatGPT Canvas** sowie ein 5-Folien-Management-Briefing mit Lückenblock.
    - **Pfad 3 · Kleine interaktive App bauen:** Fertige Rezepte für ein Tierwelt-Fakten-Quiz oder Ökosystem-Vergleichs-Dashboard mit strikter Quellen-Bindung (`[Nicht in Quelle]`).
-   - **4-Rollen CCF-Transfer-Brücke:** Musterübertragung für *Kunden & Projekte*, *Fachkonzept & Daten*, *Betrieb & Datenbanken* und *Entwicklung & Architektur* (ohne vertrauliche Daten).
+   - **5-Rollen CCF-Transfer-Brücke:** Musterübertragung mit direkt lesbaren Starter-Prompts für *Office Management, Assistenz & Orga*, *Kunden & Projekte*, *Fachkonzept & Daten*, *Betrieb & Datenbanken* sowie *Entwicklung & Architektur* (ohne vertrauliche Daten).
 
 Über die umschaltbare **Werkzeug-Hilfe** passt sich die Workshop-App jederzeit an eure Arbeitsweise an:
-- **`Web-Chat`** (Claude.ai, ChatGPT, Copilot): ~5.500-Zeichen-Kompakt-Pakete mit Prompt oben, `.md`-Upload sowie Artifacts/Canvas.
-- **`Desktop & Ordner`** (Claude Cowork, ChatGPT Projects): Ausgecheckten Workshop-Ordner direkt öffnen.
-- **`Code-Agent`** (Claude Code, Codex, Gemini CLI, OpenCode, VS Code): Nacheinander `stufe-1-chaos/`, `stufe-2-skills-guardrails/` und `stufe-3-obsidian-vault/` im Terminal/IDE öffnen und optional den lokalen MCP-Server nutzen.
+- **`Web-Chat`** (Claude.ai, ChatGPT, Gemini, Copilot): Kompakte Kopierpakete mit Prompt oben, `.md`-Downloads sowie Artifacts/Canvas.
+- **`Desktop & Ordner`** (Claude Cowork, ChatGPT Projects): Entpackten Workshop-Ordner direkt öffnen oder `alle-68-artikel-wissensbasis.md` hochladen.
+- **`Code-Agent`** (Claude Code, OpenCode, Codex, Gemini CLI, VS Code, Cursor): Nacheinander `stufe-1-chaos/`, `stufe-2-skills-guardrails/` und `stufe-3-obsidian-vault/` im Terminal/IDE öffnen und ab Stufe 3 den lokalen MCP-Server nutzen.
 
 ---
 
@@ -51,16 +56,15 @@ Alle Teilnehmenden durchlaufen zunächst gemeinsam denselben **Aha-Kern** und w�
 | Stufe | Ordner | Was steckt drin? | Was erleben wir? |
 |---|---|---|---|
 | **Stufe 1** | `stufe-1-chaos/` | Minimaler Prompt (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`) + 68 flache `.md`-Dateien in `docs/` | **Ungefilterter Chat:** Halluzinationen, fehlende Quellen, vage Antworten |
-| **Stufe 2** | `stufe-2-skills-guardrails/` | Klare Guardrails + 2 Skills (`quellen-recherche`, `fakten-pruefer`) + `docs/` + Multi-CLI (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.agents/skills/`, `.claude/skills/`, `.mcp.json`) | **Leitplanken & Skills:** Quellenpflicht, ehrliches „nicht enthalten“, Q4-Kontext-Test (`38 Zähne`) |
-| **Stufe 3** | `stufe-3-obsidian-vault/` | `_index.md` (**zentrales Inhaltsverzeichnis**) + `wiki/` (YAML-Frontmatter + `[[Wikilinks]]`) + `raw/` (nur lesend) + Vault-Skills (`vault-suche`, `wissen-synthese`) + Multi-CLI & `.mcp.json` | **Markdown-RAG:** Strukturierte Navigation über Inhaltsverzeichnis, Verknüpfungen & Wissens-Graph |
+| **Stufe 2** | `stufe-2-skills-guardrails/` | Klare Guardrails + 2 Skills (`quellen-recherche`, `fakten-pruefer`) + `docs/` + Multi-CLI (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.agents/skills/`, `.claude/skills/`) — bewusst **ohne** `.mcp.json` | **Leitplanken & Skills:** Quellenpflicht, ehrliches „nicht enthalten“, Q4-Kontext-Test (`38 Zähne`) |
+| **Stufe 3** | `stufe-3-obsidian-vault/` | `_index.md` (**zentrales Inhaltsverzeichnis**) + `wiki/` (YAML-Frontmatter + `[[Wikilinks]]`) + `raw/` (nur lesend) + Vault-Skills (`vault-suche`, `wissen-synthese`) + Multi-CLI (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `opencode.json`, `.gemini/settings.json`, `.codex/config.toml`, `.vscode/mcp.json`, `.mcp.json`) | **Markdown-RAG:** Strukturierte Navigation über Inhaltsverzeichnis, Verknüpfungen, Wissens-Graph & MCP |
 
 Zusätzlich im Repository:
 - **`shared/corpus-engine.mjs`**: Gemeinsame Such-, Normalisierungs- und Verifikations-Engine (mit verschärftem Rauschfilter), genutzt vom MCP-Server und gespiegelt im In-Browser-Faktenprüfer über alle 68 Artikel.
-- **`mcp-server/`**: Abhängigkeitsfreier lokaler Node-MCP-Server (`search_wildlife_vault`, `verify_claim_against_corpus`, `read_vault_article` sowie MCP-Resources `_index.md` und `wiki/`), vorkonfiguriert in `.mcp.json`, `stufe-2-skills-guardrails/.mcp.json`, `stufe-3-obsidian-vault/.mcp.json` und `.vscode/mcp.json` (plus `mcp-server/setup-client.mjs` für optionale absolute Pfade).
-- **`presentation/`**: Schlanker **6-Folien-Backup-Foliensatz** (`CCF_HandsOn_Prompt_Werkstatt.pptx`, Typografie `>= 22 pt`), erzeugbar über `scripts/build_presentation.py` (`--master` / `PPTX_MASTER_PATH` oder eingebautem virtual7-Daylight-Fallback).
-- **`.github/workflows/deploy-pages.yml`**: Automatisches statisches GitHub-Pages-Deployment von `workshop-ui/dist/` auf Push nach `main`.
-- **`CONTEXT.md` & `docs/adr/`**: Verbindliches Glossar (`0001`–`0004` Architekturentscheidungen).
-- **`aufgaben.md` & `LOESUNGEN_TRAINER.md`**: Teilnehmer-Aufgabenblatt und verifizierte Musterlösungen inkl. Regie-Leitfaden für die Trainer-Bühne.
+- **`mcp-server/`**: Abhängigkeitsfreier lokaler Node-MCP-Server (`search_wildlife_vault`, `verify_claim_against_corpus`, `read_vault_article` sowie MCP-Resources `_index.md` und `wiki/`), vorkonfiguriert im Root (`.mcp.json`, `opencode.json`, `.gemini/settings.json`, `.codex/config.toml`, `.vscode/mcp.json`) und in `stufe-3-obsidian-vault/` (plus `node mcp-server/setup-client.mjs` für sichere User-Configs).
+- **`presentation/`**: Schlanker **6-Folien-Backup-Foliensatz** (`CCF_HandsOn_Prompt_Werkstatt.pptx`, Typografie `>= 22 pt`), erzeugbar über `scripts/build_presentation.py`.
+- **`.github/workflows/deploy-pages.yml` & `.gitattributes`**: Automatisches GitHub-Pages-Deployment von `workshop-ui/dist/` auf Push nach `main`; LF/CRLF-Schutz für Shell- & Windows-Skripte.
+- **`CONTEXT.md`, `docs/adr/`, `aufgaben.md` & `LOESUNGEN_TRAINER.md`**: Verbindliches Glossar, Architekturentscheidungen (`0001`–`0004`), Aufgabenblatt und Musterlösungen.
 
 ---
 

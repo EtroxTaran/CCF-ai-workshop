@@ -196,10 +196,13 @@ export interface VaultArticle {
 
 export interface McpConfigSet {
   claudeCode: string;
+  openCode: string;
   geminiCli: string;
   codex: string;
-  vscodeCursor: string;
+  vscode: string;
+  cursor: string;
   setupCommand: string;
+  applyUserCommand: string;
 }
 
 export interface WorkshopDataset {

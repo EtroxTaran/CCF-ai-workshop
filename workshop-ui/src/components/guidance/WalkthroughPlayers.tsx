@@ -170,7 +170,7 @@ const STAGE3_STEPS = [
     num: 1,
     title: "Lies _index.md",
     detail:
-      "Statt alle 68 Dateien (332 KB) zu durchsuchen, öffnet die KI zuerst das 4-KB-Inhaltsverzeichnis _index.md.",
+      "Statt alle 68 Dateien (332 KB) zu durchsuchen, öffnet die KI zuerst das kompakte Inhaltsverzeichnis _index.md (~17 KB).",
     chips: [] as string[],
   },
   {

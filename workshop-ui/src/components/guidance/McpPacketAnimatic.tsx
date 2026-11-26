@@ -68,20 +68,25 @@ export function McpPacketAnimatic({
     {
       hop: 2,
       icon: Network,
-      title: "2 · MCP-Protokoll",
-      desc: "Standardisiertes JSON-RPC 2.0",
+      title: toolMode === "agent" ? "2 · MCP-Protokoll" : "2 · Fester Ablaufschritt",
+      desc: toolMode === "agent" ? "Standardisiertes JSON-RPC 2.0" : "Einheitliches Frage-Antwort-Format",
     },
     {
       hop: 3,
       icon: Cpu,
-      title: "3 · Werkzeug-Server",
-      desc: "mcp-server/server.mjs (3 Tools)",
+      title: toolMode === "agent" ? "3 · Werkzeug-Server" : "3 · Such- & Prüf-Dienst",
+      desc: toolMode === "agent" ? "mcp-server/server.mjs (3 Tools)" : "Prüft alle 68 Artikel lokal im Browser",
     },
     {
       hop: 4,
       icon: BookOpen,
       title: "4 · 68 Artikel",
-      desc: mode === "verify" ? "Beleg / Fangfrage prüfen" : "Korpus-Treffer + [[Wikilinks]]",
+      desc:
+        mode === "verify"
+          ? "Beleg / Fangfrage prüfen"
+          : toolMode === "agent"
+            ? "Wissensbasis-Treffer + [[Wikilinks]]"
+            : "Artikel-Treffer + Querverweise",
     },
   ];
 

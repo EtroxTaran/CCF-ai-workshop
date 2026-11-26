@@ -23,11 +23,16 @@ if not exist "workshop-ui\dist\index.html" (
 
 where node >nul 2>&1
 if %ERRORLEVEL% EQU 0 (
-    echo [OK] Node.js gefunden - starte statischen Offline-Backup-Server fuer Workshop-App ^(#/^)...
-    start "" cmd /c "(timeout /t 2 /nobreak >nul 2>&1 || ping -n 3 127.0.0.1 >nul) && start ^"^" ^"%APP_URL%^""
-    node workshop-ui\server.mjs
-    if errorlevel 1 pause
-    goto :eof
+    node -e "process.exit(parseInt(process.versions.node,10)>=18?0:1)" >nul 2>&1
+    if %ERRORLEVEL% EQU 0 (
+        echo [OK] Node.js 18+ gefunden - starte statischen Offline-Backup-Server fuer Workshop-App ^(#/^)...
+        start "" cmd /c "(timeout /t 2 /nobreak >nul 2>&1 || ping -n 3 127.0.0.1 >nul) && start ^"^" ^"%APP_URL%^""
+        node workshop-ui\server.mjs
+        if errorlevel 1 pause
+        goto :eof
+    ) else (
+        echo [WARNUNG] Gefundenes Node.js ist aelter als v18 - weiche auf Python-Backup aus...
+    )
 )
 
 set "PY_CMD="

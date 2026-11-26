@@ -10,7 +10,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type { ExpressPackage, StageSpec, ToolMode } from "@/types/workshop";
+import { buildAll68ArticlesMarkdown, downloadMarkdownFile } from "@/lib/exportCorpusMd";
+import type { ExpressPackage, StageSpec, ToolMode, VaultArticle } from "@/types/workshop";
 
 interface StageArtifactsSheetProps {
   stage: StageSpec;
@@ -18,17 +19,8 @@ interface StageArtifactsSheetProps {
   arcticPack: string;
   reefPack: string;
   all12Pack: string;
+  vaultArticles?: VaultArticle[];
   toolMode: ToolMode;
-}
-
-function downloadMd(filename: string, content: string) {
-  const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 export function StageArtifactsSheet({
@@ -37,9 +29,11 @@ export function StageArtifactsSheet({
   arcticPack,
   reefPack,
   all12Pack,
+  vaultArticles,
   toolMode,
 }: StageArtifactsSheetProps) {
   const isWeb = toolMode === "web";
+  const tabCount = stage.skills.length + (stage.indexMd ? 3 : 2);
 
   return (
     <Sheet>
@@ -47,9 +41,7 @@ export function StageArtifactsSheet({
         <Button type="button" size="sm" variant="outline">
           <FileText className="h-3.5 w-3.5" />
           <span>
-            {isWeb
-              ? `Alle Texte & Regeln (${stage.skills.length + (stage.indexMd ? 2 : 1)})`
-              : `Dateien & Pakete (${stage.skills.length + (stage.indexMd ? 2 : 1)})`}
+            {isWeb ? `Alle Texte & Regeln (${tabCount})` : `Dateien & Pakete (${tabCount})`}
           </span>
         </Button>
       </SheetTrigger>
@@ -143,44 +135,112 @@ export function StageArtifactsSheet({
                 <CopyButton text={expressArcticReef.content} label="Kopieren" variant="default" />
               </div>
 
-              <div className="flex items-center justify-between gap-3 rounded-xl border p-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3.5">
                 <div className="min-w-0">
                   <div className="text-sm font-semibold">Paket Arktis &amp; Klima (4 Artikel)</div>
                   <div className="text-xs text-muted-foreground">
-                    Für Frage 1 (Eisbär) &amp; Frage 4
+                    ~{arcticPack.length.toLocaleString("de-DE")} Zeichen · Frage 1 &amp; 4
                   </div>
                 </div>
-                <CopyButton text={arcticPack} label="Kopieren" />
+                <div className="flex items-center gap-1.5">
+                  <CopyButton text={arcticPack} label="Kopieren" />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      downloadMarkdownFile(
+                        "arktis-4-artikel.md",
+                        arcticPack,
+                        "Arktis-Paket (.md) heruntergeladen"
+                      )
+                    }
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span>.md</span>
+                  </Button>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between gap-3 rounded-xl border p-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3.5">
                 <div className="min-w-0">
                   <div className="text-sm font-semibold">
                     Paket Korallenriff &amp; Symbiose (6 Artikel)
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Für Querverbindungs-Frage 2
+                    ~{reefPack.length.toLocaleString("de-DE")} Zeichen · Frage 2
                   </div>
                 </div>
-                <CopyButton text={reefPack} label="Kopieren" />
+                <div className="flex items-center gap-1.5">
+                  <CopyButton text={reefPack} label="Kopieren" />
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() =>
+                      downloadMarkdownFile(
+                        "korallenriff-6-artikel.md",
+                        reefPack,
+                        "Korallenriff-Paket (.md) heruntergeladen"
+                      )
+                    }
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span>.md</span>
+                  </Button>
+                </div>
               </div>
 
-              <div className="flex items-center justify-between gap-3 rounded-xl border p-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3.5">
                 <div className="min-w-0">
                   <div className="text-sm font-semibold">Alle 12 Fokus-Artikel (.md)</div>
                   <div className="text-xs text-muted-foreground">
-                    Zum direkten Hochladen in Web-Chats oder Projekte
+                    ~{all12Pack.length.toLocaleString("de-DE")} Zeichen · direkt zum Hochladen
                   </div>
                 </div>
                 <Button
                   type="button"
                   size="sm"
-                  onClick={() => downloadMd("fokus-korpus-12-artikel.md", all12Pack)}
+                  onClick={() =>
+                    downloadMarkdownFile(
+                      "fokus-korpus-12-artikel.md",
+                      all12Pack,
+                      "12 Fokus-Artikel (.md) heruntergeladen"
+                    )
+                  }
                 >
                   <Download className="h-3.5 w-3.5" />
-                  <span>Laden</span>
+                  <span>12 Artikel (.md)</span>
                 </Button>
               </div>
+
+              {vaultArticles && vaultArticles.length > 0 && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-lime/40 bg-secondary/25 p-3.5">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold">
+                      Gesamte Wissensbasis ({vaultArticles.length} Artikel · .md)
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Komplettdatei zum Hochladen in Claude Projects, ChatGPT oder NotebookLM
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    onClick={() =>
+                      downloadMarkdownFile(
+                        "alle-68-artikel-wissensbasis.md",
+                        buildAll68ArticlesMarkdown(vaultArticles),
+                        "Alle 68 Artikel (.md) heruntergeladen"
+                      )
+                    }
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    <span>Alle {vaultArticles.length} (.md)</span>
+                  </Button>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>

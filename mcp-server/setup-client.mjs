@@ -4,7 +4,7 @@
  * Generates or safely merges absolute-path MCP server entries for local stdio usage.
  *
  * Usage:
- *   node mcp-server/setup-client.mjs --client <claude|gemini|codex|vscode|cursor|all> [--scope project|user] [--dry-run] [--print] [--help]
+ *   node mcp-server/setup-client.mjs --client <claude|opencode|gemini|codex|vscode|cursor|all> [--scope user|project] [--force] [--dry-run] [--print] [--help]
  */
 
 import fs from "node:fs";
@@ -18,18 +18,26 @@ const REPO_ROOT = path.resolve(__dirname, "..");
 const ABS_SERVER_PATH = path.resolve(__dirname, "server.mjs");
 const ABS_SERVER_TOML = ABS_SERVER_PATH.replace(/\\/g, "/");
 
-const VALID_CLIENTS = ["claude", "gemini", "codex", "vscode", "cursor"];
-const VALID_SCOPES = ["project", "user"];
+const VALID_CLIENTS = ["claude", "opencode", "gemini", "codex", "vscode", "cursor"];
+const VALID_SCOPES = ["user", "project"];
+const TRACKED_PROJECT_FILES = new Set([
+  path.join(REPO_ROOT, ".mcp.json"),
+  path.join(REPO_ROOT, "opencode.json"),
+  path.join(REPO_ROOT, ".gemini", "settings.json"),
+  path.join(REPO_ROOT, ".codex", "config.toml"),
+  path.join(REPO_ROOT, ".vscode", "mcp.json"),
+]);
 
 function printHelp() {
   console.log(`
 Workshop MCP Setup Helper (workshop-wildlife)
 Verwendung:
-  node mcp-server/setup-client.mjs --client <claude|gemini|codex|vscode|cursor|all> [Optionen]
+  node mcp-server/setup-client.mjs --client <claude|opencode|gemini|codex|vscode|cursor|all> [Optionen]
 
 Optionen:
-  --client <name>   Ziel-Client: claude, gemini, codex, vscode, cursor oder all
-  --scope <scope>   Konfigurations-Ebene: project (Standard) oder user
+  --client <name>   Ziel-Client: claude, opencode, gemini, codex, vscode, cursor oder all
+  --scope <scope>   Konfigurations-Ebene: user (Standard – gilt global ohne Git-Änderung) oder project
+  --force           Erlaubt das Überschreiben bereits eingecheckter Projekt-Konfigurationen
   --dry-run         Zeigt Zielpfad und erzeugte Konfiguration ohne Schreiben
   --print           Gibt nur die Konfigurationen aus (kein Dateizugriff)
   --help, -h        Zeigt diese Hilfe
@@ -42,7 +50,8 @@ Absoluter Server-Pfad:
 function parseArgs(argv) {
   const opts = {
     client: "",
-    scope: "project",
+    scope: "user",
+    force: false,
     dryRun: false,
     printOnly: false,
     help: false,
@@ -51,6 +60,8 @@ function parseArgs(argv) {
     const arg = argv[i];
     if (arg === "--help" || arg === "-h") {
       opts.help = true;
+    } else if (arg === "--force") {
+      opts.force = true;
     } else if (arg === "--dry-run") {
       opts.dryRun = true;
     } else if (arg === "--print") {
@@ -88,6 +99,11 @@ function getTargetPath(client, scope) {
     return scope === "user"
       ? path.join(home, ".claude.json")
       : path.join(REPO_ROOT, ".mcp.json");
+  }
+  if (client === "opencode") {
+    return scope === "user"
+      ? path.join(home, ".config", "opencode", "opencode.json")
+      : path.join(REPO_ROOT, "opencode.json");
   }
   if (client === "gemini") {
     return scope === "user"
@@ -248,6 +264,13 @@ function mergeCodexToml(existingText) {
 }
 
 function buildConfigForClient(client, existingText = "") {
+  if (client === "opencode") {
+    return mergeJsonConfig(existingText, "mcp", {
+      type: "local",
+      command: ["node", ABS_SERVER_PATH],
+      enabled: true,
+    });
+  }
   if (client === "vscode") {
     return mergeJsonConfig(existingText, "servers", {
       type: "stdio",
@@ -311,6 +334,17 @@ function main() {
     if (opts.dryRun || opts.printOnly) {
       console.log(nextText.trimEnd());
       console.log("");
+      continue;
+    }
+
+    if (
+      opts.scope === "project" &&
+      TRACKED_PROJECT_FILES.has(targetPath) &&
+      !opts.force
+    ) {
+      console.log(
+        "Status: Übersprungen — Projekt-Konfiguration ist bereits im Repo vorkonfiguriert. Nutze --scope user (empfohlen) oder --force.\n"
+      );
       continue;
     }
 

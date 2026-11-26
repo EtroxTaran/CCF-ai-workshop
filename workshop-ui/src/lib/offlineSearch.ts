@@ -314,7 +314,7 @@ export function offlineVerifyClaim(
   if (!tokens.length || !matches.length) {
     return {
       status: "nicht_belegt",
-      label: "Nicht im Korpus gefunden – mögliche Fangfrage!",
+      label: "Nicht in der Wissensbasis gefunden – mögliche Fangfrage!",
       evidence: [],
     };
   }
@@ -342,7 +342,7 @@ export function offlineVerifyClaim(
   const topRatio = top ? (top.matched_tokens?.length || 0) / tokens.length : 0;
 
   let status: VerifyClaimResult["status"] = "nicht_belegt";
-  let label = "Nicht im Korpus gefunden – mögliche Fangfrage!";
+  let label = "Nicht in der Wissensbasis gefunden – mögliche Fangfrage!";
 
   if (
     top &&
@@ -364,7 +364,7 @@ export function offlineVerifyClaim(
     status = "teilweise";
     label =
       missingInCorpus.length > 0
-        ? `Begriffe nicht im Korpus gefunden (${missingInCorpus.join(", ")}) – mögliche Fangfrage!`
+        ? `Begriffe nicht in der Wissensbasis gefunden (${missingInCorpus.join(", ")}) – mögliche Fangfrage!`
         : "Teilweise Themenbezug gefunden – Detailabgleich empfohlen.";
   }
 

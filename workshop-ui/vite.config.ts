@@ -3,12 +3,12 @@ import path from "path";
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-function getAvailableGuideWebps(): string[] {
-  const dir = path.resolve(__dirname, "public/guides");
+function getAvailableAssets(subdir: string, ext: string): string[] {
+  const dir = path.resolve(__dirname, "public", subdir);
   if (!fs.existsSync(dir)) return [];
   return fs
     .readdirSync(dir)
-    .filter((file) => file.toLowerCase().endsWith(".webp"))
+    .filter((file) => file.toLowerCase().endsWith(ext))
     .sort();
 }
 
@@ -16,7 +16,8 @@ export default defineConfig({
   base: "./",
   plugins: [react()],
   define: {
-    __GUIDE_WEBP_FILES__: JSON.stringify(getAvailableGuideWebps()),
+    __GUIDE_WEBP_FILES__: JSON.stringify(getAvailableAssets("guides", ".webp")),
+    __AUDIO_GUIDE_FILES__: JSON.stringify(getAvailableAssets("audio", ".mp3")),
   },
   resolve: {
     alias: {

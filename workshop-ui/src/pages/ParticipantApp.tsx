@@ -7,8 +7,12 @@ import {
   Check,
   CheckCircle2,
   Compass,
+  Download,
+  ExternalLink,
   Eye,
   FileCode2,
+  FileText,
+  FolderArchive,
   FolderOpen,
   Globe,
   HelpCircle,
@@ -30,8 +34,15 @@ import { StageArtifactsSheet } from "@/components/StageArtifactsSheet";
 import { StageBackdrop } from "@/components/StageBackdrop";
 import { StageMiniDiagram } from "@/components/StageMiniDiagram";
 import { Virtual7Logo } from "@/components/Virtual7Logo";
+import { AudioGuideChip } from "@/components/guidance/AudioGuideChip";
+import { GlossaryTip } from "@/components/guidance/GlossaryTip";
 import { GuardrailShieldAnimatic } from "@/components/guidance/GuardrailShieldAnimatic";
 import { HeroBeforeAfterAnimatic } from "@/components/guidance/HeroBeforeAfterAnimatic";
+import {
+  HelpFaqSheet,
+  REPO_ZIP_URL,
+  WEB_CHAT_LINKS,
+} from "@/components/guidance/HelpFaqSheet";
 import { McpPacketAnimatic } from "@/components/guidance/McpPacketAnimatic";
 import {
   ONBOARDING_STORAGE_KEY,
@@ -61,6 +72,10 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  buildAll68ArticlesMarkdown,
+  downloadMarkdownFile,
+} from "@/lib/exportCorpusMd";
 import { offlineSearchVault, offlineVerifyClaim } from "@/lib/offlineSearch";
 import type {
   EvidenceMatch,
@@ -219,6 +234,7 @@ export function ParticipantApp() {
   const [activeStageIdx, setActiveStageIdx] = useState<number>(initialState.activeStageIdx);
 
   const [checklistOpen, setChecklistOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
   const [showGraphEarly, setShowGraphEarly] = useState(false);
   const [graphSelectedSlug, setGraphSelectedSlug] = useState<string | undefined>(undefined);
@@ -420,15 +436,35 @@ export function ParticipantApp() {
     return focused.length > 0 ? focused : data.testQuestions.slice(0, 2);
   }, [showAllQuestions, currentStage]);
 
+  const compactStage3Index = useMemo(() => {
+    const raw = data.stages[2]?.indexMd || "";
+    if (!raw) return "";
+    const keepLines = raw.split("\n").filter((line) => {
+      const low = line.toLowerCase();
+      return (
+        line.startsWith("#") ||
+        low.includes("arktis") ||
+        low.includes("eisbaer") ||
+        low.includes("ringelrobbe") ||
+        low.includes("klimawandel") ||
+        low.includes("korallen") ||
+        low.includes("anemon") ||
+        low.includes("symbiose") ||
+        low.includes("zooxanthellen")
+      );
+    });
+    return keepLines.join("\n").slice(0, 2200);
+  }, []);
+
   const stageWebCopyPayload = useMemo(() => {
     if (currentStage.id === "stufe-1") {
-      return stagesExpressPack.content;
+      return `HINTERGRUNDTEXTE EINLESEN:\nLies die folgenden 10 Artikel still ein und antworte vorerst NUR mit: „Texte bereit — stelle deine erste Frage.“\n\n---\n\n${stagesExpressPack.content}`;
     }
     if (currentStage.id === "stufe-2") {
-      return `${data.chatRulesTemplate}\n\n---\n\n${stagesExpressPack.content}`;
+      return `REGELN & TEXTE EINLESEN:\nMerke dir zuerst diese verbindlichen Hausregeln und lies danach die Artikel still ein. Antworte vorerst NUR mit: „Regeln aktiv & Texte bereit — stelle deine erste Frage.“\n\n${data.chatRulesTemplate}\n\n---\n\n${stagesExpressPack.content}`;
     }
-    return `${data.chatRulesTemplate}\n\n---\n\n${currentStage.indexMd || ""}\n\n---\n\n${stagesExpressPack.content}`;
-  }, [currentStage, stagesExpressPack]);
+    return `WISSENSNETZ-REGELN, KOMPAKT-INDEX & TEXTE:\nMerke dir die Regeln und die Verknüpfungen im Kompakt-Index und lies die Artikel still ein. Antworte vorerst NUR mit: „Wissensnetz aktiv — stelle deine erste Frage.“\n\n${data.chatRulesTemplate}\n\n---\n\n${compactStage3Index}\n\n---\n\n${stagesExpressPack.content}`;
+  }, [currentStage, stagesExpressPack, compactStage3Index]);
 
   const activePraxisPath =
     data.praxisPaths.find((p) => p.id === activePathId) || data.praxisPaths[0];
@@ -487,18 +523,17 @@ export function ParticipantApp() {
               })}
             </div>
 
-            {/* Tour Trigger (?) */}
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              className="h-8 w-8 shrink-0 sm:h-9 sm:w-9"
-              onClick={() => setTourOpen(true)}
-              aria-label="Orientierungstour öffnen"
-              title="Kurze Orientierungstour (?)"
-            >
-              <HelpCircle className="h-4 w-4 text-brand-ink" />
-            </Button>
+            {/* Hilfe, Glossar & FAQ Drawer */}
+            <HelpFaqSheet
+              open={helpOpen}
+              onOpenChange={setHelpOpen}
+              onStartTour={() => {
+                setHelpOpen(false);
+                setTourOpen(true);
+              }}
+              starterArticles={data.starterArticles}
+              vaultArticles={data.vaultArticles}
+            />
 
             {/* Checklist Drawer Trigger */}
             <Sheet open={checklistOpen} onOpenChange={setChecklistOpen}>
@@ -739,11 +774,18 @@ export function ParticipantApp() {
                       </div>
                     </section>
 
+                    <AudioGuideChip clipId="step-01" />
+
                     {/* 3-Way Werkzeug-Hilfe Selector */}
                     <section className="space-y-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                          1 · Werkzeug-Hilfe wählen (passt Klick-, Ordner- &amp; Prompt-Hinweise an)
+                        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                          <span>
+                            1 · Werkzeug-Hilfe wählen (passt Klick-, Ordner- &amp; Prompt-Hinweise
+                            an)
+                          </span>
+                          <GlossaryTip id="prompt" label="Prompt?" />
+                          {toolMode !== "agent" && <GlossaryTip id="markdown" label=".md-Datei?" />}
                         </div>
                         <Button
                           type="button"
@@ -816,34 +858,165 @@ export function ParticipantApp() {
                       </div>
                     </section>
 
-                    {/* Collapsible OpenCode + OpenRouter Card */}
-                    <Accordion type="single" collapsible className="rounded-2xl border bg-card px-5">
-                      <AccordionItem value="opencode" className="border-none">
-                        <AccordionTrigger className="font-display text-sm font-semibold">
-                          {data.openCodeHelp.title}
-                        </AccordionTrigger>
-                        <AccordionContent className="space-y-3 pb-4 text-xs leading-relaxed">
-                          <p className="text-muted-foreground">{data.openCodeHelp.summary}</p>
-                          <ol className="list-decimal space-y-1.5 pl-4 text-foreground">
-                            {data.openCodeHelp.steps.map((st, i) => (
-                              <li key={i}>{renderInlineCode(st)}</li>
-                            ))}
-                          </ol>
-                          <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/40 p-3">
-                            <code className="font-mono text-xs text-foreground">
-                              {data.openCodeHelp.commandSnippet}
-                            </code>
-                            <CopyButton
-                              text={data.openCodeHelp.commandSnippet}
-                              label="Befehl kopieren"
-                            />
+                    {/* Mode-Specific Quick Start (2nd Tab Links / ZIP Download / CLI Quickstart) */}
+                    {toolMode === "web" && (
+                      <section className="rounded-2xl border border-brand-lime/40 bg-secondary/25 p-4 sm:p-5 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="space-y-0.5">
+                            <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+                              Schritt 1b · Kostenlosen KI-Chat im 2. Browser-Tab öffnen
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              Lasse diese Workshop-Seite offen und öffne genau einen Chat im zweiten
+                              Tab (kostenloser Account genügt):
+                            </p>
                           </div>
-                          <p className="text-[11px] text-muted-foreground">
-                            {data.openCodeHelp.note}
-                          </p>
-                        </AccordionContent>
-                      </AccordionItem>
-                    </Accordion>
+                        </div>
+                        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                          {WEB_CHAT_LINKS.map((chat) => (
+                            <a
+                              key={chat.name}
+                              href={chat.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center justify-between gap-2 rounded-xl border bg-card px-3 py-2.5 text-xs transition-colors hover:border-brand-lime hover:bg-secondary/40"
+                            >
+                              <div className="min-w-0">
+                                <div className="font-semibold text-foreground">{chat.name}</div>
+                                <div className="text-[11px] text-muted-foreground">{chat.note}</div>
+                              </div>
+                              <ExternalLink className="h-3.5 w-3.5 shrink-0 text-brand-ink" />
+                            </a>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+
+                    {toolMode === "desktop" && (
+                      <section className="rounded-2xl border border-brand-lime/40 bg-secondary/25 p-4 sm:p-5 space-y-3">
+                        <div className="flex flex-wrap items-start justify-between gap-3">
+                          <div className="min-w-0 space-y-1">
+                            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+                              <span>Ohne Code starten · Workshop-Ordner als ZIP</span>
+                              <GlossaryTip id="git-zip" label="Git vs. ZIP?" />
+                            </div>
+                            <p className="text-xs leading-relaxed text-muted-foreground">
+                              <strong className="text-foreground">Claude Cowork:</strong> ZIP
+                              herunterladen, entpacken (Windows: Rechtsklick → „Alle extrahieren…“)
+                              und danach z. B. <code>stufe-2-skills-guardrails/</code> als Ordner
+                              öffnen.{" "}
+                              <strong className="text-foreground">
+                                ChatGPT / Claude.ai Projects:
+                              </strong>{" "}
+                              Lade die Komplettdatei (<code>.md</code>) ins Projekt hoch und kopiere
+                              die Chat-Regeln in die Projekt-Anweisungen.
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <a
+                              href={REPO_ZIP_URL}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-sm hover:opacity-90"
+                            >
+                              <FolderArchive className="h-3.5 w-3.5" />
+                              <span>Alle Ordner (.zip)</span>
+                            </a>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                downloadMarkdownFile(
+                                  "alle-68-artikel-wissensbasis.md",
+                                  buildAll68ArticlesMarkdown(data.vaultArticles),
+                                  "Alle 68 Artikel (.md) heruntergeladen"
+                                )
+                              }
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              <span>Alle 68 Artikel (.md)</span>
+                            </Button>
+                          </div>
+                        </div>
+                      </section>
+                    )}
+
+                    {toolMode !== "agent" && (
+                      <section className="rounded-2xl border bg-card p-4 sm:p-5 space-y-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div className="min-w-0 space-y-1">
+                            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+                              <FileText className="h-3.5 w-3.5" />
+                              <span>Was ist eigentlich eine .md-Datei?</span>
+                            </div>
+                            <p className="text-xs leading-relaxed text-muted-foreground">
+                              <code>.md</code> steht für <strong className="text-foreground">Markdown</strong>{" "}
+                              — ganz normaler Text mit <code>#</code>-Überschriften. Du musst die
+                              Datei auf deinem PC <strong className="text-foreground">nicht öffnen</strong>:
+                              Klicke in ChatGPT oder Claude auf <strong>„+“</strong> / Büroklammer (📎)
+                              und lade sie direkt hoch — oder nutze einfach unsere{" "}
+                              <strong className="text-foreground">„Kompakt-Paket kopieren“</strong>
+                              -Buttons.
+                            </p>
+                          </div>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setHelpOpen(true)}
+                          >
+                            <HelpCircle className="h-3.5 w-3.5" />
+                            <span>Alle Begriffe &amp; FAQ öffnen</span>
+                          </Button>
+                        </div>
+                        <AudioGuideChip clipId="what-is-markdown" />
+                      </section>
+                    )}
+
+                    {/* Collapsible OpenCode + Multi-CLI Setup (Code-Agent Mode only) */}
+                    {toolMode === "agent" && (
+                      <Accordion
+                        type="single"
+                        collapsible
+                        className="rounded-2xl border bg-card px-5"
+                      >
+                        <AccordionItem value="opencode" className="border-none">
+                          <AccordionTrigger className="font-display text-sm font-semibold">
+                            {data.openCodeHelp.title}
+                          </AccordionTrigger>
+                          <AccordionContent className="space-y-3 pb-4 text-xs leading-relaxed">
+                            <p className="text-muted-foreground">{data.openCodeHelp.summary}</p>
+                            <ol className="list-decimal space-y-1.5 pl-4 text-foreground">
+                              {data.openCodeHelp.steps.map((st, i) => (
+                                <li key={i}>{renderInlineCode(st)}</li>
+                              ))}
+                            </ol>
+                            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/40 p-3">
+                              <code className="font-mono text-xs text-foreground">
+                                {data.openCodeHelp.commandSnippet}
+                              </code>
+                              <CopyButton
+                                text={data.openCodeHelp.commandSnippet}
+                                label="Befehl kopieren"
+                              />
+                            </div>
+                            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/40 p-3">
+                              <code className="wrap-safe font-mono text-xs text-foreground">
+                                {data.mcpConfigs.setupCommand}
+                              </code>
+                              <CopyButton
+                                text={data.mcpConfigs.setupCommand}
+                                label="MCP-Setup kopieren"
+                              />
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                              {data.openCodeHelp.note}
+                            </p>
+                          </AccordionContent>
+                        </AccordionItem>
+                      </Accordion>
+                    )}
 
                     {/* Mode-Specific ToolHotspotGuide */}
                     <ToolHotspotGuide toolMode={toolMode} />
@@ -887,9 +1060,11 @@ export function ParticipantApp() {
                 {/* STEP 02: AHA-KERN 1 — PROMPT-METHODEN & STEUERUNGSEBENEN */}
                 {step === "methods" && (
                   <div className="space-y-12">
-                    <div className="space-y-2">
-                      <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
-                        Schritt 02 · Aha-Kern 1 (ca. 7 Min.)
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+                        <span>Schritt 02 · Aha-Kern 1 (ca. 7 Min.)</span>
+                        <GlossaryTip id="costar" label="CO-STAR?" />
+                        <GlossaryTip id="guardrails" label="Guardrails?" />
                       </div>
                       <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
                         Prompt-Methoden &amp; Steuerungs-Ebenen
@@ -899,6 +1074,7 @@ export function ParticipantApp() {
                         Few-Shot, RISEN + CoT) völlig unterschiedliche Ergebnisse erzwingt — und
                         warum System-Regeln im Kontext-Fenster überleben.
                       </p>
+                      <AudioGuideChip clipId="step-02" />
                     </div>
 
                     <PromptMethodComparator
@@ -924,9 +1100,12 @@ export function ParticipantApp() {
                 {/* STEP 03: AHA-KERN 2 — 3 STUFEN & WISSEN */}
                 {step === "stages" && (
                   <div className="space-y-9">
-                    <div className="space-y-2">
-                      <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
-                        Schritt 03 · Aha-Kern 2 (ca. 8 Min.)
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+                        <span>Schritt 03 · Aha-Kern 2 (ca. 8 Min.)</span>
+                        <GlossaryTip id="guardrails" label="Guardrails?" />
+                        <GlossaryTip id="wissensbasis" label="Wissensbasis?" />
+                        <GlossaryTip id="rag" label="Markdown-RAG?" />
                       </div>
                       <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
                         Stufe 1 → Stufe 2 → Stufe 3
@@ -935,6 +1114,7 @@ export function ParticipantApp() {
                         Erlebe an denselben Testfragen den Sprung von ungefiltertem Raten (Stufe 1)
                         über verbindliche Regeln (Stufe 2) hin zum verknüpften Wissensnetz (Stufe 3).
                       </p>
+                      <AudioGuideChip clipId="step-03" />
                     </div>
 
                     {/* 3-Stage Selector Cards */}
@@ -964,7 +1144,7 @@ export function ParticipantApp() {
                                 {st.title.split(" · ")[0]}
                               </span>
                               <Badge variant="outline" className="text-[11px]">
-                                {toolMode === "web" ? st.beginnerBadge : st.badge}
+                                {toolMode !== "agent" ? st.beginnerBadge : st.badge}
                               </Badge>
                             </div>
                             <StageMiniDiagram
@@ -974,7 +1154,7 @@ export function ParticipantApp() {
                               {st.title.split(" · ")[1]}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              {toolMode === "web" ? st.beginnerSummary : st.summary}
+                              {toolMode !== "agent" ? st.beginnerSummary : st.summary}
                             </p>
                           </button>
                         );
@@ -1020,10 +1200,10 @@ export function ParticipantApp() {
                               text={stageWebCopyPayload}
                               label={
                                 currentStage.id === "stufe-1"
-                                  ? "Kompakt-Texte kopieren (~5.000 Z.)"
+                                  ? "Kompakt-Texte kopieren (~5.900 Z.)"
                                   : currentStage.id === "stufe-2"
-                                    ? "Regeln + Texte kopieren"
-                                    : "Regeln + _index.md + Texte kopieren"
+                                    ? "Regeln + Texte kopieren (~6.700 Z.)"
+                                    : "Regeln + Kompakt-Index + Texte (~8.000 Z.)"
                               }
                               variant="default"
                               onCopy={() => markChecked("chk-stages")}
@@ -1038,12 +1218,66 @@ export function ParticipantApp() {
                             )}
                             {currentStage.id === "stufe-3" && currentStage.indexMd && (
                               <CopyButton
-                                text={`${data.chatRulesTemplate}\n\n---\n\n${currentStage.indexMd}`}
-                                label="Regeln + _index.md"
+                                text={`${data.chatRulesTemplate}\n\n---\n\n${compactStage3Index}`}
+                                label="Regeln + Kompakt-Index"
                                 variant="secondary"
                                 onCopy={() => markChecked("chk-stages")}
                               />
                             )}
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                downloadMarkdownFile(
+                                  "fokus-korpus-12-artikel.md",
+                                  stagePacks.all12,
+                                  "12 Fokus-Artikel (.md) heruntergeladen"
+                                );
+                                markChecked("chk-stages");
+                              }}
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              <span>12 Fokus-Artikel (.md)</span>
+                            </Button>
+                          </>
+                        ) : toolMode === "desktop" ? (
+                          <>
+                            <span className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-2.5 py-1.5 font-mono text-xs font-semibold text-foreground">
+                              <FolderOpen className="h-3.5 w-3.5 text-brand-ink" />
+                              <span>Ordner öffnen: {currentStage.folder}/</span>
+                            </span>
+                            <a
+                              href={REPO_ZIP_URL}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex h-8 items-center gap-1.5 rounded-lg border bg-card px-2.5 text-xs font-medium hover:bg-muted"
+                            >
+                              <FolderArchive className="h-3.5 w-3.5 text-brand-ink" />
+                              <span>ZIP laden</span>
+                            </a>
+                            <CopyButton
+                              text={data.chatRulesTemplate}
+                              label="Regeln kopieren (Projects)"
+                              variant="default"
+                              onCopy={() => markChecked("chk-stages")}
+                            />
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                downloadMarkdownFile(
+                                  "alle-68-artikel-wissensbasis.md",
+                                  buildAll68ArticlesMarkdown(data.vaultArticles),
+                                  "Alle 68 Artikel (.md) heruntergeladen"
+                                );
+                                markChecked("chk-stages");
+                              }}
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              <span>Alle 68 (.md)</span>
+                            </Button>
                           </>
                         ) : (
                           <CopyButton
@@ -1060,6 +1294,7 @@ export function ParticipantApp() {
                           arcticPack={stagePacks.arctic}
                           reefPack={stagePacks.reef}
                           all12Pack={stagePacks.all12}
+                          vaultArticles={data.vaultArticles}
                           toolMode={toolMode}
                         />
                       </div>
@@ -1139,8 +1374,15 @@ export function ParticipantApp() {
                               <code>{q4Spec.manipulationCheck.expectedCitation}</code>.“
                             </p>
                             <p className="text-[11px] text-muted-foreground">
-                              Bei lokalem Dateitest danach wieder auf{" "}
-                              <code>{q4Spec.manipulationCheck.originalValue}</code> zurücksetzen!
+                              {toolMode === "web" ? (
+                                "Im Web-Chat ändert die Testfrage unten den Wert nur für diesen Chat — du musst keine Datei anfassen."
+                              ) : (
+                                <>
+                                  Bei lokalem Dateitest danach wieder auf{" "}
+                                  <code>{q4Spec.manipulationCheck.originalValue}</code>{" "}
+                                  zurücksetzen!
+                                </>
+                              )}
                             </p>
                           </div>
                         </div>
@@ -1188,6 +1430,17 @@ export function ParticipantApp() {
                               ? q.webChatSolution
                               : q.solutionSummary;
 
+                          const relevantTexts =
+                            q.number === 1
+                              ? stagePacks.arctic
+                              : q.number === 2
+                                ? stagePacks.reef
+                                : stagesExpressPack.content;
+                          const standaloneBundle =
+                            activeStageIdx >= 1
+                              ? `${data.chatRulesTemplate}\n\n---\n\nAUFGABE / TESTFRAGE:\n${displayQuestion}\n\n---\nPASSENDE ARTIKEL:\n\n${relevantTexts}`
+                              : `AUFGABE / TESTFRAGE:\n${displayQuestion}\n\n---\nPASSENDE ARTIKEL:\n\n${relevantTexts}`;
+
                           return (
                             <div
                               key={q.id}
@@ -1196,7 +1449,7 @@ export function ParticipantApp() {
                               }`}
                             >
                               <div className="space-y-3">
-                                <div className="flex items-start justify-between gap-2">
+                                <div className="flex flex-wrap items-start justify-between gap-2">
                                   <div className="flex min-w-0 items-baseline gap-2">
                                     <span className="num-tabular shrink-0 font-mono text-xs font-bold text-brand-ink">
                                       0{q.number}
@@ -1205,12 +1458,33 @@ export function ParticipantApp() {
                                       {q.type}
                                     </span>
                                   </div>
-                                  <CopyButton
-                                    text={displayQuestion}
-                                    label="Kopieren"
-                                    className="shrink-0"
-                                    onCopy={() => markChecked("chk-stages")}
-                                  />
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    {toolMode === "web" && !useWebText && (
+                                      <CopyButton
+                                        text={standaloneBundle}
+                                        label="Frage + Texte komplett"
+                                        toastMessage={`Frage ${q.number} + passende Texte (Stufe ${activeStageIdx + 1}) kopiert`}
+                                        variant="default"
+                                        className="shrink-0"
+                                        onCopy={() => markChecked("chk-stages")}
+                                      />
+                                    )}
+                                    <CopyButton
+                                      text={displayQuestion}
+                                      label={
+                                        toolMode === "web"
+                                          ? useWebText
+                                            ? "Frage + 38-Zähne-Text"
+                                            : "Nur Frage"
+                                          : "Kopieren"
+                                      }
+                                      variant={
+                                        toolMode === "web" && !useWebText ? "outline" : "default"
+                                      }
+                                      className="shrink-0"
+                                      onCopy={() => markChecked("chk-stages")}
+                                    />
+                                  </div>
                                 </div>
 
                                 <p className="text-[15px] font-medium leading-snug text-foreground">
@@ -1345,9 +1619,11 @@ export function ParticipantApp() {
                 {/* STEP 04: PRAXIS-PFADE & CCF-TRANSFER-BRÜCKE */}
                 {step === "paths" && (
                   <div className="space-y-10">
-                    <div className="space-y-2">
-                      <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
-                        Schritt 04 · 30 Min. freier Praxis-Pfad &amp; Transfer-Brücke
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+                        <span>Schritt 04 · 30 Min. freier Praxis-Pfad &amp; Transfer-Brücke</span>
+                        <GlossaryTip id="wikilinks" label="[[Wikilinks]]?" />
+                        {toolMode === "agent" && <GlossaryTip id="mcp" label="MCP?" />}
                       </div>
                       <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
                         Wähle deinen Praxis-Pfad
@@ -1356,6 +1632,7 @@ export function ParticipantApp() {
                         Wähle frei eines von drei Praxis-Zielen — die Prompts passen sich automatisch
                         an deine Werkzeug-Hilfe (<strong>{currentToolModeSpec.label}</strong>) an.
                       </p>
+                      <AudioGuideChip clipId="step-04" />
                     </div>
 
                     {/* 3 Praxis-Pfad Selector Cards */}
@@ -1401,42 +1678,102 @@ export function ParticipantApp() {
                     </div>
 
                     {/* Active Praxis-Pfad Detail Card */}
-                    <div className="rounded-2xl border bg-card p-5 space-y-4">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="space-y-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant="lime">{activePraxisPath.tag}</Badge>
-                            <span className="text-xs text-muted-foreground">
-                              Empfohlen für: {activePraxisPath.bestForRoles.join(", ")}
+                    {(() => {
+                      const modePrompt = activePraxisPath.promptsByMode[toolMode];
+                      const webBundledPrompt = `${modePrompt.prompt}\n\n---\nALLE 12 FOKUS-ARTIKEL (.md):\n\n${stagePacks.all12}`;
+                      return (
+                        <div className="rounded-2xl border bg-card p-5 space-y-4">
+                          <div className="flex flex-wrap items-start justify-between gap-3">
+                            <div className="min-w-0 space-y-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="lime">{activePraxisPath.tag}</Badge>
+                                <span className="text-xs text-muted-foreground">
+                                  Empfohlen für: {activePraxisPath.bestForRoles.join(", ")}
+                                </span>
+                              </div>
+                              <h2 className="font-display text-xl font-bold text-foreground">
+                                {activePraxisPath.title}
+                              </h2>
+                              <p className="text-sm text-muted-foreground">
+                                {activePraxisPath.description}
+                              </p>
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              {toolMode === "web" ? (
+                                <>
+                                  <CopyButton
+                                    text={webBundledPrompt}
+                                    label="Prompt + 12 Artikel kopieren"
+                                    toastMessage={`${activePraxisPath.title}: Prompt (oben) + 12 Artikel kopiert`}
+                                    variant="default"
+                                    onCopy={() => markChecked("chk-path")}
+                                  />
+                                  <CopyButton
+                                    text={modePrompt.prompt}
+                                    label="Nur Prompt"
+                                    variant="outline"
+                                    onCopy={() => markChecked("chk-path")}
+                                  />
+                                </>
+                              ) : (
+                                <CopyButton
+                                  text={modePrompt.prompt}
+                                  label={modePrompt.label}
+                                  variant="default"
+                                  onCopy={() => markChecked("chk-path")}
+                                />
+                              )}
+                              {toolMode !== "agent" && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="secondary"
+                                  onClick={() => {
+                                    downloadMarkdownFile(
+                                      "fokus-korpus-12-artikel.md",
+                                      stagePacks.all12,
+                                      "12 Fokus-Artikel (.md) heruntergeladen"
+                                    );
+                                    markChecked("chk-path");
+                                  }}
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                  <span>12 Artikel (.md)</span>
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+
+                          <pre className="whitespace-pre-wrap break-words rounded-xl border bg-muted/40 p-4 font-mono text-xs leading-relaxed text-foreground">
+                            {modePrompt.prompt}
+                          </pre>
+
+                          {toolMode === "web" && activePraxisPath.id !== "pfad-recherche" && (
+                            <div className="rounded-xl border border-brand-lime/50 bg-secondary/25 px-3.5 py-2.5 text-xs leading-relaxed text-muted-foreground">
+                              <div className="flex flex-wrap items-center gap-2 font-semibold text-foreground">
+                                <span>Wo erscheint die fertige Vorschau / Mini-App?</span>
+                                <GlossaryTip id="artifacts-canvas" label="Was ist Artifacts / Canvas?" />
+                              </div>
+                              <p className="mt-1">
+                                <strong>Claude.ai:</strong> Erscheint automatisch rechts als eigenes
+                                „Artifacts“-Fenster (ggf. in den Einstellungen aktivieren).{" "}
+                                <strong>ChatGPT:</strong> Klicke unter dem Eingabefeld auf{" "}
+                                <strong>„+“ / Canvas</strong> — dann kannst du direkt klicken und
+                                anpassen.
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="rounded-xl border border-brand-lime/40 bg-secondary/35 px-3.5 py-2.5 text-xs">
+                            <strong className="text-foreground">Ziel-Ergebnis: </strong>
+                            <span className="text-muted-foreground">
+                              {modePrompt.deliverableHint}
                             </span>
                           </div>
-                          <h2 className="font-display text-xl font-bold text-foreground">
-                            {activePraxisPath.title}
-                          </h2>
-                          <p className="text-sm text-muted-foreground">
-                            {activePraxisPath.description}
-                          </p>
                         </div>
-
-                        <CopyButton
-                          text={activePraxisPath.promptsByMode[toolMode].prompt}
-                          label={activePraxisPath.promptsByMode[toolMode].label}
-                          variant="default"
-                          onCopy={() => markChecked("chk-path")}
-                        />
-                      </div>
-
-                      <pre className="whitespace-pre-wrap break-words rounded-xl border bg-muted/40 p-4 font-mono text-xs leading-relaxed text-foreground">
-                        {activePraxisPath.promptsByMode[toolMode].prompt}
-                      </pre>
-
-                      <div className="rounded-xl border border-brand-lime/40 bg-secondary/35 px-3.5 py-2.5 text-xs">
-                        <strong className="text-foreground">Ziel-Ergebnis: </strong>
-                        <span className="text-muted-foreground">
-                          {activePraxisPath.promptsByMode[toolMode].deliverableHint}
-                        </span>
-                      </div>
-                    </div>
+                      );
+                    })()}
 
                     {/* Path 1 Special: Built-in 68-Article Search & Claim Verifier + McpPacketAnimatic + Multi-CLI */}
                     {activePraxisPath.includesInBrowserLab && (
@@ -1448,7 +1785,34 @@ export function ParticipantApp() {
                         />
 
                         {/* 100% Client-Side 68-Article Search & Claim Verifier */}
-                        <div className="rounded-2xl border bg-card p-4 sm:p-6">
+                        <div className="rounded-2xl border bg-card p-4 sm:p-6 space-y-4">
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
+                            <div>
+                              <h3 className="font-display text-base font-bold text-foreground">
+                                Live-Suche &amp; Faktenprüfer über alle 68 Artikel
+                              </h3>
+                              <p className="text-xs text-muted-foreground">
+                                Läuft komplett hier im Browser — auch ohne eigenes KI-Konto oder
+                                Installation.
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() =>
+                                downloadMarkdownFile(
+                                  "alle-68-artikel-wissensbasis.md",
+                                  buildAll68ArticlesMarkdown(data.vaultArticles),
+                                  "Alle 68 Artikel (.md) heruntergeladen"
+                                )
+                              }
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              <span>Alle 68 Artikel (.md)</span>
+                            </Button>
+                          </div>
+
                           <Tabs
                             value={labTab}
                             onValueChange={(v) => setLabTab(v as "search" | "verify")}
@@ -1493,7 +1857,9 @@ export function ParticipantApp() {
                                   onClick={() => runOfflineSearch()}
                                   className="shrink-0"
                                 >
-                                  Tool ausführen
+                                  {toolMode === "agent"
+                                    ? "Tool ausführen"
+                                    : "Wissensbasis durchsuchen"}
                                 </Button>
                               </div>
 
@@ -1633,22 +1999,35 @@ export function ParticipantApp() {
                         <Accordion
                           type="single"
                           collapsible
+                          defaultValue={toolMode === "agent" ? "mcp-cfg" : undefined}
                           className="rounded-2xl border bg-card px-5"
                         >
                           <AccordionItem value="mcp-cfg" className="border-none">
                             <AccordionTrigger className="font-display text-sm font-semibold">
-                              <span className="flex items-center gap-2 text-left">
+                              <span className="flex flex-wrap items-center gap-2 text-left">
                                 <FileCode2 className="h-4 w-4 shrink-0 text-brand-ink" />
                                 <span>
-                                  Code-Agent Setup: Lokaler MCP-Server für 5 Clients
+                                  Optional · nur Code-Agent: Lokaler MCP-Server für 6 Clients
                                 </span>
+                                {toolMode !== "agent" && (
+                                  <Badge variant="outline" className="text-[10px]">
+                                    Für Web-Chat nicht nötig
+                                  </Badge>
+                                )}
                               </span>
                             </AccordionTrigger>
-                            <AccordionContent className="min-w-0 pb-4">
+                            <AccordionContent className="min-w-0 space-y-3 pb-4">
+                              <p className="text-xs text-muted-foreground">
+                                Für Web-Chat &amp; Desktop genügt die Such-Box oben im Browser. Wenn
+                                du lokal mit Terminal/IDE arbeitest, wähle deinen CLI-Client:
+                              </p>
                               <Tabs defaultValue="claude" className="min-w-0">
                                 <TabsList className="h-auto w-full flex-wrap justify-start gap-1 overflow-visible bg-muted p-1.5">
                                   <TabsTrigger value="claude" className="px-2.5 py-1 text-xs">
                                     Claude Code
+                                  </TabsTrigger>
+                                  <TabsTrigger value="opencode" className="px-2.5 py-1 text-xs">
+                                    OpenCode
                                   </TabsTrigger>
                                   <TabsTrigger value="gemini" className="px-2.5 py-1 text-xs">
                                     Gemini CLI
@@ -1659,6 +2038,9 @@ export function ParticipantApp() {
                                   <TabsTrigger value="vscode" className="px-2.5 py-1 text-xs">
                                     VS Code
                                   </TabsTrigger>
+                                  <TabsTrigger value="cursor" className="px-2.5 py-1 text-xs">
+                                    Cursor
+                                  </TabsTrigger>
                                   <TabsTrigger value="setup" className="px-2.5 py-1 text-xs">
                                     Setup-CLI
                                   </TabsTrigger>
@@ -1666,27 +2048,37 @@ export function ParticipantApp() {
                                 {[
                                   {
                                     id: "claude",
-                                    path: ".mcp.json (im Root, Stufe 2 & Stufe 3 vorkonfiguriert)",
+                                    path: ".mcp.json (im Root & Stufe 3 vorkonfiguriert)",
                                     code: data.mcpConfigs.claudeCode,
                                   },
                                   {
+                                    id: "opencode",
+                                    path: "opencode.json (Projekt oder ~/.config/opencode/opencode.json)",
+                                    code: data.mcpConfigs.openCode,
+                                  },
+                                  {
                                     id: "gemini",
-                                    path: "~/.gemini/settings.json (oder .gemini/settings.json)",
+                                    path: ".gemini/settings.json (oder ~/.gemini/settings.json)",
                                     code: data.mcpConfigs.geminiCli,
                                   },
                                   {
                                     id: "codex",
-                                    path: "~/.codex/config.toml",
+                                    path: ".codex/config.toml (oder ~/.codex/config.toml)",
                                     code: data.mcpConfigs.codex,
                                   },
                                   {
                                     id: "vscode",
                                     path: ".vscode/mcp.json",
-                                    code: data.mcpConfigs.vscodeCursor,
+                                    code: data.mcpConfigs.vscode,
+                                  },
+                                  {
+                                    id: "cursor",
+                                    path: ".cursor/mcp.json (oder ~/.cursor/mcp.json)",
+                                    code: data.mcpConfigs.cursor,
                                   },
                                   {
                                     id: "setup",
-                                    path: "Terminal (erzeugt absolute Pfade für alle Clients)",
+                                    path: "Terminal (schreibt absolute Pfade sicher in User-Config)",
                                     code: data.mcpConfigs.setupCommand,
                                   },
                                 ].map((cfg) => (
@@ -1715,14 +2107,14 @@ export function ParticipantApp() {
 
                     <Separator />
 
-                    {/* 4-Rollen CCF-Transfer-Brücke */}
+                    {/* CCF-Transfer-Brücke */}
                     <section className="space-y-4">
                       <div className="space-y-1">
                         <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
                           Transfer-Brücke · Vom Tierwelt-Beispiel in deinen CCF-Alltag
                         </div>
                         <h2 className="font-display text-xl font-bold">
-                          4 Rollen im Customer Cluster Finance
+                          {data.transferBridge.length} Rollen im Customer Cluster Finance
                         </h2>
                         <p className="editorial-measure text-sm text-muted-foreground">
                           Übertrage die drei Muster (CO-STAR/RISEN, verbindliche Regeln, verknüpfte
@@ -1755,15 +2147,16 @@ export function ParticipantApp() {
                                 <strong className="text-foreground">Guardrail: </strong>
                                 {role.guardrailRule}
                               </div>
+                              <pre className="whitespace-pre-wrap break-words rounded-xl border bg-muted/35 p-3 font-mono text-[11px] leading-relaxed text-foreground">
+                                {role.starterPrompt}
+                              </pre>
                             </div>
 
-                            <div className="flex items-center justify-between gap-2 border-t pt-3">
-                              <span className="truncate font-mono text-[11px] text-muted-foreground">
-                                Starter-Prompt bereit
-                              </span>
+                            <div className="flex items-center justify-end gap-2 border-t pt-3">
                               <CopyButton
                                 text={role.starterPrompt}
                                 label="Starter-Prompt kopieren"
+                                variant="default"
                                 onCopy={() => markChecked("chk-transfer")}
                               />
                             </div>
@@ -1839,6 +2232,7 @@ export function ParticipantApp() {
       {/* Fixed Mobile Bottom Step-Bar (4 Steps) */}
       <nav
         aria-label="Mobile Navigation"
+        data-tour="step-nav-mobile"
         className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t bg-card/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md lg:hidden"
       >
         {data.steps.map((s) => {

@@ -14,32 +14,44 @@ export interface OnboardingTourProps {
 
 const TOUR_STATIONS: {
   selector: string;
+  fallbackSelector?: string;
   title: string;
   body: string;
   stepHint?: WorkshopStepId;
 }[] = [
   {
     selector: '[data-tour="tool-mode"]',
-    title: "1 · Werkzeug-Hilfe wählen",
-    body: "Schalte oben jederzeit zwischen Web-Chat, Desktop & Ordner und Code-Agent um — alle Anleitungen und Kopierpakete passen sich sofort an.",
+    title: "1 · Wie arbeitest du heute?",
+    body: "Schalte oben jederzeit zwischen Web-Chat (ChatGPT, Claude, Copilot — keine Installation), Desktop & Ordner (ZIP / Cowork / Projects) und Code-Agent um.",
     stepHint: "start",
   },
   {
     selector: '[data-tour="step-nav"]',
-    title: "2 · 2-Phasen-Aufbau (4 Schritte)",
-    body: "Schritte 01–03 bilden den gemeinsamen 15-Minuten-Aha-Kern. Danach wählst du in Schritt 04 deinen 30-Minuten-Praxis-Pfad.",
+    fallbackSelector: '[data-tour="step-nav-mobile"]',
+    title: "2 · Workshop in 4 klaren Schritten",
+    body: "Schritte 01–03 zeigen in ca. 15 Minuten das Aha-Erlebnis rund um bessere Prompts & Faktenprüfung. In Schritt 04 wählst du deinen Praxis-Pfad.",
   },
   {
     selector: '[data-tour="checklist-trigger"]',
-    title: "3 · Fortschritt & Checkliste",
-    body: "Hier siehst du deinen Stand, hakst Erkenntnisse ab und springst mit einem Klick direkt zu jedem Schritt.",
+    title: "3 · Dein Fortschritt & Checkliste",
+    body: "Hier siehst du jederzeit, was schon geschafft ist, hakst Erkenntnisse ab und springst mit einem Klick direkt zu jedem Schritt.",
   },
   {
-    selector: '[data-tour="beamer-link"]',
-    title: "4 · Trainer-Bühne (#/beamer)",
-    body: "Über dieses Symbol erreichst du jederzeit die statische Tageslicht-Projektionsansicht mit Countdown, Demo und Wissens-Graph.",
+    selector: '[data-tour="help-trigger"]',
+    title: "4 · Hilfe, Glossar & FAQ",
+    body: "Unklare Begriffe wie „Markdown (.md)“, „Prompt“ oder „Halluzination“? Ein Klick auf Hilfe öffnet Erklärungen, kostenlose Chat-Links und Antworten.",
   },
 ];
+
+function findVisibleTarget(selector: string, fallbackSelector?: string): HTMLElement | null {
+  for (const sel of fallbackSelector ? [selector, fallbackSelector] : [selector]) {
+    const el = document.querySelector(sel) as HTMLElement | null;
+    if (!el) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width > 0 && r.height > 0) return el;
+  }
+  return null;
+}
 
 export function OnboardingTour({ open, onOpenChange, onSelectStep }: OnboardingTourProps) {
   const prefersReduced = useReducedMotion();
@@ -71,23 +83,19 @@ export function OnboardingTour({ open, onOpenChange, onSelectStep }: OnboardingT
   useEffect(() => {
     if (!open) return;
     function measure() {
-      const el = document.querySelector(station.selector) as HTMLElement | null;
+      const el = findVisibleTarget(station.selector, station.fallbackSelector);
       if (!el) {
         setRect(null);
         return;
       }
       const r = el.getBoundingClientRect();
-      if (r.width === 0 || r.height === 0) {
-        setRect(null);
-        return;
-      }
       el.scrollIntoView({ block: "nearest", behavior: prefersReduced ? "auto" : "smooth" });
       setRect({ top: r.top - 4, left: r.left - 4, width: r.width + 8, height: r.height + 8 });
     }
     measure();
     window.addEventListener("resize", measure);
     return () => window.removeEventListener("resize", measure);
-  }, [open, idx, station.selector, prefersReduced]);
+  }, [open, idx, station.selector, station.fallbackSelector, prefersReduced]);
 
   if (!open) return null;
 

@@ -1,0 +1,3 @@
+[mcp_servers.workshop-wildlife]
+command = "node"
+args = ["./mcp-server/server.mjs"]

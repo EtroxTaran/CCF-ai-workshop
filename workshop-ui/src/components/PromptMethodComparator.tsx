@@ -2,9 +2,11 @@ import { useMemo, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, Download, Sparkles } from "lucide-react";
 import { CopyButton } from "@/components/CopyButton";
+import { GlossaryTip } from "@/components/guidance/GlossaryTip";
 import { WebChatWorkflowPlayer } from "@/components/guidance/WalkthroughPlayers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { downloadMarkdownFile } from "@/lib/exportCorpusMd";
 import type { ExpressPackage, PromptMethod, ToolMode } from "@/types/workshop";
 
 interface PromptMethodComparatorProps {
@@ -64,13 +66,15 @@ export function PromptMethodComparator({
   );
 
   // Prompt ALWAYS at the very top of the copied bundle!
-  const compactBundle = useMemo(
-    () =>
-      expressPackage.promptHeaderTemplate
-        .replace("{{PROMPT}}", active.prompt)
-        .replace("{{TEXTS}}", expressPackage.content),
-    [expressPackage, active.prompt]
-  );
+  // Bei Zero-Shot bewusst neutral ohne strikte Guardrails, damit der Aha-Effekt im Vergleich funktioniert.
+  const compactBundle = useMemo(() => {
+    if (active.id === "zero-shot") {
+      return `${active.prompt}\n\n---\nHINTERGRUNDTEXTE:\n\n${expressPackage.content}`;
+    }
+    return expressPackage.promptHeaderTemplate
+      .replace("{{PROMPT}}", active.prompt)
+      .replace("{{TEXTS}}", expressPackage.content);
+  }, [expressPackage, active.id, active.prompt]);
 
   function downloadTextsMd() {
     const mdContent = [
@@ -80,13 +84,11 @@ export function PromptMethodComparator({
       "",
       expressPackage.content,
     ].join("\n");
-    const blob = new Blob([mdContent], { type: "text/markdown;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "methoden-kompakt-texte.md";
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadMarkdownFile(
+      "methoden-kompakt-texte.md",
+      mdContent,
+      "6 Kompakt-Texte (.md) heruntergeladen"
+    );
     onCopyPrompt?.();
   }
 
@@ -156,23 +158,15 @@ export function PromptMethodComparator({
       <div className="flex flex-col gap-3 rounded-2xl border bg-secondary/40 p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 space-y-1">
-            <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
-              1 Aufgabe · 4 Schreibweisen im Test
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+              <span>1 Aufgabe · 4 Schreibweisen im Test</span>
+              <GlossaryTip id="prompt" label="Prompt?" />
+              <GlossaryTip id="halluzination" label="Halluzination?" />
             </div>
             <p className="text-sm font-semibold leading-snug text-foreground sm:text-base">
               „{task}“
             </p>
           </div>
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="shrink-0 self-start sm:self-center"
-            onClick={downloadTextsMd}
-          >
-            <Download className="h-3.5 w-3.5" />
-            <span>Texte als .md laden</span>
-          </Button>
         </div>
 
         <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
@@ -245,13 +239,19 @@ export function PromptMethodComparator({
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-lg font-bold">{active.name}</h3>
                   <Badge variant="secondary">{active.badge}</Badge>
+                  {(active.id === "zero-shot" ||
+                    active.id === "costar" ||
+                    active.id === "few-shot" ||
+                    active.id === "risen-cot") && (
+                    <GlossaryTip id={active.id} label="Methode erklärt" />
+                  )}
                 </div>
                 <p className="text-sm text-muted-foreground">{active.bestFor}</p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <CopyButton
                   text={compactBundle}
-                  label="Kompakt-Paket (~5.500 Zeichen)"
+                  label="Kompakt-Paket (~6.000 Zeichen)"
                   toastMessage={`Prompt (oben) + Kompakt-Texte (${active.name}) kopiert`}
                   variant="default"
                   onCopy={onCopyPrompt}
@@ -265,7 +265,7 @@ export function PromptMethodComparator({
                 />
                 <Button type="button" size="sm" variant="secondary" onClick={downloadTextsMd}>
                   <Download className="h-3.5 w-3.5" />
-                  <span>Texte als .md laden</span>
+                  <span>6 Kompakt-Texte (.md)</span>
                 </Button>
               </div>
             </div>

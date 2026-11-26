@@ -34,10 +34,12 @@ open_browser() {
   ) &
 }
 
-if command -v node >/dev/null 2>&1; then
-  echo "[OK] Node.js gefunden - starte statischen Offline-Backup-Server für Trainer-Bühne (#/beamer)..."
+if command -v node >/dev/null 2>&1 && node -e "process.exit(parseInt(process.versions.node,10)>=18?0:1)" >/dev/null 2>&1; then
+  echo "[OK] Node.js 18+ gefunden - starte statischen Offline-Backup-Server für Trainer-Bühne (#/beamer)..."
   open_browser "$STAGE_URL"
   PORT="$PORT" exec node workshop-ui/server.mjs
+elif command -v node >/dev/null 2>&1; then
+  echo "[WARNUNG] Gefundenes Node.js ist älter als v18 - weiche auf Python-Backup aus..."
 fi
 
 PY_CMD=""

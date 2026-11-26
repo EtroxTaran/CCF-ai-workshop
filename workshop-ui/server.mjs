@@ -26,6 +26,7 @@ const MIME_TYPES = {
   ".ico": "image/x-icon",
   ".txt": "text/plain; charset=utf-8",
   ".woff2": "font/woff2",
+  ".mp3": "audio/mpeg",
 };
 
 const sendText = (res, status, msg) => {
@@ -55,7 +56,36 @@ const server = http.createServer((req, res) => {
     filePath = path.join(DIST_DIR, "index.html");
   }
 
-  res.writeHead(200, { "Content-Type": MIME_TYPES[path.extname(filePath).toLowerCase()] || "application/octet-stream" });
+  const contentType = MIME_TYPES[path.extname(filePath).toLowerCase()] || "application/octet-stream";
+  const stat = fs.statSync(filePath);
+  const rangeHeader = req.headers.range;
+
+  if (rangeHeader && /^bytes=\d*-\d*$/i.test(rangeHeader)) {
+    const [rawStart, rawEnd] = rangeHeader.replace(/^bytes=/i, "").split("-");
+    const start = rawStart ? Number(rawStart) : Math.max(0, stat.size - Number(rawEnd || 0));
+    const end = rawStart && rawEnd ? Math.min(stat.size - 1, Number(rawEnd)) : stat.size - 1;
+    if (!Number.isFinite(start) || !Number.isFinite(end) || start > end || start >= stat.size) {
+      res.writeHead(416, { "Content-Range": `bytes */${stat.size}` });
+      return res.end();
+    }
+    res.writeHead(206, {
+      "Content-Type": contentType,
+      "Content-Range": `bytes ${start}-${end}/${stat.size}`,
+      "Accept-Ranges": "bytes",
+      "Content-Length": String(end - start + 1),
+    });
+    if (req.method === "HEAD") return res.end();
+    fs.createReadStream(filePath, { start, end })
+      .on("error", () => !res.headersSent && sendText(res, 500, "Read Error"))
+      .pipe(res);
+    return;
+  }
+
+  res.writeHead(200, {
+    "Content-Type": contentType,
+    "Accept-Ranges": "bytes",
+    "Content-Length": String(stat.size),
+  });
   if (req.method === "HEAD") return res.end();
   fs.createReadStream(filePath).on("error", () => !res.headersSent && sendText(res, 500, "Read Error")).pipe(res);
 });

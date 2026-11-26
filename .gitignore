@@ -15,5 +15,6 @@ Thumbs.db
 desktop.ini
 *.swp
 
-# Temporary presentation render previews
+# Temporary presentation render previews & local dev sandboxes
 presentation/_preview_pngs/
+sandbox/

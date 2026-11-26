@@ -140,9 +140,10 @@ def build_express_package(
 ) -> dict[str, Any]:
     blocks = [extract_matching_units(slug, kws, cap) for slug, kws, cap in spec]
     content = "\n\n".join(blocks)
-    # Target ~4,600–5,200 body chars so prompt (~350-500 chars) + content totals ~5,000–5,600 chars
-    assert 4500 <= len(content) <= 5300, (
-        f"Express package '{pkg_id}' body length {len(content)} outside expected 4500..5300 bounds"
+    # Raise express package ceiling modestly (6,400 body chars < 7,500 hard check)
+    # so all Q1/Q2/Benchmark key facts fit reliably while keeping copy Copilot-safe.
+    assert 4500 <= len(content) <= 6400, (
+        f"Express package '{pkg_id}' body length {len(content)} outside expected 4500..6400 bounds"
     )
     return {
         "id": pkg_id,
@@ -195,13 +196,13 @@ def main() -> None:
     express_methods = build_express_package(
         "methods",
         "Express-Paket 1 · Klimawandel in Arktis & Korallenriff",
-        "Kürzungsfreie Schlüsselsätze aus den 6 Klimawandel-Artikeln mit (datei.md)-Quellenschildern — direkt kopierbar für Web-Chat.",
+        "Kompakte Schlüsselsätze aus den 6 Klimawandel-Artikeln mit (datei.md)-Quellenschildern — direkt kopierbar für Web-Chats.",
         [
-            ("arktis", ["2030", "grenze der hocharktis", "nordpolarmeer"], 780),
-            ("eisbaer", ["squalen", "schwarzen haut", "hohl", "meereseis", "42 zähne"], 980),
-            ("klimawandel", ["anthropogene", "treibhausgasen", "klimakrise"], 760),
-            ("steinkorallen", ["20 °c", "zooxanthellen", "tropischen"], 740),
-            ("korallenbleiche", ["1998, 2010", "70 bis 90", "photoinhibition", "acht wochen", "9,6 mrd."], 1130),
+            ("arktis", ["2030", "grenze der hocharktis", "tuvaijuittuq"], 880),
+            ("eisbaer", ["squalen", "schwarzen haut", "hohl", "meereseis", "ausgehungerte", "42 zähne"], 1120),
+            ("klimawandel", ["anthropogene", "treibhausgasen", "klimakrise"], 720),
+            ("steinkorallen", ["20 °c", "zooxanthellen", "tropischen"], 720),
+            ("korallenbleiche", ["1998, 2010", "70 bis 90", "photoinhibition", "oxidativem", "abgestoßen", "acht wochen", "9,6 mrd."], 1360),
             ("korallenriff", ["600.000 km", "20 °c", "tiefwasserriffe"], 680),
         ],
     )
@@ -209,17 +210,17 @@ def main() -> None:
     express_stages = build_express_package(
         "stages-arctic-reef",
         "Express-Paket 2 · Arktis & Korallenriff (Alle 10 Fokus-Dateien)",
-        "Alle relevanten Fakten aus den 10 Arktis- und Riff-Artikeln für Frage 1–4 im 3-Stufen-Experiment (~5.000 Zeichen).",
+        "Alle wichtigen Fakten aus den 10 Arktis- und Riff-Artikeln für Fragen 1–4 im 3-Stufen-Experiment (~5.900 Zeichen).",
         [
             ("arktis", ["2030", "grenze der hocharktis"], 360),
-            ("eisbaer", ["squalen", "schwarzen haut", "hohl", "42 zähne"], 620),
-            ("ringelrobbe", ["geburtshöhlen", "eisbären"], 380),
-            ("klimawandel", ["anthropogene", "treibhausgasen"], 510),
+            ("eisbaer", ["squalen", "hydrophoben", "eisnukleation", "schwarzen haut", "lichtleiter", "42 zähne"], 1120),
+            ("ringelrobbe", ["geburtshöhlen", "eisbären"], 360),
+            ("klimawandel", ["anthropogene", "treibhausgasen"], 480),
             ("anemonenfische", ["sialinsäuren", "falterfischen"], 300),
-            ("seeanemonen", ["stichodactylidae", "anemonenfische"], 320),
-            ("symbiose", ["ektosymbiose", "endosymbiose"], 450),
+            ("seeanemonen", ["stichodactylidae", "anemonenfische"], 300),
+            ("symbiose", ["ektosymbiose", "endosymbiose", "zooxanthellen"], 600),
             ("steinkorallen", ["20 °c", "kalkbildung"], 400),
-            ("korallenbleiche", ["1998, 2010", "70 bis 90", "photoinhibition", "acht wochen", "9,6 mrd."], 1130),
+            ("korallenbleiche", ["1998, 2010", "70 bis 90", "photoinhibition", "endosymbiotisch", "oxidativem", "abgestoßen", "acht wochen", "9,6 mrd."], 1420),
             ("korallenriff", ["600.000 km", "tiefwasserriffe"], 360),
         ],
     )
@@ -286,9 +287,9 @@ def main() -> None:
                 "label": "Desktop & Ordner",
                 "shortLabel": "Desktop & Ordner",
                 "badge": "Ohne Terminal",
-                "summary": "Öffne die Workshop-Ordner direkt als Projekt- oder Arbeitsordner (z. B. Claude Cowork oder ChatGPT Projects).",
-                "examples": ["Claude Desktop / Cowork", "ChatGPT Projects"],
-                "workflowHint": "Wähle einfach den Ordner stufe-1-chaos, stufe-2-skills-guardrails oder stufe-3-obsidian-vault als Arbeitsbereich.",
+                "summary": "Öffne entpackte Workshop-Ordner lokal in Claude Cowork — oder nutze Claude.ai / ChatGPT Projects mit hochgeladenen .md-Dateien.",
+                "examples": ["Claude Cowork (Ordner)", "Claude.ai / ChatGPT Projects"],
+                "workflowHint": "Ohne Git: Workshop als ZIP laden & entpacken → in Claude Cowork Ordner wählen (oder in Projects Regeln + .md hochladen).",
                 "noInstallRequired": False,
             },
             {
@@ -298,20 +299,20 @@ def main() -> None:
                 "badge": "Terminal / IDE",
                 "summary": "Arbeite im Terminal oder in der IDE mit AGENTS.md, Skills und lokalem MCP-Server auf allen 68 Artikeln.",
                 "examples": ["Claude Code", "Codex CLI", "Gemini CLI", "VS Code / Copilot", "OpenCode"],
-                "workflowHint": "Wechsle per cd in stufe-1-chaos/, stufe-2-skills-guardrails/ oder stufe-3-obsidian-vault/ — Regeln & MCP laden automatisch.",
+                "workflowHint": "Wechsle in stufe-1-chaos/, stufe-2-skills-guardrails/ oder stufe-3-obsidian-vault/ — Regeln & MCP (Stufe 3) laden automatisch.",
                 "noInstallRequired": False,
             },
         ],
         "openCodeHelp": {
-            "title": "Kein eigenes KI-Abo? → OpenCode + OpenRouter",
-            "summary": "Falls du heute kein eigenes Claude-, ChatGPT- oder Copilot-Konto nutzt, kannst du in wenigen Sekunden kostenlos über OpenCode + OpenRouter (oder das In-Browser-Labor in Schritt 04) mitmachen.",
+            "title": "Kein eigenes KI-Abo? Kostenlos im Browser oder lokal mit OpenCode",
+            "summary": "Auch ohne bezahltes KI-Abo kannst du sofort alles mitmachen — am schnellsten über kostenlose Browser-Chats und unser eingebautes Prüflabor (oder optional im Terminal über OpenCode + OpenRouter).",
             "steps": [
-                "Repository klonen: git clone -b main https://github.com/EtroxTaran/CCF-ai-workshop.git",
-                "OpenCode starten und OpenRouter als Provider wählen (kostenlose Free-Tier-Modelle verfügbar, nur öffentliche Tierwelt-Daten).",
-                "Alternativ funktionieren alle Aha-Kern-Schritte und der 68-Artikel-Faktenprüfer auch komplett ohne Login direkt hier in der Workshop-App.",
+                "Am einfachsten im Browser: ChatGPT Free (chatgpt.com), Claude Free (claude.ai) oder Gemini (gemini.google.com) gratis nutzen — oder unseren 68-Artikel-Faktenprüfer in Schritt 04 direkt ohne Login testen.",
+                "Optional fürs Terminal (OpenCode + OpenRouter): Repository klonen (git clone -b main https://github.com/EtroxTaran/CCF-ai-workshop.git), OpenCode starten und mit /connect OpenRouter (inkl. Free-Tier-Modellen) verknüpfen.",
+                "Alle 68 Dateien sind 100 % öffentliche Wikipedia-Artikel ohne interne oder personenbezogene Daten.",
             ],
-            "commandSnippet": "npx opencode-ai@latest",
-            "note": "Compliance-Hinweis: Alle 68 Dateien sind 100 % öffentliche Wikipedia-Artikel ohne interne oder personenbezogene Daten.",
+            "commandSnippet": "npm install -g @opencode/cli && opencode",
+            "note": "Tipp: Falls kein globales npm gewünscht ist, klappt oft auch npx opencode-ai@latest — im geöffneten OpenCode einfach /connect eingeben und OpenRouter wählen.",
         },
         "phases": [
             {
@@ -423,7 +424,7 @@ def main() -> None:
                 "risk": "Ohne explizite Quellenpflicht kann die KI Lücken höflich überspielen.",
                 "components": ["Context", "Objective", "Style", "Tone", "Audience", "Response"],
                 "prompt": (
-                    "Context: Wir bereiten ein internes Cluster-Briefing auf Basis lokaler Wikipedia-Artikel (arktis.md, eisbaer.md, korallenbleiche.md, steinkorallen.md, klimawandel.md) vor.\n"
+                    "Context: Wir bereiten ein internes Cluster-Briefing auf Basis lokaler Wikipedia-Artikel (arktis.md, eisbaer.md, korallenbleiche.md, korallenriff.md, steinkorallen.md, klimawandel.md) vor.\n"
                     "Objective: Erkläre die konkreten Folgen des Klimawandels für Eisbären in der Arktis und Steinkorallen im Korallenriff.\n"
                     "Style: Klar strukturiertes Management-Memo mit belegbaren Fakten.\n"
                     "Tone: Sachlich, präzise, ohne Alarmismus.\n"
@@ -624,9 +625,9 @@ def main() -> None:
                 "id": "q4",
                 "number": 4,
                 "type": "Steuerungs- & Kontext-Check (38 Zähne)",
-                "question": "Teste Kontext-Priorisierung: Wenn in unserer lokalen Datei `eisbaer.md` testweise „38 Zähne“ statt „42 Zähne“ steht — folgt die KI strikt deinem Dokument oder korrigiert sie heimlich aus ihrem Trainingswissen?",
+                "question": "Wie viele Zähne besitzt ein Eisbär laut unseren lokalen Dokumenten? Belege deine Antwort exakt mit dem Dateinamen.",
                 "targetDocs": ["eisbaer.md", "AGENTS.md"],
-                "whatToWatch": "Beweist den Unterschied zwischen Modell-Gedächtnis und lokalem Kontext/Harness. (Bei lokalem Dateitest `42` danach bitte wieder herstellen!)",
+                "whatToWatch": "Ordner- & CLI-Ablauf: Ändere testweise in stufe-2-skills-guardrails/docs/eisbaer.md „42 Zähne“ auf „38 Zähne“ — übernimmt die KI „38 (eisbaer.md)“ statt heimlich aus dem Training auf 42 zu korrigieren? (Danach bitte wieder 42 herstellen!)",
                 "solutionSummary": "Mit aktivem Guardrail übernimmt die KI „38 Zähne (eisbaer.md)“ ohne stillschweigend aus dem Training zu korrigieren – so wird Kontext-Priorisierung überprüfbar.",
                 "focusStages": ["stufe-2"],
                 "isTrap": False,
@@ -658,29 +659,29 @@ def main() -> None:
                 "skills": [],
                 "modeNotes": {
                     "web": {
-                        "headline": "Express-Paket OHNE Regeln in einen neuen Chat einfügen",
+                        "headline": "Kompakt-Texte OHNE Regeln in einen neuen Chat einfügen",
                         "steps": [
-                            "Kopiere das Express-Paket (oder hänge docs/eisbaer.md an) ohne besondere Schutzregeln.",
-                            "Stelle Frage 3 (Schneeleopard-Fangfrage) und Frage 1 (Eisbär).",
+                            "Kopiere die Kompakt-Texte (oder lade die .md-Datei hoch) — noch bewusst ohne Schutzregeln.",
+                            "Stelle danach Frage 3 (Schneeleopard) und Frage 1 (Eisbär) oder kopiere direkt „Frage + Texte komplett“.",
                             "Beobachte: Vermischt die KI deinen Text mit Vorwissen aus dem Internet?",
                         ],
-                        "commandOrAction": "Neuer Chat → Express-Paket ohne Regeln einfügen",
+                        "commandOrAction": "Neuer Chat → Kompakt-Texte ohne Regeln",
                     },
                     "desktop": {
-                        "headline": "Ordner stufe-1-chaos/ im Desktop-Tool öffnen",
+                        "headline": "Ordner stufe-1-chaos/ lokal öffnen (Claude Cowork) oder .md hochladen (Projects)",
                         "steps": [
-                            "Öffne den Ordner stufe-1-chaos/ in Claude Cowork oder ChatGPT Projects.",
-                            "Stelle Frage 3 (Fangfrage) und Frage 1 ohne weitere Leitplanken.",
+                            "In Claude Cowork: Entpackten Ordner stufe-1-chaos/ öffnen (ohne Schutzregeln). In Projects: .md-Datei anhängen.",
+                            "Stelle Frage 3 (Schneeleopard) und Frage 1 ohne Regeln.",
                             "Beobachte fehlende Dateinamen und Spekulationen.",
                         ],
-                        "commandOrAction": "Arbeitsordner: stufe-1-chaos/",
+                        "commandOrAction": "stufe-1-chaos/",
                     },
                     "agent": {
                         "headline": "CLI / Agent direkt in stufe-1-chaos/ starten",
                         "steps": [
-                            "Wechsle per Terminal in cd stufe-1-chaos (AGENTS.md hat hier nur 1 Satz).",
-                            "Stelle Frage 3 (Fangfrage) und Frage 1.",
-                            "Vergleiche das Ergebnis anschließend direkt mit Stufe 2.",
+                            "Wechsle vom Repo-Root per cd stufe-1-chaos und starte den Agenten frisch (AGENTS.md hat hier nur 1 Satz).",
+                            "Stelle Frage 3 (Schneeleopard) und Frage 1.",
+                            "Beende danach den Agenten (/exit) und wechsle in Stufe 2.",
                         ],
                         "commandOrAction": "cd stufe-1-chaos",
                     },
@@ -720,31 +721,31 @@ def main() -> None:
                 ],
                 "modeNotes": {
                     "web": {
-                        "headline": "Chat-Regeln + Express-Paket kombinieren (Prompt steht ganz oben!)",
+                        "headline": "Verbindliche Chat-Regeln + Kompakt-Texte im frischen Chat testen",
                         "steps": [
-                            "Öffne einen frischen Chat und nutze das 1-Klick-Paket inkl. Verbindlichen Chat-Regeln.",
-                            "Stelle erneut Frage 3 (Fangfrage) — kommt jetzt die saubere Ablehnung?",
-                            "Teste Frage 4 („38 Zähne“-Schalter): Übernimmt der Chat 38 statt 42?",
+                            "Klicke auf „Regeln + Kompakt-Texte kopieren“ und füge sie in einen ganz neuen Chat ein (die KI wartet auf „Bereit“).",
+                            "Stelle danach Frage 3 (Schneeleopard) — jetzt muss eine ehrliche Ablehnung kommen.",
+                            "Teste Frage 4 („38 Zähne“): Übernimmt dein Chat 38 statt 42?",
                         ],
-                        "commandOrAction": "Frischer Chat → Paket mit Chat-Regeln einfügen",
+                        "commandOrAction": "Frischer Chat → Regeln + Texte einfügen",
                     },
                     "desktop": {
-                        "headline": "Ordner stufe-2-skills-guardrails/ öffnen",
+                        "headline": "Ordner stufe-2-skills-guardrails/ öffnen oder Regeln in Projekt-Anweisungen kopieren",
                         "steps": [
-                            "Öffne stufe-2-skills-guardrails/ (enthält AGENTS.md & Skills).",
-                            "Stelle Frage 3 (Schneeleopard) — der Agent muss sauber ablehnen.",
-                            "Optional für Frage 4: kurz 42 → 38 Zähne in docs/eisbaer.md testen.",
+                            "Claude Cowork: Entpackten Ordner stufe-2-skills-guardrails/ wählen (AGENTS.md + Skills aktiv). Projects: Regeln kopieren & .md hochladen.",
+                            "Stelle Frage 3 (Schneeleopard) — die KI muss sauber ablehnen.",
+                            "Optional für Frage 4: kurz 42 → 38 Zähne in docs/eisbaer.md testen (danach wieder 42).",
                         ],
-                        "commandOrAction": "Arbeitsordner: stufe-2-skills-guardrails/",
+                        "commandOrAction": "stufe-2-skills-guardrails/",
                     },
                     "agent": {
-                        "headline": "CLI / Agent in stufe-2-skills-guardrails/ starten",
+                        "headline": "Neuen Agenten in stufe-2-skills-guardrails/ starten (AGENTS.md + Skills aktiv)",
                         "steps": [
-                            "Wechsle in cd ../stufe-2-skills-guardrails (AGENTS.md + Skills + .mcp.json aktiv).",
-                            "Stelle Frage 3 (Fangfrage) und prüfe den Refusal-Text.",
-                            "Teste Frage 4 (42 -> 38 Zähne in docs/eisbaer.md) und stelle danach 42 wieder her.",
+                            "Vorherigen Agenten beenden (/exit), vom Repo-Root in cd stufe-2-skills-guardrails wechseln (oder cd ../stufe-2-skills-guardrails) und Agenten neu starten.",
+                            "Stelle Frage 3 (Schneeleopard) und prüfe den Refusal-Text.",
+                            "Teste Frage 4 (42 -> 38 Zähne in docs/eisbaer.md) und stelle danach mit git checkout -- stufe-2-skills-guardrails/docs/eisbaer.md wieder her.",
                         ],
-                        "commandOrAction": "cd ../stufe-2-skills-guardrails",
+                        "commandOrAction": "cd stufe-2-skills-guardrails",
                     },
                 },
                 "focusQuestionIds": ["q3", "q4"],
@@ -783,31 +784,31 @@ def main() -> None:
                 ],
                 "modeNotes": {
                     "web": {
-                        "headline": "Wissens-Graph hier in der App + Express-Paket für Frage 2",
+                        "headline": "Kompakt-Index + Wissens-Graph + Frage 2 testen",
                         "steps": [
-                            "Klicke im interaktiven Wissens-Graph unten durch die 5 Sprünge von Frage 2 (oder starte mit _index.md).",
-                            "Stelle Frage 2 (Anemonenfisch vs. Steinkorallen-Symbiose) mit Express-Paket 2.",
-                            "Vergleiche: Wie klar werden Ektosymbiose, Endosymbiose und 20–29 °C getrennt?",
+                            "Klicke unten im interaktiven Wissens-Graph durch die 5 Sprünge von Frage 2 (oder starte direkt mit dem kompakten Stufen-Paket).",
+                            "Stelle Frage 2 (Anemonenfisch vs. Steinkorallen-Symbiose) oder lade die 12 bzw. 68 Artikel als .md-Datei hoch.",
+                            "Vergleiche: Wie sauber werden Ektosymbiose, Endosymbiose und 20–29 °C getrennt?",
                         ],
-                        "commandOrAction": "Wissens-Graph Schritt für Schritt + Frage 2 testen",
+                        "commandOrAction": "Wissens-Graph + Frage 2 testen",
                     },
                     "desktop": {
-                        "headline": "Ordner stufe-3-obsidian-vault/ öffnen",
+                        "headline": "Ordner stufe-3-obsidian-vault/ öffnen oder 68-Artikel-.md hochladen",
                         "steps": [
-                            "Öffne stufe-3-obsidian-vault/ mit _index.md und wiki/.",
-                            "Bitte die KI, zuerst _index.md zu lesen und [[Wikilinks]] für Frage 2 zu folgen.",
-                            "Prüfe danach Frage 3 (Fangfrage) gegen den gesamten Vault.",
+                            "Claude Cowork: Entpackten Ordner stufe-3-obsidian-vault/ öffnen (_index.md & wiki/ sofort nutzbar). Projects: Regeln kopieren & .md hochladen.",
+                            "Bitte die KI, zuerst _index.md zu lesen und Querverweisen für Frage 2 zu folgen.",
+                            "Prüfe danach Frage 3 (Schneeleopard) gegen den gesamten Wissens-Vault.",
                         ],
-                        "commandOrAction": "Arbeitsordner: stufe-3-obsidian-vault/",
+                        "commandOrAction": "stufe-3-obsidian-vault/",
                     },
                     "agent": {
-                        "headline": "CLI / Agent in stufe-3-obsidian-vault/ (mit Skills & MCP)",
+                        "headline": "Neuen Agenten in stufe-3-obsidian-vault/ starten (Skills & MCP aktiv)",
                         "steps": [
-                            "Wechsle in cd ../stufe-3-obsidian-vault (vault-suche, wissen-synthese & .mcp.json aktiv).",
+                            "Vorherigen Agenten beenden (/exit), vom Repo-Root in cd stufe-3-obsidian-vault wechseln und Agenten neu starten (vault-suche, wissen-synthese & MCP aktiv).",
                             "Stelle Frage 2 (Querverbindung über 5+ Dateien) und Frage 3.",
-                            "Beobachte, wie _index.md + [[Wikilinks]] gezielte Datei-Sprünge auslösen.",
+                            "Beobachte, wie _index.md + [[Wikilinks]] + MCP gezielte Datei-Sprünge auslösen.",
                         ],
-                        "commandOrAction": "cd ../stufe-3-obsidian-vault",
+                        "commandOrAction": "cd stufe-3-obsidian-vault",
                     },
                 },
                 "focusQuestionIds": ["q2", "q3"],
@@ -849,9 +850,9 @@ def main() -> None:
                         "deliverableHint": "Ergebnis-Checkliste mit Belegt / Widersprüchlich / Nicht belegt gegen unsere 68 Artikel.",
                     },
                     "desktop": {
-                        "label": "Ordner-Audit in stufe-3-obsidian-vault/",
+                        "label": "Ordner-Audit in stufe-3-obsidian-vault/ (oder alle 68 Artikel)",
                         "prompt": (
-                            "Lies _index.md in stufe-3-obsidian-vault/ und erstelle eine strukturierte Fakten-Matrix (JSON + Markdown-Tabelle) für Eisbär, Ringelrobbe, Anemonenfische, Alpenmurmeltier, Steinadler und Gepard. "
+                            "Lies _index.md in stufe-3-obsidian-vault/ (oder nutze alle-68-artikel-wissensbasis.md) und erstelle eine strukturierte Fakten-Matrix (JSON + Markdown-Tabelle) für Eisbär, Ringelrobbe, Anemonenfische, Alpenmurmeltier, Steinadler und Gepard. "
                             "Felder: title, habitat, status, kernfakt, wikilink, source_file. Fehlendes mit „[Nicht in Quelle]“ markieren."
                         ),
                         "deliverableHint": "Vollständig belegte 6-Arten-Matrix mit [[Wikilinks]] und [Nicht in Quelle]-Lücken.",
@@ -897,12 +898,12 @@ def main() -> None:
                         "deliverableHint": "Sauberes Briefing-Dokument oder lokales HTML-Handout.",
                     },
                     "agent": {
-                        "label": "Statische Mini-Präsentation im Workspace generieren",
+                        "label": "Statische Mini-Präsentation im Sandbox-Ordner generieren",
                         "prompt": (
-                            "Nutze die verifizierten Fakten aus stufe-3-obsidian-vault/wiki/ und generiere eine einzelne statische HTML-Präsentation (ohne externe CDN-Skripte) "
+                            "Nutze die verifizierten Fakten aus stufe-3-obsidian-vault/wiki/ (im Repo-Root starten oder Pfade relativ anpassen) und generiere unter sandbox/ eine einzelne statische HTML-Präsentation (ohne externe CDN-Skripte) "
                             "mit 4 Folien, Tastaturnavigation (Pfeiltasten) und einem Inline-SVG zur Korallenbleiche-Schwelle (20–29 °C)."
                         ),
-                        "deliverableHint": "Eigenständige lokale HTML-Präsentation mit Quellenangaben.",
+                        "deliverableHint": "Eigenständige lokale HTML-Präsentation unter sandbox/ mit Quellenangaben.",
                     },
                 },
             },
@@ -935,17 +936,30 @@ def main() -> None:
                         "deliverableHint": "Lernkarten- oder Lebensraum-Filter-App mit echten Vault-Metadaten.",
                     },
                     "agent": {
-                        "label": "CLI / IDE Mini-App mit Tests & Guardrails",
+                        "label": "CLI / IDE Mini-App in sandbox/ mit Tests & Guardrails",
                         "prompt": (
-                            "Baue in einem neuen temporären Unterordner (ohne die 68 Artikel zu verändern) eine kleine Node- oder Single-File-HTML-App: "
+                            "Baue unter sandbox/ (git-ignoriert, ohne die 68 Artikel zu verändern; im Repo-Root starten oder Pfade anpassen) eine kleine Node- oder Single-File-HTML-App: "
                             "z. B. ein interaktives Tierwelt-Quiz oder einen [[Wikilink]]-Pfadfinder über stufe-3-obsidian-vault/_index.md, inkl. kurzem Smoke-Check."
                         ),
-                        "deliverableHint": "Lauffähige Mini-App im eigenen Testordner + geprüfte Quellenverweise.",
+                        "deliverableHint": "Lauffähige Mini-App unter sandbox/ + geprüfte Quellenverweise.",
                     },
                 },
             },
         ],
         "transferBridge": [
+            {
+                "id": "office-management",
+                "title": "0 · Office Management, Assistenz & Orga",
+                "roles": "Office Management, Team-Assistenz, Event- & Termin-Orga, Backoffice",
+                "workshopPattern": "CO-STAR-Auftrag + Quellenpflicht („[Nicht in Quelle]“)",
+                "ccfUseCase": "Besprechungsprotokolle aus losen Stichpunkten, freundliche Einladungs-/Follow-up-E-Mails, Event- und Reise-Checklisten — ohne dass die KI Fristen, Namen oder Raumnummern dazuerfindet.",
+                "guardrailRule": "Nur Informationen aus deinen Notizen verwenden; jede offene Rückfrage oder fehlende Uhrzeit als „[Noch klären]“ markieren.",
+                "starterPrompt": (
+                    "Bitte erstelle aus meinen folgenden Besprechungs-Stichpunkten ein kurzes Ergebnisprotokoll und eine freundliche Follow-up-E-Mail.\n"
+                    "Wichtig: Erfinde keine Uhrzeiten, Fristen oder Zuständigkeiten hinzu. Fehlt eine Angabe, schreibe sichtbar „[Noch klären]“.\n\n"
+                    "[Hier eigene, öffentliche oder anonymisierte Stichpunkte einfügen]"
+                ),
+            },
             {
                 "id": "kunden-projekte",
                 "title": "1 · Kunden & Projekte",
@@ -956,7 +970,8 @@ def main() -> None:
                 "starterPrompt": (
                     "Context: Kurze Management-Vorlage auf Basis bereitgestellter Projektdokumente.\n"
                     "Objective: Fasse Risiken, Termine und offene Punkte in max. 5 Bulletpoints zusammen.\n"
-                    "Narrowing: Kein Vorwissen ergänzen. Jede Aussage mit (Dokumentname) belegen; Lücken als „[Nicht in Quelle]“ ausweisen."
+                    "Narrowing: Kein Vorwissen ergänzen. Jede Aussage mit (Dokumentname) belegen; Lücken als „[Nicht in Quelle]“ ausweisen.\n\n"
+                    "[Hier eigene, öffentliche oder anonymisierte Unterlagen einfügen]"
                 ),
             },
             {
@@ -968,7 +983,8 @@ def main() -> None:
                 "guardrailRule": "Definitionen erst über eine zentrale Übersichtskarte (_index.md) auflösen, Begriffe per Few-Shot in ein festes Tabellen-/JSON-Schema pressen.",
                 "starterPrompt": (
                     "Extrahiere alle Fachbegriffe und Kennzahlen im Format „Begriff | Definition | Abhängigkeit | Quelle“.\n"
-                    "Prüfe Querverweise über unsere Übersichtsdatei zuerst und markiere widersprüchliche oder fehlende Stellen explizit."
+                    "Prüfe Querverweise über unsere Übersichtsdatei zuerst und markiere widersprüchliche oder fehlende Stellen explizit.\n\n"
+                    "[Hier eigene, öffentliche oder anonymisierte Fachbegriffe einfügen]"
                 ),
             },
             {
@@ -981,7 +997,8 @@ def main() -> None:
                 "starterPrompt": (
                     "Role: Streng faktenbasierter Betriebs-Analyst.\n"
                     "Steps: 1. Prüfe jede Behauptung gegen unsere Runbooks. 2. Markiere jeden Schritt mit Belegt / Widersprüchlich / Nicht belegt.\n"
-                    "Narrowing: Keine Befehle oder Schwellwerte aus dem Gedächtnis ergänzen."
+                    "Narrowing: Keine Befehle oder Schwellwerte aus dem Gedächtnis ergänzen.\n\n"
+                    "[Hier eigene, öffentliche oder anonymisierte Runbook-Auszüge einfügen]"
                 ),
             },
             {
@@ -993,7 +1010,8 @@ def main() -> None:
                 "guardrailRule": "Arbeitsregeln im Repo versionieren (AGENTS.md + Skills) und MCP-Werkzeuge eng auf Such-, Lese- und Prüf-Verträge begrenzen.",
                 "starterPrompt": (
                     "Lies zuerst AGENTS.md und die betroffene ADR/Spezifikation. Führe gegenläufige Anforderungen gegeneinander auf "
-                    "und schlage nur Änderungen vor, die durch bestehende Tests oder Schnittstellen-Verträge gedeckt sind."
+                    "und schlage nur Änderungen vor, die durch bestehende Tests oder Schnittstellen-Verträge gedeckt sind.\n\n"
+                    "[Hier öffentliche oder anonymisierte Spezifikation / ADR anfügen]"
                 ),
             },
         ],
@@ -1001,10 +1019,13 @@ def main() -> None:
         "vaultArticles": vault_articles,
         "mcpConfigs": {
             "claudeCode": read_text("mcp-server/mcp-config-examples/claude-code.mcp.json"),
+            "openCode": read_text("mcp-server/mcp-config-examples/opencode.json"),
             "geminiCli": read_text("mcp-server/mcp-config-examples/gemini-cli.settings.json"),
             "codex": read_text("mcp-server/mcp-config-examples/codex.config.toml"),
-            "vscodeCursor": read_text("mcp-server/mcp-config-examples/vscode-cursor.mcp.json"),
-            "setupCommand": "node mcp-server/setup-client.mjs --client all --dry-run",
+            "vscode": read_text("mcp-server/mcp-config-examples/vscode.mcp.json"),
+            "cursor": read_text("mcp-server/mcp-config-examples/cursor.mcp.json"),
+            "setupCommand": "node mcp-server/setup-client.mjs --client all --scope user --dry-run",
+            "applyUserCommand": "node mcp-server/setup-client.mjs --client all --scope user",
         },
     }
 

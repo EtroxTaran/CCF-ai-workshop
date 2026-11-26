@@ -14,10 +14,6 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
 
-from pptx import Presentation
-from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER
-from pptx.oxml.ns import qn
-
 CATEGORY_SUBDIRS = {
     "lebensraum": "lebensraeume",
     "tierart": "tierarten",
@@ -71,13 +67,6 @@ R5_AVOIDED_TERM_PATTERNS = (
         re.compile(r"(?:git\s+clone\s+-b\s+master\b|\bBranch\s+master\b|\bPush\s+nach\s+master\b)", re.I),
     ),
 )
-
-CHROME_PLACEHOLDERS = {
-    PP_PLACEHOLDER.DATE,
-    PP_PLACEHOLDER.FOOTER,
-    PP_PLACEHOLDER.HEADER,
-    PP_PLACEHOLDER.SLIDE_NUMBER,
-}
 
 # Construct dynamically so this file never self-matches personal path checks.
 PERSONAL_PATH_RE = re.compile(
@@ -178,12 +167,22 @@ def check_multi_cli_and_mirrors(root: Path, errors: list[str], summary: list[str
     expected_server = (root / "mcp-server" / "server.mjs").resolve()
 
     mcp_targets = [
-        (root / ".mcp.json", "mcpServers"),
-        (root / ".vscode" / "mcp.json", "servers"),
-        (root / "stufe-2-skills-guardrails" / ".mcp.json", "mcpServers"),
-        (root / "stufe-3-obsidian-vault" / ".mcp.json", "mcpServers"),
+        (root / ".mcp.json", "mcpServers", root),
+        (root / ".gemini" / "settings.json", "mcpServers", root),
+        (root / ".vscode" / "mcp.json", "servers", root),
+        (root / "stufe-3-obsidian-vault" / ".mcp.json", "mcpServers", root / "stufe-3-obsidian-vault"),
+        (
+            root / "stufe-3-obsidian-vault" / ".gemini" / "settings.json",
+            "mcpServers",
+            root / "stufe-3-obsidian-vault",
+        ),
+        (
+            root / "stufe-3-obsidian-vault" / ".vscode" / "mcp.json",
+            "servers",
+            root / "stufe-3-obsidian-vault",
+        ),
     ]
-    for cfg_path, root_key in mcp_targets:
+    for cfg_path, root_key, workspace_dir in mcp_targets:
         rel = cfg_path.relative_to(root)
         if not cfg_path.is_file():
             errors.append(f"Missing MCP config: {rel}")
@@ -208,15 +207,58 @@ def check_multi_cli_and_mirrors(root: Path, errors: list[str], summary: list[str
             errors.append(f"{rel}: expected non-empty args list")
             continue
         raw_arg = str(args[0])
-        if "${workspaceFolder}" in raw_arg:
-            cleaned = raw_arg.replace("${workspaceFolder}/", "").replace("${workspaceFolder}\\", "")
-            resolved = (root / cleaned).resolve()
-        else:
-            resolved = (cfg_path.parent / raw_arg).resolve()
+        cleaned = raw_arg.replace("${workspaceFolder}/", "").replace("${workspaceFolder}\\", "")
+        resolved = (workspace_dir / cleaned).resolve()
         if resolved != expected_server:
             errors.append(
                 f"{rel}: script path {raw_arg!r} resolves to {resolved}, expected {expected_server}"
             )
+
+    # Stufe 2 darf absichtlich keine .mcp.json besitzen (Stage 2 Isolation).
+    if (root / "stufe-2-skills-guardrails" / ".mcp.json").exists():
+        errors.append(
+            "Stage 2 isolation breach: stufe-2-skills-guardrails/.mcp.json must NOT exist (leaks Stage 3 vault)"
+        )
+
+    # OpenCode configs (root & Stage 3)
+    for oc_path in (root / "opencode.json", root / "stufe-3-obsidian-vault" / "opencode.json"):
+        rel = oc_path.relative_to(root)
+        if not oc_path.is_file():
+            errors.append(f"Missing OpenCode config: {rel}")
+            continue
+        try:
+            cfg = json.loads(oc_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            errors.append(f"Invalid JSON in {rel}: {exc}")
+            continue
+        entry = (cfg.get("mcp") or {}).get("workshop-wildlife")
+        cmd = entry.get("command") if isinstance(entry, dict) else None
+        if not isinstance(entry, dict) or entry.get("type") != "local" or not isinstance(cmd, list) or len(cmd) < 2 or cmd[0] != "node":
+            errors.append(f"{rel}: invalid OpenCode MCP schema for 'workshop-wildlife'")
+        elif (oc_path.parent / str(cmd[1])).resolve() != expected_server:
+            errors.append(f"{rel}: OpenCode server path resolves outside {expected_server}")
+
+    # Codex configs (root & Stage 3)
+    for cx_path in (root / ".codex" / "config.toml", root / "stufe-3-obsidian-vault" / ".codex" / "config.toml"):
+        rel = cx_path.relative_to(root)
+        if not cx_path.is_file():
+            errors.append(f"Missing Codex config: {rel}")
+            continue
+        txt = cx_path.read_text(encoding="utf-8")
+        if "[mcp_servers.workshop-wildlife]" not in txt or "server.mjs" not in txt:
+            errors.append(f"{rel}: missing [mcp_servers.workshop-wildlife] or server.mjs reference")
+
+    # Line-ending guard & sandbox gitignore
+    if not (root / ".gitattributes").is_file():
+        errors.append("Missing .gitattributes (*.sh eol=lf, *.bat eol=crlf)")
+    gi_path = root / ".gitignore"
+    if not gi_path.is_file() or "sandbox/" not in gi_path.read_text(encoding="utf-8"):
+        errors.append(".gitignore must ignore sandbox/")
+
+    # Root AGENTS.md must not spoil trap question (Schneeleopard)
+    root_agents = (root / "AGENTS.md").read_text(encoding="utf-8", errors="replace") if (root / "AGENTS.md").is_file() else ""
+    if "schneeleopard" in root_agents.lower():
+        errors.append("Spoiler leak in root AGENTS.md: contains 'Schneeleopard'")
 
     for folder_rel in (".", "stufe-1-chaos", "stufe-2-skills-guardrails", "stufe-3-obsidian-vault"):
         folder = root / folder_rel if folder_rel != "." else root
@@ -670,9 +712,31 @@ def check_static_build(root: Path, errors: list[str], summary: list[str]) -> Non
     summary.append("Static ./ build, zero Google Fonts, local .woff2 fonts, and <=500 kB JS chunks verified")
 
 
+_PPTX_API_CACHE: tuple[Any, Any, Any, Any, set[Any]] | None = None
+
+
+def _pptx_api() -> tuple[Any, Any, Any, Any, set[Any]]:
+    """Lazy-import python-pptx only when check_pptx actually runs."""
+    global _PPTX_API_CACHE
+    if _PPTX_API_CACHE is None:
+        from pptx import Presentation
+        from pptx.enum.shapes import MSO_SHAPE_TYPE, PP_PLACEHOLDER
+        from pptx.oxml.ns import qn
+
+        chrome = {
+            PP_PLACEHOLDER.DATE,
+            PP_PLACEHOLDER.FOOTER,
+            PP_PLACEHOLDER.HEADER,
+            PP_PLACEHOLDER.SLIDE_NUMBER,
+        }
+        _PPTX_API_CACHE = (Presentation, MSO_SHAPE_TYPE, PP_PLACEHOLDER, qn, chrome)
+    return _PPTX_API_CACHE
+
+
 def _sz_from_lst_style(lst_el: Any, lvl: int) -> float | None:
     if lst_el is None:
         return None
+    _, _, _, qn, _ = _pptx_api()
     for tag_name in (f"a:lvl{lvl + 1}pPr", "a:defPPr"):
         p_pr = lst_el.find(qn(tag_name))
         if p_pr is not None:
@@ -683,6 +747,7 @@ def _sz_from_lst_style(lst_el: Any, lvl: int) -> float | None:
 
 
 def _find_placeholder_match(container: Any, ph_idx: int | None, ph_type: Any) -> Any:
+    _, _, PP_PLACEHOLDER, _, _ = _pptx_api()
     by_type = None
     for sh in container.shapes:
         if not sh.is_placeholder:
@@ -701,6 +766,7 @@ def _find_placeholder_match(container: Any, ph_idx: int | None, ph_type: Any) ->
 def _resolve_run_pt(
     run: Any, paragraph: Any, shape: Any, slide: Any, prs: Any, cell: Any = None
 ) -> float | None:
+    _, _, PP_PLACEHOLDER, qn, _ = _pptx_api()
     if run.font.size is not None:
         return float(run.font.size.pt)
     r_pr = run._r.find(qn("a:rPr"))
@@ -785,6 +851,7 @@ def _resolve_run_pt(
 def _check_pptx_shapes(
     shapes: Any, slide_idx: int, slide: Any, prs: Any, errors: list[str]
 ) -> None:
+    _, MSO_SHAPE_TYPE, _, _, CHROME_PLACEHOLDERS = _pptx_api()
     for shape in shapes:
         if shape.shape_type == MSO_SHAPE_TYPE.GROUP:
             _check_pptx_shapes(shape.shapes, slide_idx, slide, prs, errors)
@@ -827,6 +894,7 @@ def check_pptx(root: Path, errors: list[str], summary: list[str]) -> None:
         errors.append("Missing presentation/CCF_HandsOn_Prompt_Werkstatt.pptx")
         return
 
+    Presentation, _, _, _, _ = _pptx_api()
     prs = Presentation(str(pptx_path))
     if len(prs.slides) != 6:
         errors.append(f"Expected 6 PPTX slides, got {len(prs.slides)}")
@@ -858,9 +926,15 @@ def check_remnants(
         root / "scripts" / "export_ui_data.py",
         root / "scripts" / "build_presentation.py",
         root / ".mcp.json",
+        root / "opencode.json",
+        root / ".gemini" / "settings.json",
+        root / ".codex" / "config.toml",
         root / ".vscode" / "mcp.json",
-        root / "stufe-2-skills-guardrails" / ".mcp.json",
         root / "stufe-3-obsidian-vault" / ".mcp.json",
+        root / "stufe-3-obsidian-vault" / "opencode.json",
+        root / "stufe-3-obsidian-vault" / ".gemini" / "settings.json",
+        root / "stufe-3-obsidian-vault" / ".codex" / "config.toml",
+        root / "stufe-3-obsidian-vault" / ".vscode" / "mcp.json",
         root / "AGENTS.md",
         root / "README.md",
         root / "aufgaben.md",
@@ -919,35 +993,34 @@ def check_remnants(
 
 
 def _check_express_packages(data: dict[str, Any], errors: list[str]) -> None:
-    candidates: list[tuple[str, str, str | None]] = []
+    candidates: list[tuple[str | None, str, str, str | None]] = []
     seen_express_ids: set[str] = set()
     for key in ("expressPacks", "expressPackages", "compactPackages", "compactPacks"):
         val = data.get(key)
         if isinstance(val, dict):
             for k, v in val.items():
-                if key == "expressPackages":
-                    if isinstance(v, dict) and isinstance(v.get("id"), str):
-                        seen_express_ids.add(v["id"])
-                    elif isinstance(k, str):
-                        seen_express_ids.add(k)
+                pkg_id = v.get("id") if isinstance(v, dict) and isinstance(v.get("id"), str) else (k if isinstance(k, str) else None)
+                if key == "expressPackages" and pkg_id:
+                    seen_express_ids.add(pkg_id)
                 if isinstance(v, str):
-                    candidates.append((f"{key}.{k}", v, None))
+                    candidates.append((pkg_id, f"{key}.{k}", v, None))
                 elif isinstance(v, dict):
                     hdr = v.get("promptHeaderTemplate")
                     for sub_k in ("text", "content", "payload", "bundle", "promptWithText"):
                         if isinstance(v.get(sub_k), str):
-                            candidates.append((f"{key}.{k}.{sub_k}", v[sub_k], hdr if isinstance(hdr, str) else None))
+                            candidates.append((pkg_id, f"{key}.{k}.{sub_k}", v[sub_k], hdr if isinstance(hdr, str) else None))
         elif isinstance(val, list):
             for idx, item in enumerate(val):
                 if isinstance(item, str):
-                    candidates.append((f"{key}[{idx}]", item, None))
+                    candidates.append((None, f"{key}[{idx}]", item, None))
                 elif isinstance(item, dict):
-                    if key == "expressPackages" and isinstance(item.get("id"), str):
-                        seen_express_ids.add(item["id"])
+                    pkg_id = item.get("id") if isinstance(item.get("id"), str) else None
+                    if key == "expressPackages" and pkg_id:
+                        seen_express_ids.add(pkg_id)
                     hdr = item.get("promptHeaderTemplate")
                     for sub_k in ("text", "content", "payload", "bundle", "promptWithText"):
                         if isinstance(item.get(sub_k), str):
-                            candidates.append((f"{key}[{idx}].{sub_k}", item[sub_k], hdr if isinstance(hdr, str) else None))
+                            candidates.append((pkg_id, f"{key}[{idx}].{sub_k}", item[sub_k], hdr if isinstance(hdr, str) else None))
 
     for list_key in ("stages", "promptMethods"):
         items = data.get(list_key)
@@ -957,7 +1030,7 @@ def _check_express_packages(data: dict[str, Any], errors: list[str]) -> None:
                     continue
                 for sub_k in ("expressPack", "expressPackage", "compactPackage", "compactBundle"):
                     if isinstance(item.get(sub_k), str):
-                        candidates.append((f"{list_key}[{idx}].{sub_k}", item[sub_k], None))
+                        candidates.append((None, f"{list_key}[{idx}].{sub_k}", item[sub_k], None))
 
     if not candidates:
         errors.append(
@@ -971,8 +1044,24 @@ def _check_express_packages(data: dict[str, Any], errors: list[str]) -> None:
             f"workshopData.json expressPackages missing required ids: {sorted(missing_pkg_ids)}"
         )
 
+    expected_keywords: dict[str, tuple[str, ...]] = {
+        "methods": ("squalen", "2030", "zooxanthellen", "abgestoßen", "29"),
+        "stages-arctic-reef": (
+            "squalen",
+            "hydrophob",
+            "lichtleiter",
+            "hocharktis",
+            "sialinsäuren",
+            "ektosymbiose",
+            "endosymbiose",
+            "zooxanthellen",
+            "29",
+            "acht wochen",
+        ),
+    }
+
     tag_re = re.compile(r"\([a-z0-9-]+\.md\)", re.I)
-    for label, text, prompt_hdr in candidates:
+    for pkg_id, label, text, prompt_hdr in candidates:
         text_len = len(text.strip())
         if text_len < 3500:
             errors.append(f"Express package {label} too short ({text_len} chars < 3500)")
@@ -980,6 +1069,13 @@ def _check_express_packages(data: dict[str, Any], errors: list[str]) -> None:
             errors.append(f"Express package {label} exceeds compact ceiling ({len(text)} chars > 7500)")
         if not tag_re.search(text):
             errors.append(f"Express package {label} missing (slug.md) source tags")
+        if pkg_id in expected_keywords:
+            low = text.lower()
+            missing_kw = [kw for kw in expected_keywords[pkg_id] if kw not in low]
+            if missing_kw:
+                errors.append(
+                    f"Express package {pkg_id} ({label}) missing factual benchmark keywords: {missing_kw}"
+                )
         if prompt_hdr is not None:
             if not prompt_hdr.lstrip().startswith("{{PROMPT}}"):
                 errors.append(f"Express package {label} promptHeaderTemplate must start with {{{{PROMPT}}}}")

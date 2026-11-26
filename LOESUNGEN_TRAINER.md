@@ -20,11 +20,11 @@ Steuere den kompletten Workshop ohne Alt-Tab-Wechsel direkt über die statische 
      - *Stufe 2 (`stufe-2-skills-guardrails`):* Guardrail-Schild greift → *„Diese Information ist in den vorliegenden Dokumenten nicht enthalten.“* Dazu **Frage 4 (`38 Zähne`-Schalter)** als Beweis für Kontext-Priorisierung.
      - *Stufe 3 (`stufe-3-obsidian-vault`):* **Frage 2 (Symbiose + Korallenbleiche)** im eingebetteten, projektor-großen **`ObsidianKnowledgeGraph`** (`_index.md` → `[[anemonenfische]]` → `[[seeanemonen]]` → `[[symbiose]]` → `[[steinkorallen]]` → `[[korallenbleiche]]`) plus **`McpPacketAnimatic`**.
 3. **QR-Einstieg (`#/beamer` Modus `3: QR Join`):**
-   - Kontrastreicher QR-Code auf `https://etroxtaran.github.io/CCF-ai-workshop/` plus `git clone -b main https://github.com/EtroxTaran/CCF-ai-workshop.git`.
-   - Hinweis an die Gruppen: In Schritt `01` einfach die passende **Werkzeug-Hilfe** (`Web-Chat`, `Desktop & Ordner`, `Code-Agent` + aufklappbare *OpenCode + OpenRouter*-Hilfe) wählen.
+   - Kontrastreicher QR-Code auf `https://etroxtaran.github.io/CCF-ai-workshop/` plus `git clone -b main https://github.com/EtroxTaran/CCF-ai-workshop.git` (mit klarem Hinweis: *„Optional nur für Code-Agent — im Web-Chat reicht der QR-Code oder Link!“*).
+   - Hinweis an die Gruppen: In Schritt `01` einfach die passende **Werkzeug-Hilfe** (`Web-Chat`, `Desktop & Ordner` inkl. 1-Klick-ZIP-Download oder `Code-Agent` inkl. Multi-CLI / OpenCode) wählen; unklare Begriffe wie `.md` erklärt das Menü **Hilfe**.
 4. **Hands-on-Steuerung (`#/beamer` Modus `1: Stage`):**
-   - **15 Min. gemeinsamer Aha-Kern** (Schritte 02 & 03, 2 Fokus-Fragen pro Stufe + Fangfrage)
-   - **30 Min. freier Praxis-Pfad** (Schritt 04: 1. Recherche & Fakten-System inkl. 68-Artikel-Faktenprüfer & MCP, 2. Präsentation/Animatic/Übersichtsseite in Artifacts/Canvas, 3. Kleine interaktive App bauen) + **4-Rollen CCF-Transfer-Brücke**.
+   - **15 Min. gemeinsamer Aha-Kern** (Schritte 02 & 03, 2 Fokus-Fragen pro Stufe + Fangfrage + `Frage + Texte komplett`-Buttons)
+   - **30 Min. freier Praxis-Pfad** (Schritt 04: 1. Recherche & Fakten-System inkl. 68-Artikel-Faktenprüfer & MCP, 2. Präsentation/Animatic/Übersichtsseite in Artifacts/Canvas, 3. Kleine interaktive App bauen) + **5-Rollen CCF-Transfer-Brücke** (inkl. *Office Management*).
    - Riesen-Countdown steuern; optional stumm vorbelegten Bühnen-Gong per Taste **`M`** aktivieren (Signal bei `01:00` und `00:00`).
 5. **Debrief (`#/beamer` Modus `4: Outro`, 11:55–12:00 Uhr):**
    - 3 moderierte Handzeichen-Impulse + 3 Kernaussagen + Ausblick auf **„13:00 Uhr Unit-Programm & World Café“**.
@@ -111,4 +111,4 @@ Steuere den kompletten Workshop ohne Alt-Tab-Wechsel direkt über die statische 
   - `S` — Im Modus `Stage` die verifizierte Lösung der aktuellen Etappe öffnen/schließen (`Esc` oder `S` schließt wieder)
   - `Space` / `N` — Im Modus `Stage`: Timer Start/Pause (`Space`); im Modus `Demo`: schrittweiser Reveal (`Space`/`N`, inkl. Q4 `38 Zähne`)
   - `←` / `→` — Durch die Workshop-Etappen navigieren
-- **Moderation ohne Netzabhängigkeit:** Debrief über 3 kuratierte Handzeichen-Abfragen zu den 3 Praxis-Pfaden (Pfad 1: 68-Artikel-Faktenprüfer & MCP `search_wildlife_vault` / `verify_claim_against_corpus` / `read_vault_article`, Pfad 2: Artifacts/Canvas, Pfad 3: Mini-Apps) und der 4-Rollen `Transfer-Brücke`; als letzter Fallback liegt `presentation/CCF_HandsOn_Prompt_Werkstatt.pptx` (6 Folien, `>= 22 pt`) bereit.
+- **Moderation ohne Netzabhängigkeit:** Debrief über 3 kuratierte Handzeichen-Abfragen zu den 3 Praxis-Pfaden (Pfad 1: 68-Artikel-Faktenprüfer & MCP `search_wildlife_vault` / `verify_claim_against_corpus` / `read_vault_article`, Pfad 2: Artifacts/Canvas, Pfad 3: Mini-Apps) und der 5-Rollen `Transfer-Brücke`; als letzter Fallback liegt `presentation/CCF_HandsOn_Prompt_Werkstatt.pptx` (6 Folien, `>= 22 pt`) bereit.

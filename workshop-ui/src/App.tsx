@@ -1,5 +1,6 @@
 import { Suspense, lazy, useEffect, useState } from "react";
 import { Toaster } from "sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const BeamerApp = lazy(() => import("@/pages/BeamerApp").then((m) => ({ default: m.BeamerApp })));
 const ParticipantApp = lazy(() =>
@@ -28,7 +29,7 @@ export function App() {
   }, []);
 
   return (
-    <>
+    <TooltipProvider delayDuration={200}>
       <Suspense
         fallback={
           <div className="flex min-h-dvh items-center justify-center bg-background p-6 text-sm text-muted-foreground">
@@ -44,7 +45,7 @@ export function App() {
         closeButton
         toastOptions={{ className: "font-sans" }}
       />
-    </>
+    </TooltipProvider>
   );
 }
 

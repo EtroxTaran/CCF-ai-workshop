@@ -1207,14 +1207,20 @@ export function BeamerApp() {
                 </div>
 
                 {/* Git Clone Command */}
-                <div className="card-elevated flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-muted/60 px-4 py-3">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <GitBranch className="h-4 w-4 shrink-0 text-brand-ink" />
-                    <code className="wrap-safe font-mono text-xs font-semibold text-foreground sm:text-sm">
-                      {cloneCommand}
-                    </code>
+                <div className="space-y-1.5">
+                  <div className="card-elevated flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-muted/60 px-4 py-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <GitBranch className="h-4 w-4 shrink-0 text-brand-ink" />
+                      <code className="wrap-safe font-mono text-xs font-semibold text-foreground sm:text-sm">
+                        {cloneCommand}
+                      </code>
+                    </div>
+                    <CopyButton text={cloneCommand} label="Clone" />
                   </div>
-                  <CopyButton text={cloneCommand} label="Clone" />
+                  <p className="text-xs text-muted-foreground">
+                    Optional nur für <strong className="text-foreground">Code-Agent</strong> — im
+                    Web-Chat reicht der QR-Code oder Link oben!
+                  </p>
                 </div>
 
                 {/* 3 Onboarding Cards */}

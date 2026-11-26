@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Eye, Layers } from "lucide-react";
 import { CopyButton } from "@/components/CopyButton";
 import { ContextWindowAnimatic } from "@/components/guidance/ContextWindowAnimatic";
+import { GlossaryTip } from "@/components/guidance/GlossaryTip";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -40,9 +41,11 @@ export function ArchitectureLayerStack({
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
             <Layers className="h-3.5 w-3.5" />
-            Steuerungs-Ebenen &amp; Kontext-Fenster
+            <span>Steuerungs-Ebenen &amp; Kontext-Fenster</span>
+            <GlossaryTip id="priming" label="Priming?" />
+            {toolMode !== "web" && <GlossaryTip id="agents-md" label="AGENTS.md?" />}
           </div>
           <h3 className="text-xl font-bold tracking-tight">
             5 Steuerungs-Ebenen auf einen Blick
@@ -51,7 +54,7 @@ export function ArchitectureLayerStack({
             {toolMode === "web"
               ? "In Web-Chats gelten Regeln nur für das aktuelle Fenster — dauerhafte System-Regeln halten Quellenpflicht und Format auch in langen Verläufen stabil."
               : toolMode === "desktop"
-                ? "Desktop & Ordner lädt AGENTS.md automatisch pro Projekt-Ordner, sodass Leitplanken dauerhaft aktiv bleiben."
+                ? "In Claude Cowork lädt AGENTS.md automatisch aus dem entpackten Ordner; in ChatGPT / Claude.ai Projects fügst du die Regeln einmal in die Projekt-Anweisungen ein."
                 : "Code-Agent kombiniert AGENTS.md, Skills und MCP-Werkzeuge zu einem verlässlichen Projekt-System."}
           </p>
         </div>
@@ -84,10 +87,18 @@ export function ArchitectureLayerStack({
                 </SheetTitle>
                 <SheetDescription>
                   {usesRepoAgents ? (
-                    <>
-                      Diese Datei steuert dein Werkzeug automatisch im Ordner{" "}
-                      <code>stufe-2-skills-guardrails/</code>.
-                    </>
+                    toolMode === "desktop" ? (
+                      <>
+                        In Claude Cowork greift diese Regel automatisch aus{" "}
+                        <code>stufe-2-skills-guardrails/</code>. In ChatGPT oder Claude.ai Projects
+                        kopierst du den Text einmal in die Projekt-Anweisungen.
+                      </>
+                    ) : (
+                      <>
+                        Diese Datei steuert dein Werkzeug automatisch im Ordner{" "}
+                        <code>stufe-2-skills-guardrails/</code>.
+                      </>
+                    )
                   ) : (
                     <>
                       Öffne einen neuen Chat im Web-Chat, füge zuerst diesen Text ein und sende

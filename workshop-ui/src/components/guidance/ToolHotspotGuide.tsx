@@ -54,27 +54,29 @@ const MODE_GUIDES: Record<ToolMode, ModeGuideSpec> = {
   },
   desktop: {
     webpFilename: "desktop-folder.webp",
-    title: "Desktop & Ordner · Arbeitsweise ohne Terminal",
-    subtitle: "Claude Cowork oder ChatGPT Projects direkt auf den Workshop-Ordnern.",
+    title: "Desktop & Ordner · Arbeitsweise ohne Code-Kenntnisse",
+    subtitle: "ZIP-Ordner entpacken und mit Claude Cowork oder ChatGPT / Claude.ai Projects nutzen.",
     hotspots: [
       {
         id: 1,
-        label: "Workshop-Ordner wählen (stufe-2 / stufe-3)",
-        detail: "Wähle den jeweiligen Stufen-Ordner — die KI liest nicht nur 1 Datei, sondern das gesamte Setup.",
+        label: "ZIP entpacken & Ordner wählen",
+        detail:
+          "Lade das Material als ZIP herunter, entpacke es und wähle den Stufen-Ordner (z. B. stufe-2-skills-guardrails/ mit Text-Dateien im Format .md = einfacher Text).",
         xPct: 20,
         yPct: 30,
       },
       {
         id: 2,
-        label: "AGENTS.md lädt automatisch",
-        detail: "Die Projekt-Regeln und Skills greifen im Hintergrund, ohne dass du sie neu kopieren musst.",
+        label: "Regeln automatisch oder per Copy-Paste",
+        detail:
+          "Claude Cowork lädt die Regeldatei AGENTS.md direkt aus dem Ordner; in ChatGPT / Claude.ai Projects fügst du die Regeln einmal in die Projekt-Anweisungen ein.",
         xPct: 55,
         yPct: 25,
       },
       {
         id: 3,
-        label: "Testfrage stellen",
-        detail: "Stelle Fragen 1–4 aus Schritt 03 und prüfe, ob Fangfrage 3 sauber abgelehnt wird.",
+        label: "Testfrage im Projekt-Chat stellen",
+        detail: "Stelle Fragen 1–4 aus Schritt 03 und prüfe, ob Fangfrage 3 sauber mit [Nicht in Quelle] gestoppt wird.",
         xPct: 64,
         yPct: 72,
       },
@@ -83,26 +85,28 @@ const MODE_GUIDES: Record<ToolMode, ModeGuideSpec> = {
   agent: {
     webpFilename: "code-agent.webp",
     title: "Code-Agent · Terminal & IDE Setup",
-    subtitle: "Claude Code, Codex, Gemini CLI, OpenCode oder VS Code mit AGENTS.md + MCP.",
+    subtitle: "Claude Code, OpenCode, Codex, Gemini CLI oder VS Code mit AGENTS.md & MCP.",
     hotspots: [
       {
         id: 1,
-        label: "cd stufe-2-skills-guardrails",
-        detail: "Wechsle in den gewünschten Stufen-Ordner (stufe-1, stufe-2 oder stufe-3).",
+        label: "In den Stufen-Ordner wechseln",
+        detail:
+          "Regeln & Skills ohne MCP: cd stufe-2-skills-guardrails. Kompletter Wissens-Graph mit MCP-Server: cd stufe-3-obsidian-vault.",
         xPct: 24,
         yPct: 28,
       },
       {
         id: 2,
-        label: "AGENTS.md + .mcp.json aktiv",
-        detail: "CLIs laden AGENTS.md / CLAUDE.md / GEMINI.md sowie .mcp.json automatisch aus dem Ordner.",
+        label: "AGENTS.md & Multi-CLI aktiv",
+        detail:
+          "CLIs laden AGENTS.md / CLAUDE.md / GEMINI.md automatisch. Stufe 3 startet zusätzlich .mcp.json (bei neuem MCP-Client ggf. mit /exit neu starten).",
         xPct: 62,
         yPct: 32,
       },
       {
         id: 3,
         label: "MCP-Tool verify_claim_against_corpus prüfen",
-        detail: "Teste in Stufe 3 oder Pfad 1 direkte Tool-Aufrufe gegen alle 68 Artikel.",
+        detail: "Teste in stufe-3-obsidian-vault oder Pfad 1 direkte Tool-Aufrufe gegen alle 68 Artikel.",
         xPct: 56,
         yPct: 70,
       },
@@ -244,7 +248,7 @@ function ModeSchematic({
               : "border-[#232B20] bg-[#111610] text-[#D3DACD]"
           )}
         >
-          $ cd stufe-2-skills-guardrails
+          $ cd stufe-3-obsidian-vault
         </button>
         <button
           type="button"
@@ -256,7 +260,7 @@ function ModeSchematic({
               : "border-[#232B20] bg-[#111610] text-[#D3DACD]"
           )}
         >
-          ✓ AGENTS.md / CLAUDE.md / GEMINI.md + .mcp.json geladen
+          ✓ AGENTS.md / CLAUDE.md / GEMINI.md + .mcp.json (Stufe 3) geladen
         </button>
         <button
           type="button"

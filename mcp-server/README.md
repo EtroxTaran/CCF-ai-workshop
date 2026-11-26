@@ -13,17 +13,27 @@ Ein **komplett abhängigkeitsfreier** Node.js-MCP-Server (`>= 18`), der über `s
 
 ## Einbindung in KI-Tools
 
-Im Repository-Root (`.mcp.json`), in `.vscode/mcp.json` sowie in `stufe-2-skills-guardrails/.mcp.json` und `stufe-3-obsidian-vault/.mcp.json` liegen bereits fertige Projekt-Konfigurationen.
+Im Repository-Root sowie im fertigen Vault (`stufe-3-obsidian-vault/`) sind die Projekt-Konfigurationen bereits für **alle** wichtigen Clients vorkonfiguriert (während `stufe-2-skills-guardrails/` bewusst rein mit den lokalen `docs/`-Dateien arbeitet):
+- **Claude Code:** `.mcp.json`
+- **OpenCode:** `opencode.json`
+- **Gemini CLI:** `.gemini/settings.json`
+- **Codex CLI:** `.codex/config.toml`
+- **VS Code:** `.vscode/mcp.json`
 
-Für globale/benutzerweite oder absolute Pfade steht der Setup-Helfer bereit:
+*(Hinweis zu Codex CLI: Projekt-`.codex/config.toml` greift in als vertrauenswürdig markierten Ordnern; andernfalls einfach `--scope user` nutzen.)*
+
+Für globale/benutzerweite Konfigurationen mit absoluten Pfaden (ohne Git-Änderungen im Repo!) steht der Setup-Helfer bereit:
 
 ```bash
-node mcp-server/setup-client.mjs --client all --dry-run
+node mcp-server/setup-client.mjs --client all --scope user --dry-run
+node mcp-server/setup-client.mjs --client opencode --scope user
 node mcp-server/setup-client.mjs --client claude --scope user
 ```
 
 Weitere Vorlagen liegen in `mcp-config-examples/`:
 - `claude-code.mcp.json`
+- `opencode.json`
 - `gemini-cli.settings.json`
 - `codex.config.toml`
-- `vscode-cursor.mcp.json`
+- `vscode.mcp.json`
+- `cursor.mcp.json`

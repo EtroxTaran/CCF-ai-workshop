@@ -179,7 +179,7 @@ export function ContextWindowAnimatic({ className, onResetChat }: ContextWindowA
           </div>
         </div>
 
-        {/* Comparison: 332 KB Rohdaten vs. 4 KB Index+Notizen */}
+        {/* Comparison: 332 KB Rohdaten vs. ~17 KB Index (_index.md) */}
         <div className="flex flex-col justify-between gap-3 rounded-xl border bg-muted/25 p-4 lg:col-span-5">
           <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Warum Stufe 3 das Problem löst
@@ -205,7 +205,7 @@ export function ContextWindowAnimatic({ className, onResetChat }: ContextWindowA
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Stufe 3 · Vault + AGENTS.md
                 </span>
-                <span className="num-tabular font-mono">4 KB Index+Notizen</span>
+                <span className="num-tabular font-mono">~17 KB Index (_index.md)</span>
               </div>
               <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-muted">
                 <div className="h-full w-[6%] min-w-[10px] rounded-full bg-[#A9C23F]" />
