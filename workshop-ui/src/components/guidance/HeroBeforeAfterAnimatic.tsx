@@ -2,12 +2,33 @@ import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { AlertTriangle, CheckCircle2, Pause, Play, ShieldCheck, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { AnimaticSpecs } from "@/types/workshop";
 
 export interface HeroBeforeAfterAnimaticProps {
+  spec?: AnimaticSpecs["heroBeforeAfter"];
+  articleCount?: number;
   className?: string;
 }
 
-export function HeroBeforeAfterAnimatic({ className }: HeroBeforeAfterAnimaticProps) {
+const DEFAULT_HERO_SPEC: NonNullable<AnimaticSpecs["heroBeforeAfter"]> = {
+  trapQuestion: "„Schneeleopard im Nationalpark & Eintrittspreis?“",
+  unfilteredLabel: "Ohne Regeln (Halluzination)",
+  unfilteredAnswer:
+    "„Im Schweizerischen Nationalpark leben geschätzt 15–20 Schneeleoparden; der Eintritt kostet 18 € pro Tag.“",
+  unfilteredTag: "Erfunden!",
+  guardedLabel: "Mit Regeln & Wissen (Belegt)",
+  guardedAnswer: "„Nicht in den vorliegenden Dokumenten enthalten.“",
+  guardedTag: "Guardrail aktiv",
+  factsAnswer: "Belegt: Eisbär hat 42 Zähne (eisbaer.md)",
+  factsTag: "68 Artikel",
+};
+
+export function HeroBeforeAfterAnimatic({
+  spec,
+  articleCount = 68,
+  className,
+}: HeroBeforeAfterAnimaticProps) {
+  const s = spec || DEFAULT_HERO_SPEC;
   const prefersReduced = useReducedMotion();
   const [phase, setPhase] = useState<"before" | "after">(() => (prefersReduced ? "after" : "before"));
   const [playing, setPlaying] = useState<boolean>(() => !prefersReduced);
@@ -90,9 +111,7 @@ export function HeroBeforeAfterAnimatic({ className }: HeroBeforeAfterAnimaticPr
         <span className="font-mono text-[10px] uppercase tracking-wider text-[#9FA998]">
           Testfrage ·{" "}
         </span>
-        <span className="font-medium text-[#F2F4EE]">
-          „Schneeleopard im Nationalpark &amp; Eintrittspreis?“
-        </span>
+        <span className="font-medium text-[#F2F4EE]">{s.trapQuestion}</span>
       </div>
 
       {/* Animated Before / After Card */}
@@ -109,7 +128,7 @@ export function HeroBeforeAfterAnimatic({ className }: HeroBeforeAfterAnimaticPr
             <div className="flex items-center justify-between gap-2">
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-300">
                 <AlertTriangle className="h-4 w-4 shrink-0" />
-                Ohne Regeln (Halluzination)
+                {s.unfilteredLabel}
               </span>
               <span
                 className={cn(
@@ -117,16 +136,12 @@ export function HeroBeforeAfterAnimatic({ className }: HeroBeforeAfterAnimaticPr
                   !prefersReduced && "animate-pulse"
                 )}
               >
-                Erfunden!
+                {s.unfilteredTag}
               </span>
             </div>
-            <p className="text-xs leading-relaxed text-[#F2F4EE]/90">
-              „Im Schweizerischen Nationalpark leben geschätzt{" "}
-              <strong className="text-rose-300">15–20 Schneeleoparden</strong>; der Eintritt kostet{" "}
-              <strong className="text-rose-300">18 €</strong> pro Tag.“
-            </p>
+            <p className="text-xs leading-relaxed text-[#F2F4EE]/90">{s.unfilteredAnswer}</p>
             <div className="text-[11px] text-rose-200/80">
-              Klingt selbstsicher — steht aber in keinem der 68 Artikel.
+              Klingt selbstsicher — steht aber in keinem der {articleCount} Dokumente.
             </div>
           </motion.div>
         ) : (
@@ -141,26 +156,24 @@ export function HeroBeforeAfterAnimatic({ className }: HeroBeforeAfterAnimaticPr
             <div className="flex items-center justify-between gap-2">
               <span className="inline-flex items-center gap-1.5 text-xs font-bold text-[#A9C23F]">
                 <ShieldCheck className="h-4 w-4 shrink-0" />
-                Mit Regeln &amp; Wissen (Belegt)
+                {s.guardedLabel}
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-[#A9C23F] px-2 py-0.5 font-mono text-[10px] font-bold text-[#0B0F0A]">
                 <CheckCircle2 className="h-3 w-3" />
-                Guardrail aktiv
+                {s.guardedTag}
               </span>
             </div>
-            <p className="text-xs leading-relaxed text-[#F2F4EE]">
-              „Nicht in den vorliegenden Dokumenten enthalten.“
-            </p>
+            <p className="text-xs leading-relaxed text-[#F2F4EE]">{s.guardedAnswer}</p>
             <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
               <span className="rounded-md border border-[#A9C23F]/40 bg-[#0B0F0A] px-2 py-0.5 font-mono text-[10px] text-[#A9C23F]">
-                Belegt: Eisbär hat 42 Zähne (eisbaer.md)
+                {s.factsAnswer}
               </span>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Progress Bar Indicator (5s cycle = 2.5s per phase) */}
+      {/* Progress Bar Indicator */}
       <div className="mt-3 flex items-center gap-2 text-[10px] text-[#9FA998]">
         <div className="h-1 flex-1 overflow-hidden rounded-full bg-[#232B20]">
           <motion.div

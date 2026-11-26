@@ -32,6 +32,9 @@ jobs:
         working-directory: workshop-ui
         run: npm ci
 
+      - name: Build and validate modules
+        run: node scripts/build_modules.mjs && node scripts/validate_modules.mjs
+
       - name: Build static site
         working-directory: workshop-ui
         run: npm run build

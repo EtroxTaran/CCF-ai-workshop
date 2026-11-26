@@ -18,3 +18,4 @@ desktop.ini
 # Temporary presentation render previews & local dev sandboxes
 presentation/_preview_pngs/
 sandbox/
+*.tsbuildinfo

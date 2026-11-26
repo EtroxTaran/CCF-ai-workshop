@@ -842,7 +842,7 @@ def build_deck(master_arg: Path | None = None, out_path: Path = DEFAULT_OUT_PPTX
     )
 
     add_rounded_card(s5, 6.80, 1.68, 6.10, 5.26, fill_color=V7_CREAM_GREEN, border_color=V7_GREEN, accent_bar_color=V7_INK)
-    add_badge_pill(s5, 7.03, 1.98, 4.55, 0.52, "4-ROLLEN TRANSFER-BRÜCKE", V7_INK, WHITE, size_pt=22)
+    add_badge_pill(s5, 7.03, 1.98, 4.55, 0.52, "5-ROLLEN TRANSFER-BRÜCKE", V7_INK, WHITE, size_pt=22)
     add_textbox(
         s5,
         7.03,
@@ -850,19 +850,19 @@ def build_deck(master_arg: Path | None = None, out_path: Path = DEFAULT_OUT_PPTX
         5.65,
         4.05,
         [
+            ("• Office & Orga: Protokolle", 22, False, V7_INK),
             ("• Kunden & Projekte: Briefings", 22, False, V7_INK),
             ("• Fachkonzept & Daten: Mappings", 22, False, V7_INK),
-            ("• Betrieb & DBs: Runbook-Check", 22, False, V7_INK),
-            ("• Dev & Architektur: Vault & MCP", 22, False, V7_INK),
+            ("• Betrieb & Dev: Runbook & MCP", 22, False, V7_INK),
             ("100 % ohne vertrauliche Daten!", 22, True, V7_GREEN_DARK),
         ],
-        space_after_pt=12,
+        space_after_pt=10,
     )
     set_notes(
         s5,
         "In Schritt 04 wählen die Gruppen frei einen der 3 Praxis-Pfade nach ihrem Anwendungsziel "
         "(Pfad 1 Recherche & Fakten-System, Pfad 2 Präsentation/Animatic/Übersichtsseite, Pfad 3 Kleine interaktive App) "
-        "und übertragen die Muster am Ende über die 4-Rollen CCF-Transfer-Brücke in den Alltag.",
+        "und übertragen die Muster am Ende über die 5-Rollen CCF-Transfer-Brücke (inkl. Office Management) in den Alltag.",
     )
 
     # ------------------------------------------------------------------

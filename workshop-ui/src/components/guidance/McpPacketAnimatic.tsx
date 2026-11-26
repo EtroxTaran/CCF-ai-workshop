@@ -12,6 +12,13 @@ export interface McpPacketAnimaticProps {
   compact?: boolean;
   projectorMode?: boolean;
   triggerPulse?: number;
+  articleCount?: number;
+  spec?: {
+    sampleQuery: string;
+    sampleWikilinks: string[];
+    searchToolName?: string;
+    verifyToolName?: string;
+  };
   onRunAnimation?: () => void;
   className?: string;
 }
@@ -23,9 +30,15 @@ export function McpPacketAnimatic({
   compact = false,
   projectorMode = false,
   triggerPulse,
+  articleCount = 68,
+  spec,
   onRunAnimation,
   className,
 }: McpPacketAnimaticProps) {
+  const sampleQuery = spec?.sampleQuery || "Anemonenfische Symbiose";
+  const sampleWikilinks = spec?.sampleWikilinks || ["[[anemonenfische]]", "[[symbiose]]"];
+  const searchToolName = spec?.searchToolName || "search_wildlife_vault";
+  const verifyToolName = spec?.verifyToolName || "verify_claim_against_corpus";
   const prefersReduced = useReducedMotion();
   const [internalHop, setInternalHop] = useState<number>(0);
   const [inspectorView, setInspectorView] = useState<"klartext" | "json">(
@@ -75,12 +88,15 @@ export function McpPacketAnimatic({
       hop: 3,
       icon: Cpu,
       title: toolMode === "agent" ? "3 · Werkzeug-Server" : "3 · Such- & Prüf-Dienst",
-      desc: toolMode === "agent" ? "mcp-server/server.mjs (3 Tools)" : "Prüft alle 68 Artikel lokal im Browser",
+      desc:
+        toolMode === "agent"
+          ? "mcp-server/server.mjs (Tools)"
+          : `Prüft alle ${articleCount} Artikel lokal im Browser`,
     },
     {
       hop: 4,
       icon: BookOpen,
-      title: "4 · 68 Artikel",
+      title: `4 · ${articleCount} Dokumente`,
       desc:
         mode === "verify"
           ? "Beleg / Fangfrage prüfen"
@@ -92,13 +108,13 @@ export function McpPacketAnimatic({
 
   const klartextPayload =
     mode === "verify"
-      ? `Anfrage: „Prüfe Behauptung gegen 68 Artikel“\nErgebnis: Status + Textbeleg (source_file)`
-      : `Anfrage: „Suche: Anemonenfische Symbiose“\nErgebnis: 2 Treffer · [[anemonenfische]], [[symbiose]]`;
+      ? `Anfrage: „Prüfe Behauptung gegen ${articleCount} Dokumente“\nErgebnis: Status + Textbeleg (source_file)`
+      : `Anfrage: „Suche: ${sampleQuery}“\nErgebnis: Treffer · ${sampleWikilinks.join(", ")}`;
 
   const jsonPayload =
     mode === "verify"
-      ? `{\n  "jsonrpc": "2.0",\n  "method": "tools/call",\n  "params": { "name": "verify_claim_against_corpus", "arguments": { "claim": "..." } }\n}`
-      : `{\n  "jsonrpc": "2.0",\n  "method": "tools/call",\n  "params": { "name": "search_wildlife_vault", "arguments": { "query": "Anemonenfische Symbiose" } }\n}`;
+      ? `{\n  "jsonrpc": "2.0",\n  "method": "tools/call",\n  "params": { "name": "${verifyToolName}", "arguments": { "claim": "..." } }\n}`
+      : `{\n  "jsonrpc": "2.0",\n  "method": "tools/call",\n  "params": { "name": "${searchToolName}", "arguments": { "query": "${sampleQuery}" } }\n}`;
 
   return (
     <div

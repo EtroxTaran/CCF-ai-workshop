@@ -23,11 +23,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { GLOSSARY_ENTRIES } from "@/data/glossary";
 import {
-  buildAll68ArticlesMarkdown,
+  buildAllArticlesMarkdown,
   buildStarterBundleMarkdown,
   downloadMarkdownFile,
 } from "@/lib/exportCorpusMd";
-import type { StarterArticle, VaultArticle } from "@/types/workshop";
+import type { CorpusSearchIndex, StarterArticle, VaultArticle } from "@/types/workshop";
 
 export const REPO_ZIP_URL =
   "https://github.com/EtroxTaran/CCF-ai-workshop/archive/refs/heads/main.zip";
@@ -76,12 +76,18 @@ export function HelpFaqSheet({
   onStartTour,
   starterArticles,
   vaultArticles,
+  corpusIndex,
+  onLoadCorpusIndex,
+  moduleTitle = "Prompt-Werkstatt",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onStartTour: () => void;
   starterArticles: StarterArticle[];
   vaultArticles: VaultArticle[];
+  corpusIndex?: CorpusSearchIndex;
+  onLoadCorpusIndex?: () => Promise<CorpusSearchIndex>;
+  moduleTitle?: string;
 }) {
   const [query, setQuery] = useState("");
 
@@ -178,29 +184,30 @@ export function HelpFaqSheet({
                     variant="outline"
                     onClick={() =>
                       downloadMarkdownFile(
-                        "fokus-korpus-12-artikel.md",
-                        buildStarterBundleMarkdown(starterArticles),
-                        "12 Fokus-Artikel heruntergeladen — einfach per + / 📎 im Chat anhängen!"
+                        `fokus-dokumente-${starterArticles.length}.md`,
+                        buildStarterBundleMarkdown(starterArticles, moduleTitle),
+                        `${starterArticles.length} Fokus-Dokumente heruntergeladen — einfach per + / 📎 im Chat anhängen!`
                       )
                     }
                   >
                     <Download className="h-3.5 w-3.5" />
-                    <span>12 Fokus-Artikel (.md)</span>
+                    <span>{starterArticles.length} Fokus-Dokumente (.md)</span>
                   </Button>
                   <Button
                     type="button"
                     size="sm"
                     variant="default"
-                    onClick={() =>
+                    onClick={async () => {
+                      const idx = corpusIndex || (onLoadCorpusIndex ? await onLoadCorpusIndex() : {});
                       downloadMarkdownFile(
-                        "alle-68-artikel-wissensbasis.md",
-                        buildAll68ArticlesMarkdown(vaultArticles),
-                        "Alle 68 Artikel als .md heruntergeladen — perfekt für ChatGPT/Claude Upload!"
-                      )
-                    }
+                        `alle-${vaultArticles.length}-dokumente-wissensbasis.md`,
+                        buildAllArticlesMarkdown(vaultArticles, idx, moduleTitle),
+                        `Alle ${vaultArticles.length} Dokumente als .md heruntergeladen — perfekt für ChatGPT/Claude Upload!`
+                      );
+                    }}
                   >
                     <Download className="h-3.5 w-3.5" />
-                    <span>Alle 68 Artikel (.md)</span>
+                    <span>Alle {vaultArticles.length} Dokumente (.md)</span>
                   </Button>
                 </div>
               </div>

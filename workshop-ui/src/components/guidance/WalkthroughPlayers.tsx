@@ -162,10 +162,13 @@ export function WebChatWorkflowPlayer({
 
 export interface Stage3AgentWalkPlayerProps {
   onSelectSlug?: (slug: string) => void;
+  steps?: { slug: string; note: string }[];
+  walkLabel?: string;
+  articleCount?: number;
   className?: string;
 }
 
-const STAGE3_STEPS = [
+const DEFAULT_STAGE3_STEPS = [
   {
     num: 1,
     title: "Lies _index.md",
@@ -196,20 +199,44 @@ const STAGE3_STEPS = [
   },
 ];
 
-export function Stage3AgentWalkPlayer({ onSelectSlug, className }: Stage3AgentWalkPlayerProps) {
+export function Stage3AgentWalkPlayer({
+  onSelectSlug,
+  steps,
+  walkLabel,
+  articleCount = 68,
+  className,
+}: Stage3AgentWalkPlayerProps) {
   const prefersReduced = useReducedMotion();
   const [stepIdx, setStepIdx] = useState<number>(0);
   const [playing, setPlaying] = useState<boolean>(false);
 
+  const stage3Steps =
+    steps && steps.length > 0
+      ? [
+          {
+            num: 1,
+            title: "Lies _index.md",
+            detail: `Statt alle ${articleCount} Dateien einzeln zu durchsuchen, öffnet die KI zuerst das kompakte Inhaltsverzeichnis _index.md.`,
+            chips: [] as string[],
+          },
+          ...steps.slice(0, 3).map((st, i) => ({
+            num: i + 2,
+            title: `Folge [[${st.slug}]]`,
+            detail: st.note,
+            chips: [st.slug],
+          })),
+        ]
+      : DEFAULT_STAGE3_STEPS;
+
   useEffect(() => {
     if (!playing || prefersReduced) return;
     const id = window.setInterval(() => {
-      setStepIdx((prev) => (prev + 1) % STAGE3_STEPS.length);
+      setStepIdx((prev) => (prev + 1) % stage3Steps.length);
     }, 2200);
     return () => window.clearInterval(id);
-  }, [playing, prefersReduced]);
+  }, [playing, prefersReduced, stage3Steps.length]);
 
-  const active = STAGE3_STEPS[stepIdx] || STAGE3_STEPS[0];
+  const active = stage3Steps[stepIdx] || stage3Steps[0];
 
   return (
     <div className={cn("rounded-2xl border bg-card p-4 space-y-3", className)}>
@@ -217,7 +244,7 @@ export function Stage3AgentWalkPlayer({ onSelectSlug, className }: Stage3AgentWa
         <div className="flex items-center gap-2">
           <Network className="h-4 w-4 text-brand-ink" />
           <span className="font-display text-sm font-bold text-foreground">
-            Wie Stufe 3 gezielt navigiert (Frage 2 · Korallenriff-Kette)
+            Wie Stufe 3 gezielt navigiert ({walkLabel || "Frage 2 · Korallenriff-Kette"})
           </span>
         </div>
 
@@ -232,7 +259,7 @@ export function Stage3AgentWalkPlayer({ onSelectSlug, className }: Stage3AgentWa
       </div>
 
       <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-        {STAGE3_STEPS.map((s, idx) => (
+        {stage3Steps.map((s, idx) => (
           <button
             key={s.num}
             type="button"

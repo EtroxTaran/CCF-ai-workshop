@@ -1,0 +1,27 @@
+{
+  "what-is-markdown": {
+    "title": "Projekt-Dokumente als .md-Datei",
+    "durationLabel": "0:20",
+    "transcript": "Auch im Projektalltag ist Markdown (.md) einfach schlichter Klartext — ideal für Runbooks, ADRs und Meeting-Notizen, weil jede KI ohne PDF-Chaos direkt saubere Quellen zitieren kann."
+  },
+  "step-01": {
+    "title": "Einstieg in Modul 2 (Kernbank 2026)",
+    "durationLabel": "0:20",
+    "transcript": "Hier übst du Context Engineering an 10 synthetischen Projektunterlagen: Ausschreibung, SLA, Runbook, Risikoregister und ADRs. Keine echten Kundendaten — aber realistische Alltagsfragen."
+  },
+  "step-02": {
+    "title": "Vom vagen Prompt zum Risiko-Briefing",
+    "durationLabel": "0:20",
+    "transcript": "Vergleiche eine typische Einzeiler-Frage mit strukturiertem CO-STAR und Few-Shot-Risikotabellen auf echten SLA- und Migrationsdaten."
+  },
+  "step-03": {
+    "title": "Guardrails, Debug & Krypto-Wallet-Fangfrage",
+    "durationLabel": "0:22",
+    "transcript": "Repariere zuerst eine kaputte Regel, prüfe danach die Krypto-Wallet-Fangfrage und schalte das SLA-Ziel RTO probeweise von 4 auf 2 Stunden um."
+  },
+  "step-04": {
+    "title": "Projekt-Praxis & eigene Regel-Werkbank",
+    "durationLabel": "0:20",
+    "transcript": "Nutze die Such-Box, baue direkt eine eigene AGENTS.md mit passender Fangfrage für dein Team und teste sie sofort gegen dein Dokumentenset."
+  }
+}

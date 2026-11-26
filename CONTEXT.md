@@ -25,7 +25,7 @@ Die freie 30-Minuten-Vertiefung nach inhaltlichem Ziel: (1) Recherche & Fakten-S
 _Avoid_: Wahl-Missionen, Bonus-Aufgaben, Track A, Track B
 
 **Transfer-Brücke**:
-Der abschließende 4-Rollen-Übersetzer (Kunden & Projekte, Fachkonzept & Daten, Betrieb & Datenbanken, Entwicklung & Architektur), der die Workshop-Muster auf typische CCF-Alltagssituationen ohne vertrauliche Daten überträgt.
+Der abschließende 5-Rollen-Übersetzer (Office Management/Orga, Kunden & Projekte, Fachkonzept & Daten, Betrieb & Datenbanken, Entwicklung & Architektur), der die Workshop-Muster auf typische Arbeitsalltags-Situationen ohne vertrauliche Daten überträgt.
 _Avoid_: Rollen-Track, Zielgruppen-Spaltung
 
 ### Werkzeuge & Wissen

@@ -1,0 +1,756 @@
+{
+  "id": "context-engineering-projekt",
+  "source": "declarative",
+  "isDefault": false,
+  "level": "L2",
+  "badge": "Praxis · Synthetisches Projekt",
+  "title": "Context Engineering · Projekt & Betrieb",
+  "subtitle": "Eigene Leitplanken, Skills & vernetzter Projekt-Vault an 10 synthetischen Dokumenten (Kernbank 2026)",
+  "domainLabel": "Projekt, SLA & Governance",
+  "mcpSupported": true,
+  "durationPresets": [30, 60, 90],
+  "tags": ["Level 2", "AGENTS.md", "Skills", "Runbooks", "RFP", "RTO/RPO"],
+  "eventOverlay": {
+    "unitLabel": "Praxis-Lab",
+    "timeSlot": "Flexibel (30 / 60 / 90 Min.)",
+    "outroBanner": "Bereit für eigene anonymisierte Projekt-Ordner & Runbooks",
+    "organizerNote": "L2 Vertiefung"
+  },
+  "audioScriptsFile": "audio-scripts.json",
+  "taxonomy": {
+    "groupFieldLabel": "Projektbereich",
+    "defaultSelectedSlug": "runbook-zahlungslauf",
+    "walkLabel": "Frage 2 · Risiko- & Zahlungslauf-Kette",
+    "categories": [
+      {
+        "id": "dokument",
+        "label": "Dokument",
+        "plural": "Dokumente",
+        "subdir": "dokumente",
+        "color": "#A9C23F",
+        "radius": 10
+      },
+      {
+        "id": "entscheidung",
+        "label": "Entscheidung",
+        "plural": "Entscheidungen",
+        "subdir": "entscheidungen",
+        "color": "#34D399",
+        "radius": 8
+      },
+      {
+        "id": "runbook",
+        "label": "Runbook",
+        "plural": "Runbooks",
+        "subdir": "runbooks",
+        "color": "#CBD5C0",
+        "radius": 6.5
+      }
+    ],
+    "graphAnchors": {
+      "Planung & Scope": [0.25, 0.28],
+      "Betrieb & SLA": [0.76, 0.28],
+      "Architektur & Governance": [0.50, 0.76]
+    },
+    "ragWalkSteps": [
+      {
+        "slug": "sla-betriebsmodell",
+        "note": "Start · [[sla-betriebsmodell]]: RTO 4 Std., RPO 15 Min., Eskalation ab 30 Min."
+      },
+      {
+        "slug": "runbook-zahlungslauf",
+        "note": "Sprung 1/5 · [[runbook-zahlungslauf]]: SEPA-Batch 22:00 Uhr, erst replay_outbox --dry-run"
+      },
+      {
+        "slug": "architektur-entscheidung-01",
+        "note": "Sprung 2/5 · [[architektur-entscheidung-01]]: Transactional Outbox Pattern"
+      },
+      {
+        "slug": "risikoregister-q3",
+        "note": "Sprung 3/5 · [[risikoregister-q3]]: R-01 Lastspitzen, R-02 Schwelle 5.000 Events"
+      },
+      {
+        "slug": "datenschutz-leitlinie",
+        "note": "Sprung 4/5 · [[datenschutz-leitlinie]]: Keine Echtdaten, 12 Monate Audit-Log"
+      },
+      {
+        "slug": "migrationsplan-phase1",
+        "note": "Sprung 5/5 · [[migrationsplan-phase1]]: 14 Tage Dual-Write vor Go-Live 15.10.2026"
+      }
+    ]
+  },
+  "guardrailDebugChallenge": {
+    "title": "Mini-Debug (2 Min.): Mache die Projekt-Regel prüfsicher!",
+    "subtitle": "Diese Projekt-Anweisung reicht im Ausschreibungs- & SLA-Alltag noch NICHT. Welche 2 Leitplanken fehlen?",
+    "brokenRule": "1. Fasse alle Projektunterlagen klar auf Deutsch zusammen.\n2. Nutze eine Management-taugliche Sprache.",
+    "options": [
+      {
+        "id": "opt-grounding",
+        "text": "Verwende ausschließlich Zahlen, Fristen und Rollen aus den vorliegenden Projekt-Dateien — nichts aus Branchenwissen ergänzen.",
+        "isCorrect": true,
+        "reason": "Verhindert, dass das Modell z. B. erfundene Vertragsstrafen oder Standard-Cloud-Anbieter hinzudichtet."
+      },
+      {
+        "id": "opt-cite-missing",
+        "text": "Belege jede Angabe mit (datei.md) und markiere fehlende Fakten zwingend mit „[Nicht in Quelle]“.",
+        "isCorrect": true,
+        "reason": "Macht Budget-, SLA- und Risikoaussagen sofort auditierbar."
+      },
+      {
+        "id": "opt-tone",
+        "text": "Füge immer eine optimistische Zukunftsprognose für Q4 hinzu.",
+        "isCorrect": false,
+        "reason": "Spekulative Prognosen untergraben die faktenbasierte Entscheidungsvorlage."
+      },
+      {
+        "id": "opt-length",
+        "text": "Schreibe immer mindestens 800 Wörter pro Antwort.",
+        "isCorrect": false,
+        "reason": "Textlänge erzeugt noch keine Quellenbindung."
+      }
+    ],
+    "fixedRule": "1. Fasse Projektunterlagen klar und Management-tauglich zusammen.\n2. Verwende ausschließlich Zahlen, Fristen und Rollen aus den vorliegenden Dateien — kein Vorwissen ergänzen.\n3. Belege jede Angabe mit (datei.md) und markiere Lücken zwingend mit „[Nicht in Quelle]“."
+  },
+  "labPresets": {
+    "defaultQuery": "SEPA Batch Outbox Zahlungslauf",
+    "searchPresets": [
+      "SEPA Zahlungslauf Runbook",
+      "RTO RPO Betriebsmodell",
+      "Dual-Write Migration Go-Live",
+      "Datenschutz Echtdaten Audit",
+      "Krypto-Wallet Vertragsstrafe"
+    ],
+    "verifyDefaultClaim": "Der nächtliche SEPA-Zahlungslauf startet um 22:00 Uhr und eskaliert bei über 30 Minuten Störung an den Incident-Lead.",
+    "verifyTrapClaim": "Für das Modul Krypto-Wallet wurde eine Vertragsstrafe von 50.000 Euro vereinbart."
+  },
+  "stagePackSpecs": {
+    "packs": [
+      {
+        "id": "ops",
+        "filename": "betrieb-sla-runbook.md",
+        "title": "Paket Betrieb & SLA (5 Dateien)",
+        "subtitle": "Für Frage 1 (RTO/RPO) & Frage 4",
+        "slugs": ["sla-betriebsmodell", "runbook-zahlungslauf", "team-rollen-raci", "architektur-entscheidung-01", "datenschutz-leitlinie"]
+      },
+      {
+        "id": "plan",
+        "filename": "planung-risiken-migration.md",
+        "title": "Paket Planung & Risiken (5 Dateien)",
+        "subtitle": "Für Budget-, Risiko- & Migrationsfragen",
+        "slugs": ["rfp-kernbank-2026", "meeting-notiz-kickoff", "risikoregister-q3", "migrationsplan-phase1", "glossar-fachbegriffe"]
+      }
+    ]
+  },
+  "meta": {
+    "cluster": "Praxis-Lab · Projektalltag",
+    "presenter": "Trainer-Team",
+    "timeSlot": "Flexibel (30 / 60 / 90 Min.)",
+    "complianceNote": "100 % synthetische Beispieldaten (fiktive Nordstern Bank AG · keine echten Kunden- oder Personendaten).",
+    "pagesUrl": "https://etroxtaran.github.io/CCF-ai-workshop/#/m/context-engineering-projekt",
+    "repoUrl": "https://github.com/EtroxTaran/CCF-ai-workshop"
+  },
+  "chatRulesTemplate": "VERBINDLICHE PROJEKT-REGELN (für diesen gesamten Chat):\n1. Nutze ausschließlich Informationen aus den bereitgestellten Projektdateien.\n2. Ergänze KEIN externes Branchenwissen und erfinde keine Fristen, Budgets oder Vertragsstrafen.\n3. Belege jede Zahl und Aussage mit dem Dateinamen in Klammern, z. B. (sla-betriebsmodell.md).\n4. Steht etwas nicht im Text, antworte zwingend mit: „[Nicht in Quelle] – diese Information ist in den Projektunterlagen nicht enthalten.“",
+  "promptComparisonTask": "Welche konkreten Risiken, Betriebsziele (RTO/RPO) und Schutzmaßnahmen gelten laut den Unterlagen von Kernbank 2026 für den Zahlungslauf und die Migration?",
+  "promptMethods": [
+    {
+      "id": "zero-shot",
+      "name": "1 · Zero-Shot (Roh-Prompt)",
+      "badge": "Baseline",
+      "bestFor": "Erste grobe Orientierung ohne Nachweispflicht",
+      "strength": "Minimaler Tippaufwand (1 Satz)",
+      "risk": "Vermischt Projektzahlen oft mit allgemeinem Bank-IT-Wissen und lässt exakte Quellen weg.",
+      "components": ["Aufgabe (1 Satz)"],
+      "prompt": "Erkläre die Risiken und Anforderungen für Zahlungslauf und Migration im Projekt Kernbank 2026.",
+      "unstructuredComparison": {
+        "label": "Typische Roh-Antwort",
+        "excerpt": "„Bei Bankmigrationen sind Backups, kurze Ausfallzeiten und gute Kommunikation wichtig. Für SEPA-Läufe sollte es abends Kontrollen geben…“",
+        "issues": ["Nennt weder 4h RTO noch 15m RPO noch R-01/R-02", "Keine (datei.md)-Quellen", "Unklar, was aus den Dokumenten vs. Vorwissen stammt"]
+      },
+      "structuredComparison": {
+        "label": "Fehlende Ziel-Struktur",
+        "excerpt": "Ohne Format- und Quellenvorgabe liefert das Modell einen allgemeinen Fließtext statt prüfbarer Risiko-Fakten.",
+        "highlights": ["0 konkrete Kennzahlen", "0 Datei-Belege"],
+        "formatTag": "Fließtext ohne Belege"
+      },
+      "expectedSnippet": "Allgemeiner Überblick ohne exakte RTO/RPO-Zahlen und ohne Dateibelege."
+    },
+    {
+      "id": "costar",
+      "name": "2 · CO-STAR (Projekt-Briefing)",
+      "badge": "Management",
+      "bestFor": "Lenkungsausschuss, Statusberichte & Kundentermine",
+      "strength": "Erzwingt klaren Scope, Ton und Quellenangabe pro Punkt",
+      "risk": "Benötigt 6 klare Zeilen am Anfang des Auftrags",
+      "components": ["Context", "Objective", "Style", "Tone", "Audience", "Response"],
+      "prompt": "Context: Vorbereitung eines Lenkungsausschusses für das fiktive Projekt Kernbank 2026 anhand der bereitgestellten Projektdateien.\nObjective: Fasse Betriebsziele (RTO/RPO), die wichtigsten Risiken und Schutzmaßnahmen für Zahlungslauf & Migration zusammen.\nStyle: Kompaktes Executive-Memo.\nTone: Nüchtern, präzise, entscheidungsorientiert.\nAudience: Projektleitung und Betriebsverantwortliche.\nResponse: Maximal 5 Bulletpoints; hinter jedem Fakt exakt die Quelle in Klammern, z. B. (sla-betriebsmodell.md). Fehlende Angaben mit „[Nicht in Quelle]“ markieren.",
+      "unstructuredComparison": {
+        "label": "Ohne CO-STAR",
+        "excerpt": "„Die Migration birgt operative Risiken und erfordert stabile SLA-Werte sowie gute Tests im Vorfeld.“",
+        "issues": ["Zu unkonkret für Entscheidungen", "Keine Fristen oder Schwellenwerte"]
+      },
+      "structuredComparison": {
+        "label": "Mit CO-STAR",
+        "excerpt": "• RTO 4 Std. / RPO 15 Min., Eskalation nach 30 Min. (sla-betriebsmodell.md)\n• R-01: SEPA-Batch 22:00 Uhr mit Lasttest & 14 Tage Dual-Write bis 15.10.2026 (risikoregister-q3.md, migrationsplan-phase1.md)\n• R-02: Outbox-Alarm ab 5.000 Events + Dry-Run-Replay (architektur-entscheidung-01.md, runbook-zahlungslauf.md)",
+        "highlights": ["Exakte Zahlen (4h, 15m, 30m, 5.000)", "Jeder Punkt mit (datei.md)"],
+        "formatTag": "Executive-Memo mit Quellen"
+      },
+      "expectedSnippet": "Kompakte Bulletpoints mit RTO/RPO, Go-Live 15.10.2026 und exakten Dateinamen."
+    },
+    {
+      "id": "few-shot",
+      "name": "3 · Few-Shot (Risiko-Schema)",
+      "badge": "Tabellen & BA",
+      "bestFor": "Einheitliche Risiko-, Anforderungs- und Audit-Tabellen",
+      "strength": "Zwei Beispiele legen Spalten und Detailtiefe exakt fest",
+      "risk": "Schema muss zum Dokumenttyp passen",
+      "components": ["Aufgabe", "Beispiel 1", "Beispiel 2", "Ziel-Zeilen"],
+      "prompt": "Extrahiere Vorgaben und Risiken ausschließlich im Schema der beiden Beispiele.\n\nBeispiel 1:\nBereich: Budget & Scope | Kennzahl / Grenze: Maximalbudget 1,8 Mio. EUR, ohne Endkunden-Apps | Verantwortlich: M. Berger | Quelle: rfp-kernbank-2026.md\n\nBeispiel 2:\nBereich: Datenschutz & Audit | Kennzahl / Grenze: 0 Echtdaten in Tests, 12 Monate Audit-Protokoll | Verantwortlich: S. Kramer | Quelle: datenschutz-leitlinie.md\n\nAufgabe: Erstelle genau solche Zeilen für „Betrieb & SLA Zahlungslauf“, „Outbox-Architektur“ und „Migration Phase 1“.",
+      "unstructuredComparison": {
+        "label": "Ohne Beispiele",
+        "excerpt": "Frei formulierte Absätze mit wechselnder Struktur pro Thema.",
+        "issues": ["Nicht direkt in Jira/Excel übernehmbar"]
+      },
+      "structuredComparison": {
+        "label": "Mit Few-Shot Schema",
+        "excerpt": "Bereich: Betrieb & SLA Zahlungslauf | Kennzahl / Grenze: 4 Std. RTO, 15 Min. RPO, Eskalation ab 30 Min. | Verantwortlich: K. Lindner | Quelle: sla-betriebsmodell.md\nBereich: Outbox-Architektur | Kennzahl / Grenze: Alarm ab 5.000 offenen Events | Verantwortlich: T. Yilmaz | Quelle: risikoregister-q3.md",
+        "highlights": ["100 % einheitliche Spalten", "RACI direkt zugeordnet"],
+        "formatTag": "Tabellen-Schema"
+      },
+      "expectedSnippet": "Dreispaltige Extraktion mit Kennzahlen, RACI-Person und Quelle."
+    },
+    {
+      "id": "risen-cot",
+      "name": "4 · RISEN + CoT (Audit-Analyse)",
+      "badge": "Prüf-Workflow",
+      "bestFor": "Abnahme-Checks, Runbook-Audits & Widerspruchssuche",
+      "strength": "Prüft erst Querverweise, dann Zahlenwerte gegen alle Quellen",
+      "risk": "Etwas längerer Aufbau",
+      "components": ["Role", "Instructions", "Steps", "End Goal", "Narrowing"],
+      "prompt": "Role: Du bist ein streng quellenbasierter Audit-Analyst.\nInstructions: Prüfe Konsistenz und Übergaben zwischen SLA, Runbook, Architektur und Migration von Kernbank 2026.\nSteps:\n1. Prüfe zuerst, welche Werte in sla-betriebsmodell.md und runbook-zahlungslauf.md zu RTO, RPO und Eskalation stehen.\n2. Gleiche Schwellenwerte mit risikoregister-q3.md und migrationsplan-phase1.md ab.\n3. Erstelle eine Prüf-Checkliste mit Status und Dateinamen.\nEnd Goal: Eine fehlerfreie Abnahme-Checkliste ohne Spekulation.\nNarrowing: Kein externes Vorwissen. Fehlende Angaben mit „[Nicht in Quelle]“ markieren.",
+      "unstructuredComparison": {
+        "label": "Ohne Schritt-für-Schritt",
+        "excerpt": "Oberflächliches Fazit ohne Abgleich von Schwellenwerten über Dateien hinweg.",
+        "issues": ["Übersieht Querverbindungen zwischen Outbox-Schwelle und Runbook"]
+      },
+      "structuredComparison": {
+        "label": "Mit RISEN + CoT",
+        "excerpt": "1. SLA/Runbook konsistent: 22:00 Batch, 4h RTO, 15m RPO, 30m Eskalation (sla-betriebsmodell.md, runbook-zahlungslauf.md).\n2. Outbox-Alarm 5.000 Events & dry-run Replay abgedeckt (risikoregister-q3.md).\n3. Rollback bis 04:00 Uhr nach 14 Tagen Dual-Write (migrationsplan-phase1.md).",
+        "highlights": ["Schrittweiser Querabgleich", "Lücken explizit ausgewiesen"],
+        "formatTag": "Audit-Checkliste"
+      },
+      "expectedSnippet": "Verknüpfte Abnahme-Checkliste über 5 Projektdateien hinweg."
+    }
+  ],
+  "testQuestions": [
+    {
+      "id": "q1",
+      "number": 1,
+      "type": "Detailfrage (1–2 Dateien)",
+      "question": "Welche Werte für RTO, RPO und Eskalationszeit gelten laut SLA für den Zahlungslauf — und was ist der erste technische Prüfschritt im Runbook vor einem Neustart?",
+      "targetDocs": ["sla-betriebsmodell.md", "runbook-zahlungslauf.md"],
+      "whatToWatch": "Nennt die KI exakt 4 Stunden RTO, 15 Minuten RPO, Eskalation nach 30 Minuten sowie `replay_outbox --dry-run` mit Dateiname?",
+      "solutionSummary": "RTO: 4 Stunden, RPO: 15 Minuten, Eskalation ab 30 Minuten an Betriebsleitung / Incident-Lead (sla-betriebsmodell.md). Im Runbook erst `replay_outbox --dry-run` ausführen, keinen blinden Neustart (runbook-zahlungslauf.md).",
+      "focusStages": ["stufe-1", "stufe-2"]
+    },
+    {
+      "id": "q2",
+      "number": 2,
+      "type": "Querverbindung (4+ Dateien)",
+      "question": "Wie greifen Transactional Outbox, Schwellenwert-Alarm, Datenschutz-Leitlinie und Dual-Write-Phase rund um den Go-Live am 15. Oktober 2026 ineinander?",
+      "targetDocs": ["architektur-entscheidung-01.md", "risikoregister-q3.md", "datenschutz-leitlinie.md", "migrationsplan-phase1.md"],
+      "whatToWatch": "Verbindet die Antwort das Pattern (Outbox) mit der 5.000-Events-Schwelle, Vorgangs-IDs/Hashwerten ohne IBAN und der 14-tägigen Dual-Write-Phase?",
+      "solutionSummary": "Outbox sichert Buchungsevents ab (architektur-entscheidung-01.md), Alarm greift ab 5.000 offenen Events (risikoregister-q3.md), Payloads tragen nur Vorgangs-IDs & Hashwerte + 12 Monate Audit-Log (datenschutz-leitlinie.md), Cutover folgt 14 Tagen Dual-Write mit Rollback bis 04:00 Uhr (migrationsplan-phase1.md).",
+      "focusStages": ["stufe-3"]
+    },
+    {
+      "id": "q3",
+      "number": 3,
+      "type": "Fangfrage / Negativtest (0 Treffer!)",
+      "question": "Wie hoch ist die vereinbarte Vertragsstrafe in Euro für das Modul ‚Krypto-Wallet‘ und welcher externe Cloud-Anbieter wurde dafür gewählt?",
+      "targetDocs": [],
+      "isTrap": true,
+      "whatToWatch": "In Stufe 1 rät die KI oft typische SLA-Vertragsstrafen oder bekannte Cloud-Provider hinzu. Ab Stufe 2 muss sie klar mit `[Nicht in Quelle]` ablehnen!",
+      "solutionSummary": "0 Treffer in allen 10 Dokumenten: Weder `Krypto-Wallet`, `Vertragsstrafe` noch ein Cloud-Anbieter kommen im Projekt vor. Erwartet ab Stufe 2: Klare Verweigerung `[Nicht in Quelle]`.",
+      "focusStages": ["stufe-1", "stufe-2", "stufe-3"]
+    },
+    {
+      "id": "q4",
+      "number": 4,
+      "type": "Steuerungs-Check (RTO 4h → 2h)",
+      "question": "Kontext-Priorisierung (sla-betriebsmodell.md): Wie hoch ist das verbindliche RTO-Ziel für den Zahlungsverkehr laut dem aktuell vorliegenden Dokument?",
+      "targetDocs": ["sla-betriebsmodell.md"],
+      "whatToWatch": "Folgt die KI bei einer Änderung von `4 Stunden` auf `2 Stunden` strikt der Datei statt früheren Chat-Nachrichten?",
+      "solutionSummary": "Bei Test-Änderung `RTO: 2 Stunden` muss die KI unter Stufe 2/3 exakt `2 Stunden (sla-betriebsmodell.md)` melden.",
+      "focusStages": ["stufe-2"],
+      "webChatPrompt": "AUFGABE: Nutze ausschließlich den folgenden aktualisierten Auszug aus sla-betriebsmodell.md (keine Annahmen von vorhin übernehmen).\n\n=== sla-betriebsmodell.md (TEST-VERSION) ===\n- RTO (Recovery Time Objective): 2 Stunden maximaler Wiederanlaufzeit bei Ausfall des Zahlungs-Gateways.\n- RPO (Recovery Point Objective): 15 Minuten maximaler Datenverlust im Fehlerfall.\n[Quelle: sla-betriebsmodell.md]\n\nFRAGE: Wie hoch ist das aktuelle RTO-Ziel laut dem vorliegenden Dokument?",
+      "webChatWatch": "Antwortet der Chat sauber `2 Stunden (sla-betriebsmodell.md)` statt sich an `4 Stunden` festzuklammern?",
+      "webChatSolution": "Erwartet: „Laut dem vorliegenden Dokument beträgt das RTO-Ziel 2 Stunden (sla-betriebsmodell.md).“",
+      "manipulationCheck": {
+        "targetFile": "sla-betriebsmodell.md",
+        "originalValue": "4 Stunden",
+        "mutatedValue": "2 Stunden",
+        "expectedCitation": "(sla-betriebsmodell.md)",
+        "excerptTemplate": "„RTO (Recovery Time Objective): {{VALUE}} maximaler Wiederanlaufzeit bei Ausfall des Zahlungs-Gateways.“"
+      }
+    }
+  ],
+  "stages": [
+    {
+      "id": "stufe-1",
+      "folder": "modules/context-engineering-projekt/corpus",
+      "title": "Stufe 1 · Lose Projektdateien (ohne Leitplanken)",
+      "badge": "Baseline · Ungeregelt",
+      "beginnerBadge": "Ohne Regeln",
+      "summary": "10 Projektdateien ohne AGENTS.md oder Skills — die KI mischt eigene Vermutungen hinein.",
+      "beginnerSummary": "Nur Rohtexte ohne Hausregeln — hohes Risiko bei fehlenden Klauseln.",
+      "agentsMd": "# Projekt-Notiz (Minimal)\n\nBeantworte Fragen zum Projekt Kernbank 2026 anhand des Ordners.",
+      "focusQuestionIds": ["q3", "q1"],
+      "sourceTags": ["rfp-kernbank-2026.md", "sla-betriebsmodell.md", "runbook-zahlungslauf.md", "risikoregister-q3.md"]
+    },
+    {
+      "id": "stufe-2",
+      "folder": "modules/context-engineering-projekt",
+      "title": "Stufe 2 · Klare Leitplanken & Projekt-Skills",
+      "badge": "AGENTS.md + 2 Skills",
+      "beginnerBadge": "Mit Hausregeln",
+      "summary": "Verbindliche Quellenpflicht, Lücken-Markierung [Nicht in Quelle] und die Skills `rfp-risiko-pruefer` + `runbook-check`.",
+      "beginnerSummary": "Feste Projektregeln verhindern erfundene Vertragsstrafen und erzwingen Datei-Belege.",
+      "agentsMd": "# Projekt-Leitplanken · Kernbank 2026\n\n1. Nutze ausschließlich Informationen aus den Projekt-Dateien (keine Ergänzung aus allgemeinem Bankwissen).\n2. Belege jede Zahl, Frist und Rolle exakt mit (datei.md).\n3. Fehlt ein Thema (z. B. unerwähnte Module oder Vertragsstrafen), antworte zwingend mit „[Nicht in Quelle]“.\n4. Nutze die Skills `rfp-risiko-pruefer` und `runbook-check`.",
+      "focusQuestionIds": ["q3", "q4"],
+      "sourceTags": ["sla-betriebsmodell.md", "runbook-zahlungslauf.md", "datenschutz-leitlinie.md", "team-rollen-raci.md"]
+    },
+    {
+      "id": "stufe-3",
+      "folder": "modules/context-engineering-projekt/corpus",
+      "title": "Stufe 3 · Vernetzter Projekt-Vault (_index.md & [[Wikilinks]])",
+      "badge": "Inhaltsverzeichnis + Graph",
+      "beginnerBadge": "Vernetztes Wissen",
+      "summary": "Über `_index.md` und echte Querverweise zwischen ADR, Runbook, RACI und Migrationsplan gezielt navigieren.",
+      "beginnerSummary": "Mit zentralem Inhaltsverzeichnis und Querverweisen zwischen allen Dokumenten.",
+      "agentsMd": "# Projekt-Vault · Kernbank 2026 (Stufe 3)\n\n1. Starte komplexe Fragen immer mit `_index.md` und folge gezielt den relevanten `[[Wikilinks]]`.\n2. Nutze für präzise Suchen im Code-Agent das MCP-Tool `search_vault` bzw. `verify_claim`.\n3. Belege jede Aussage mit `(datei.md)` und weise Lücken offen als `[Nicht in Quelle]` aus.",
+      "focusQuestionIds": ["q2", "q3"],
+      "sourceTags": ["architektur-entscheidung-01.md", "risikoregister-q3.md", "migrationsplan-phase1.md", "datenschutz-leitlinie.md"]
+    }
+  ],
+  "praxisPaths": [
+    {
+      "id": "pfad-recherche",
+      "number": 1,
+      "title": "Praxis-Pfad 1 · SLA- & Risiko-Faktencheck",
+      "tag": "Audit · Querverbindungen · MCP",
+      "durationMin": 30,
+      "bestForRoles": ["Projektleitung", "Betrieb & SLA", "Business Analyse"],
+      "description": "Prüfe Übergaben zwischen Ausschreibung, Architektur, Runbook und Datenschutz — inkl. In-Browser Faktenprüfer über alle 10 Dokumente.",
+      "includesInBrowserLab": true,
+      "promptsByMode": {
+        "web": {
+          "label": "Audit-Prompt kopieren",
+          "prompt": "Role: Strenger Projekt-Auditor für Kernbank 2026.\nAufgabe: Prüfe, ob das Runbook (runbook-zahlungslauf.md), das SLA (sla-betriebsmodell.md) und das Risikoregister (risikoregister-q3.md) zusammenpassen. Liste:\n1. Alle exakten Zeit-/Schwellenwerte (Batch-Start, RTO, RPO, Eskalation, Outbox-Alarm) mit Quelle (datei.md).\n2. Eventuelle Lücken zu Vertragsstrafen oder Cloud-Providern als „[Nicht in Quelle]“.",
+          "deliverableHint": "Geprüfte Abnahme-Matrix inkl. Quellenbelegen und offener Lückenliste."
+        },
+        "desktop": {
+          "label": "Ordner-Audit-Auftrag kopieren",
+          "prompt": "Lies im entpackten Projektordner `modules/context-engineering-projekt/` zuerst `_index.md` und prüfe danach anhand von `skills/runbook-check/SKILL.md` die Konsistenz zwischen SLA, Runbook und Migrationsplan.",
+          "deliverableHint": "Konsistenzbericht mit konkreten Datei-Querverweisen."
+        },
+        "agent": {
+          "label": "CLI + MCP Audit-Auftrag kopieren",
+          "prompt": "Nutze die MCP-Tools `search_vault` und `verify_claim` für Modul `context-engineering-projekt`, prüfe R-01/R-02 gegen `sla-betriebsmodell.md` und erstelle eine Prüfcheckliste.",
+          "deliverableHint": "Tool-gestütztes Projekt-Audit mit verifizierten Belegen."
+        }
+      }
+    },
+    {
+      "id": "pfad-praesentation",
+      "number": 2,
+      "title": "Praxis-Pfad 2 · Lenkungsausschuss-Briefing",
+      "tag": "Artifacts · Canvas · Management-Folie",
+      "durationMin": 30,
+      "bestForRoles": ["Account Management", "PMO", "Office Management"],
+      "description": "Erstelle aus den Projektunterlagen ein kompaktes Management-Briefing mit Ampelstatus, Meilensteinen und ehrlicher Lückenliste.",
+      "promptsByMode": {
+        "web": {
+          "label": "Briefing-Prompt kopieren",
+          "prompt": "Erstelle in Claude Artifacts oder ChatGPT Canvas eine einseitige Management-Übersicht (klares, helles HTML) für den fiktiven Lenkungsausschuss „Kernbank 2026“:\n- Budget (1,8 Mio. EUR) & Go-Live (15.10.2026)\n- SLA-Kennzahlen (RTO/RPO) & Top-3-Risiken (R-01..R-03)\n- RACI-Kurzübersicht\n- Pflicht-Kasten „Offene Punkte / [Nicht in Quelle]“\nNutze ausschließlich die beigefügten Projektdateien.",
+          "deliverableHint": "Vorzeigbare HTML-Übersicht direkt in Artifacts oder Canvas."
+        },
+        "desktop": {
+          "label": "Projekt-Briefing-Auftrag kopieren",
+          "prompt": "Erstelle aus `modules/context-engineering-projekt/corpus/` ein 5-Punkte-Management-Briefing für das Kick-off-Follow-up mit RACI und exakten Dateinamen.",
+          "deliverableHint": "Strukturiertes Management-Dokument."
+        },
+        "agent": {
+          "label": "HTML-Briefing in sandbox/ kopieren",
+          "prompt": "Erzeuge in `sandbox/kernbank-briefing.html` eine eigenständige helle Management-Statusseite aus `modules/context-engineering-projekt/corpus/` mit belegten Zahlen und [Nicht in Quelle]-Bereich.",
+          "deliverableHint": "Lokale HTML-Seite unter `sandbox/`."
+        }
+      }
+    },
+    {
+      "id": "pfad-app",
+      "number": 3,
+      "title": "Praxis-Pfad 3 · Interaktive Runbook-Checkliste",
+      "tag": "Mini-App · Eskalations-Guide",
+      "durationMin": 30,
+      "bestForRoles": ["Betrieb", "Entwicklung", "QA & Release"],
+      "description": "Baue eine kleine interaktive Störfall-Checkliste für das 22:00-Uhr-SEPA-Fenster auf Basis von SLA, Runbook und RACI.",
+      "promptsByMode": {
+        "web": {
+          "label": "Mini-App-Prompt kopieren",
+          "prompt": "Baue eine kleine interaktive Single-File-HTML-App in Artifacts/Canvas: „SEPA-Zahlungslauf Störungs-Guide (Kernbank 2026)“.\nFunktionen:\n1. Interaktiver Minuten-Zähler / Slider (0–240 Min.): zeigt automatisch ab 30 Min. Eskalation an K. Lindner und warnt vor dem 4h-RTO-Limit.\n2. Abhakbare Schritte aus runbook-zahlungslauf.md (`replay_outbox --dry-run` vor Neustart, 5.000-Event-Schwelle).\n3. Quellen-Footer mit exakten Dateinamen.",
+          "deliverableHint": "Klickbare Betriebshilfe direkt in Artifacts/Canvas."
+        },
+        "desktop": {
+          "label": "Desktop Checklisten-Auftrag kopieren",
+          "prompt": "Entwirf anhand von `sla-betriebsmodell.md`, `runbook-zahlungslauf.md` und `team-rollen-raci.md` eine schrittweise Störungs-Checkliste als HTML-Werkzeug.",
+          "deliverableHint": "Lauffähige Operator-Checkliste."
+        },
+        "agent": {
+          "label": "CLI Checklisten-App in sandbox/ kopieren",
+          "prompt": "Erstelle unter `sandbox/sepa-checklist.html` eine getestete Single-File-HTML-Checkliste auf Basis der Dateien in `modules/context-engineering-projekt/corpus/`.",
+          "deliverableHint": "Getestete HTML-Checkliste in `sandbox/`."
+        }
+      }
+    }
+  ],
+  "transferBridge": [
+    {
+      "id": "office-orga",
+      "title": "0 · Office Management, PMO & Assistenz",
+      "roles": "PMO, Assistenz, Termin- & Meeting-Orga",
+      "workshopPattern": "Meeting-Notiz → Protokoll + Offene-Punkte-Guardrail",
+      "ccfUseCase": "Aus Meeting-Notizen sofort verbindliche Beschlüsse, Verantwortliche und Follow-up-Mails ziehen, ohne neue Zusagen zu erfinden.",
+      "guardrailRule": "Fehlt in den Notizen ein Termin oder Owner, zwingend „[Noch klären]“ ausgeben.",
+      "starterPrompt": "Erstelle aus den folgenden Meeting-Stichpunkten ein kurzes Beschlussprotokoll und eine freundliche Follow-up-Mail. Erfinde keine Termine oder Zuständigkeiten; markiere Lücken als „[Noch klären]“.\n\n[Eigene, öffentliche oder anonymisierte Notizen einfügen]"
+    },
+    {
+      "id": "projektleitung",
+      "title": "1 · Projektleitung & Account",
+      "roles": "Projektleitung, Account Management, Delivery",
+      "workshopPattern": "CO-STAR Briefing über RFP + Risikoregister",
+      "ccfUseCase": "Saubere Management-Statusberichte, Budget-/Scope-Abgrenzung und Risiko-Ampeln mit belegten Dokumentstellen.",
+      "guardrailRule": "Nicht-Ziele aus dem RFP immer aktiv abgrenzen; jede Zahl mit Quelldatei belegen.",
+      "starterPrompt": "Fasse Budget, Go-Live-Datum, Nicht-Ziele und Top-3-Risiken in max. 5 Bulletpoints zusammen. Belege jeden Punkt mit (Dokumentname); markiere Lücken mit „[Nicht in Quelle]“."
+    },
+    {
+      "id": "ba-fachkonzept",
+      "title": "2 · Fachkonzept & Business Analyse",
+      "roles": "Business Analyst:innen, Product Owner, Fachbereich",
+      "workshopPattern": "Few-Shot Tabellen-Schema + Glossar-Verknüpfung",
+      "ccfUseCase": "Fachbegriffe, Abnahmekriterien und RACI-Verantwortlichkeiten über verstreute Protokolle und Konzepte harmonisieren.",
+      "guardrailRule": "Begriffe strikt am Projekt-Glossar ausrichten; Abweichungen sofort markieren.",
+      "starterPrompt": "Prüfe folgende Anforderungen gegen unser Glossar und gib nur Abweichungen im Schema „Begriff | Ist-Text | Glossar-Vorgabe | Quelle“ aus."
+    },
+    {
+      "id": "betrieb-runbooks",
+      "title": "3 · Betrieb, SLA & Support",
+      "roles": "IT-Betrieb, SRE, Incident-Management",
+      "workshopPattern": "Kontext-Priorisierung (lokales Runbook schlägt Bauchgefühl)",
+      "ccfUseCase": "Runbook-Prüfungen, Eskalationsleitfäden und Rollback-Checklisten passend zum konkreten System-SLA.",
+      "guardrailRule": "Niemals allgemeine Internet-Tipps vor die dokumentierten Runbook-Befehle setzen.",
+      "starterPrompt": "Prüfe anhand unseres Runbooks und SLAs die ersten 4 Schritte im Störfall inklusive Eskalationszeit und exakter Quelle. Fehlt ein Rollback-Schritt: „[Nicht in Quelle]“."
+    },
+    {
+      "id": "architektur-dev",
+      "title": "4 · Entwicklung & Architektur",
+      "roles": "Software Engineering, Solution Architecture",
+      "workshopPattern": "ADR + AGENTS.md + schmale MCP-Tools",
+      "ccfUseCase": "Wiederkehrende Architektur-Leitplanken, ADR-Verknüpfungen (`[[Wikilinks]]`) und automatisierte Qualitäts-Checks im Repo.",
+      "guardrailRule": "Regeln in `AGENTS.md` knapp halten und Detailwissen in eigene Skills + einen klaren Vault-Index auslagern.",
+      "starterPrompt": "Prüfe unseren neuen Code-Entwurf gegen unsere ADR-Leitplanken und nenne nur konkrete Verstöße mit exakter ADR-Nummer oder „Kein Verstoß in ADR belegt“."
+    }
+  ],
+  "animatics": {
+    "heroBeforeAfter": {
+      "trapQuestion": "„Vertragsstrafe & Cloud-Anbieter für Krypto-Wallet?“",
+      "unfilteredLabel": "Ohne Regeln · Rät Zahlen dazu",
+      "unfilteredAnswer": "„Die Vertragsstrafe beträgt ca. 2 % pro Woche bei AWS…“",
+      "unfilteredTag": "Erfunden · 0 Treffer im Projekt",
+      "guardedLabel": "Mit Regeln & Projekt-Index",
+      "guardedAnswer": "[Nicht in Quelle] — Krypto-Wallet existiert nicht in den 10 Dateien.",
+      "guardedTag": "100 % ehrlich · geprüft",
+      "factsAnswer": "RTO: 4 Std. · RPO: 15 Min. (sla-betriebsmodell.md)",
+      "factsTag": "Exakter Beleg"
+    },
+    "guardrailShield": {
+      "claimText": "Fangfrage: Vertragsstrafe für ‚Krypto-Wallet‘ & Cloud-Anbieter",
+      "stages": [
+        {
+          "id": "stufe-1",
+          "stageLabel": "Stufe 1 · Lose Dateien",
+          "subtitle": "Keine Schutzregeln aktiv",
+          "blocked": false,
+          "responseText": "„Vertragsstrafen liegen im Bankenbereich üblicherweise bei 1–5 %…“ (Geraten!)",
+          "badge": "Ungefiltert"
+        },
+        {
+          "id": "stufe-2",
+          "stageLabel": "Stufe 2 · Hausregeln",
+          "subtitle": "Quellenpflicht + Skills",
+          "blocked": true,
+          "responseText": "[Nicht in Quelle] — keine Angabe zu Krypto-Wallet in den Projektdateien.",
+          "badge": "Gestoppt"
+        },
+        {
+          "id": "stufe-3",
+          "stageLabel": "Stufe 3 · Projekt-Vault",
+          "subtitle": "_index.md + [[Wikilinks]]",
+          "blocked": true,
+          "responseText": "Index-Prüfung belegt 0 Treffer · gültiger Scope in (rfp-kernbank-2026.md).",
+          "badge": "Verifiziert"
+        }
+      ]
+    },
+    "contextWindow": {
+      "rawLabel": "Alle 10 Projekt-Dokumente (~14 KB)",
+      "indexLabel": "~2 KB Index (_index.md)",
+      "articleCountLabel": "10 Dateien"
+    },
+    "mcpPacket": {
+      "sampleQuery": "SEPA Zahlungslauf Runbook",
+      "sampleWikilinks": ["[[runbook-zahlungslauf]]", "[[sla-betriebsmodell]]"],
+      "searchToolName": "search_vault",
+      "verifyToolName": "verify_claim"
+    },
+    "toolHotspots": {
+      "webExampleAnswer": "• RTO: 4 Std. (sla-betriebsmodell.md) · Krypto-Wallet: [Nicht in Quelle]",
+      "desktopFolderExample": "📁 modules/context-engineering-projekt/",
+      "desktopSkillsLabel": "Skills: rfp-risiko-pruefer · runbook-check",
+      "agentTrapSample": "→ MCP Tool: verify_claim(\"Krypto-Wallet...\") → nicht_belegt"
+    },
+    "demoScenarios": {
+      "q1": {
+        "tabLabel": "Frage 1 · SLA & Runbook",
+        "label": "Frage 1 · Detailfrage (2 Dateien)",
+        "question": "Welche Werte für RTO, RPO und Eskalationszeit gelten laut SLA — und was ist der erste Schritt im Runbook?",
+        "stages": [
+          {
+            "num": "01",
+            "variant": "chaos",
+            "title": "Stufe 1 · Ohne Regeln",
+            "folder": "corpus/",
+            "statusBadge": "Vage · 0 Quellen",
+            "badgeVar": "danger",
+            "stripe": "border-t-rose-500",
+            "output": "„Man sollte bei Zahlungssystemen zügig reagieren und bei Bedarf neu starten.“",
+            "highlightNote": "Fehlt: 4h RTO, 15m RPO, 30m Eskalation & dry-run Vermerk.",
+            "isGood": false
+          },
+          {
+            "num": "02",
+            "variant": "harness",
+            "title": "Stufe 2 · Regeln & Skills",
+            "folder": "AGENTS.md",
+            "statusBadge": "Mit Quelle belegt",
+            "badgeVar": "warning",
+            "stripe": "border-t-amber-500",
+            "output": "„RTO 4 Stunden, RPO 15 Minuten, Eskalation nach 30 Minuten (sla-betriebsmodell.md). Erster Schritt: `replay_outbox --dry-run` (runbook-zahlungslauf.md).“",
+            "highlightNote": "Klare Kennzahlen mit exaktem Dateibeleg.",
+            "isGood": true
+          },
+          {
+            "num": "03",
+            "variant": "vault",
+            "title": "Stufe 3 · Projekt-Vault",
+            "folder": "_index.md",
+            "statusBadge": "Index + RACI",
+            "badgeVar": "success",
+            "stripe": "border-t-brand-lime",
+            "output": "„[[sla-betriebsmodell]] + [[runbook-zahlungslauf]] + [[team-rollen-raci]]: Eskalation ab 30 Min. an Incident-Lead K. Lindner vor 4h-RTO.“",
+            "highlightNote": "Verbindet SLA, Runbook und zuständige Person automatisch.",
+            "isGood": true
+          }
+        ]
+      },
+      "q2": {
+        "tabLabel": "Frage 2 · Querverbindung",
+        "label": "Frage 2 · Architektur + Risiko + Migration",
+        "question": "Wie greifen Outbox, 5.000-Event-Alarm, Datenschutz und Dual-Write-Phase vor dem Go-Live zusammen?",
+        "stages": [
+          {
+            "num": "01",
+            "variant": "chaos",
+            "title": "Stufe 1 · Ohne Regeln",
+            "folder": "corpus/",
+            "statusBadge": "Lückenhaft",
+            "badgeVar": "danger",
+            "stripe": "border-t-rose-500",
+            "output": "„Während der Migration werden alte und neue Daten parallel geprüft und Fehler protokolliert.“",
+            "highlightNote": "Verliert konkrete Schwellen (5.000 Events, 14 Tage, 12 Monate Log).",
+            "isGood": false
+          },
+          {
+            "num": "02",
+            "variant": "harness",
+            "title": "Stufe 2 · Regeln & Skills",
+            "folder": "AGENTS.md",
+            "statusBadge": "Belegt",
+            "badgeVar": "warning",
+            "stripe": "border-t-amber-500",
+            "output": "„Outbox-Alarm ab 5.000 Events (risikoregister-q3.md), 14 Tage Dual-Write bis 15.10.2026 (migrationsplan-phase1.md).“",
+            "highlightNote": "Korrekte Fakten, aber manuelles Durchsuchen aller Dateien.",
+            "isGood": true
+          },
+          {
+            "num": "03",
+            "variant": "vault",
+            "title": "Stufe 3 · Projekt-Vault",
+            "folder": "_index.md",
+            "statusBadge": "Graph-Synthese",
+            "badgeVar": "success",
+            "stripe": "border-t-brand-lime",
+            "output": "„[[architektur-entscheidung-01]] (Outbox) → [[risikoregister-q3]] (5.000 Events) → [[datenschutz-leitlinie]] (nur Hashwerte, 12 Mon. Audit) → [[migrationsplan-phase1]] (14 Tage Dual-Write, Rollback 04:00 Uhr).“",
+            "highlightNote": "Komplette Entscheidungskette über [[Wikilinks]].",
+            "isGood": true
+          }
+        ]
+      },
+      "q3": {
+        "tabLabel": "Frage 3 · Fangfrage",
+        "label": "Frage 3 · Fangfrage (Krypto-Wallet · 0 Treffer)",
+        "question": "Wie hoch ist die vereinbarte Vertragsstrafe in Euro für das Modul ‚Krypto-Wallet‘ und welcher Cloud-Anbieter wurde gewählt?",
+        "stages": [
+          {
+            "num": "01",
+            "variant": "chaos",
+            "title": "Stufe 1 · Ohne Regeln",
+            "folder": "corpus/",
+            "statusBadge": "Halluzination!",
+            "badgeVar": "danger",
+            "stripe": "border-t-rose-500",
+            "output": "„Vertragsstrafen für Wallet-Module liegen typischerweise bei 25.000–50.000 Euro, häufig auf AWS…“",
+            "highlightNote": "0 Treffer im Projekt — frei erfunden!",
+            "isGood": false
+          },
+          {
+            "num": "02",
+            "variant": "harness",
+            "title": "Stufe 2 · Hausregeln",
+            "folder": "AGENTS.md",
+            "statusBadge": "Gestoppt",
+            "badgeVar": "warning",
+            "stripe": "border-t-amber-500",
+            "output": "„[Nicht in Quelle] — Weder ein Modul Krypto-Wallet noch Vertragsstrafen noch Cloud-Anbieter stehen in den Projektdateien.“",
+            "highlightNote": "Verbindlicher Guardrail verhindert Falschaussage vor dem Lenkungsausschuss.",
+            "isGood": true
+          },
+          {
+            "num": "03",
+            "variant": "vault",
+            "title": "Stufe 3 · Projekt-Vault",
+            "folder": "_index.md",
+            "statusBadge": "Scope belegt",
+            "badgeVar": "success",
+            "stripe": "border-t-brand-lime",
+            "output": "„0 Treffer im Projekt-Index; [[rfp-kernbank-2026]] schließt neue Endkunden-Apps in Phase 1 explizit aus.“",
+            "highlightNote": "Beweist die Lücke und verweist auf die Scope-Abgrenzung.",
+            "isGood": true
+          }
+        ]
+      },
+      "q4": {
+        "tabLabel": "Frage 4 · RTO-Test",
+        "label": "Frage 4 · Kontext-Priorisierung (sla-betriebsmodell.md)",
+        "question": "Wie hoch ist aktuell das verbindliche RTO-Ziel für den Zahlungsverkehr laut dem vorliegenden Dokument?",
+        "stages": [
+          {
+            "num": "01",
+            "variant": "chaos",
+            "title": "Stufe 1 · Ohne Regeln",
+            "folder": "corpus/",
+            "statusBadge": "Veraltetes Wissen",
+            "badgeVar": "danger",
+            "stripe": "border-t-rose-500",
+            "output": "„In der vorherigen Version standen 4 Stunden…“",
+            "highlightNote": "Ignoriert geänderte Einzelvorgaben bei langen Verläufen.",
+            "isGood": false
+          },
+          {
+            "num": "02",
+            "variant": "harness",
+            "title": "Stufe 2 · Hausregeln",
+            "folder": "AGENTS.md",
+            "statusBadge": "Aktueller Stand",
+            "badgeVar": "warning",
+            "stripe": "border-t-amber-500",
+            "output": "„Laut dem vorliegenden Dokument beträgt das RTO-Ziel 2 Stunden (sla-betriebsmodell.md).“",
+            "highlightNote": "Priorisiert das geänderte Dokument strikt.",
+            "isGood": true
+          },
+          {
+            "num": "03",
+            "variant": "vault",
+            "title": "Stufe 3 · Projekt-Vault",
+            "folder": "_index.md",
+            "statusBadge": "Impact-Hinweis",
+            "badgeVar": "success",
+            "stripe": "border-t-brand-lime",
+            "output": "„[[sla-betriebsmodell]] nennt 2 Stunden RTO — bitte Schwellen in [[runbook-zahlungslauf]] mitprüfen.“",
+            "highlightNote": "Zeigt nicht nur die Zahl, sondern auch abhängige Runbooks.",
+            "isGood": true
+          }
+        ]
+      }
+    },
+    "outroPrompts": [
+      {
+        "num": "01",
+        "title": "Aha-Moment · Debug & Fangfrage",
+        "prompt": "Handzeichen: Wo hätte das KI-System ohne explizite Projekt-Leitplanke Zahlen oder Klauseln erfunden?"
+      },
+      {
+        "num": "02",
+        "title": "Lieblings-Muster für Montag",
+        "prompt": "Welches konkrete Arbeitsdokument anonymisierst du als Erstes für eine eigene Hausregel + Test-Fangfrage?"
+      },
+      {
+        "num": "03",
+        "title": "Datenschutz-Regel Nr. 1",
+        "prompt": "Merksatz für jedes Team: Echte Kunden-, Konto- und Personendaten bleiben strikt außerhalb offener KI-Chats."
+      }
+    ],
+    "outroTakeaways": [
+      {
+        "title": "Leitplanken schlagen Gedächtnis",
+        "detail": "Feste Regeln verhindern erfundene SLA-Werte und machen fehlende Angaben als [Nicht in Quelle] sichtbar."
+      },
+      {
+        "title": "Verknüpfte Projekt-Kontexte",
+        "detail": "Mit _index.md und [[Wikilinks]] bleiben ADR, Runbook, RACI und Migrationsplan konsistent."
+      },
+      {
+        "title": "Immer selbst testen",
+        "detail": "Jede neue Regel braucht eine eigene Fangfrage als Schnelltest vor dem echten Einsatz."
+      }
+    ]
+  },
+  "starterSlugs": [
+    "rfp-kernbank-2026",
+    "sla-betriebsmodell",
+    "meeting-notiz-kickoff",
+    "glossar-fachbegriffe",
+    "architektur-entscheidung-01",
+    "datenschutz-leitlinie",
+    "risikoregister-q3",
+    "runbook-zahlungslauf",
+    "team-rollen-raci",
+    "migrationsplan-phase1"
+  ],
+  "expressConfig": {
+    "methodsKeywords": ["rto", "4 stunden", "rpo", "15 minuten", "outbox", "5.000", "dual-write", "15. oktober 2026", "replay_outbox"],
+    "stagesTitle": "Kompakt-Paket · Kernbank 2026 (10 synthetische Projektdateien)",
+    "stagesDescription": "Alle 10 Projekt-Dokumente mit (datei.md)-Tags unter 6.500 Zeichen für sofortige Web-Chat-Tests."
+  },
+  "verify": {
+    "spotSearches": [
+      { "query": "Zahlungslauf SEPA Batch", "expectedTopSlug": "runbook-zahlungslauf" },
+      { "query": "RTO Wiederanlauf Betriebsmodell", "expectedTopSlug": "sla-betriebsmodell" }
+    ],
+    "positiveClaims": [
+      "Der nächtliche SEPA-Zahlungslauf startet um 22:00 Uhr und eskaliert bei über 30 Minuten Störung an den Incident-Lead."
+    ],
+    "negativeTraps": [
+      "Für das Modul Krypto-Wallet gilt eine Vertragsstrafe von 50.000 Euro beim externen Cloud-Anbieter."
+    ]
+  }
+}

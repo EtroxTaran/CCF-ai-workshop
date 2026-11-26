@@ -37,6 +37,7 @@ Verwendung:
 Optionen:
   --client <name>   Ziel-Client: claude, opencode, gemini, codex, vscode, cursor oder all
   --scope <scope>   Konfigurations-Ebene: user (Standard – gilt global ohne Git-Änderung) oder project
+  --module <slug>   Optional: Themen-Modul (z. B. context-engineering-projekt)
   --force           Erlaubt das Überschreiben bereits eingecheckter Projekt-Konfigurationen
   --dry-run         Zeigt Zielpfad und erzeugte Konfiguration ohne Schreiben
   --print           Gibt nur die Konfigurationen aus (kein Dateizugriff)
@@ -51,6 +52,7 @@ function parseArgs(argv) {
   const opts = {
     client: "",
     scope: "user",
+    module: "",
     force: false,
     dryRun: false,
     printOnly: false,
@@ -74,6 +76,10 @@ function parseArgs(argv) {
       opts.scope = argv[++i].toLowerCase();
     } else if (arg.startsWith("--scope=")) {
       opts.scope = arg.slice("--scope=".length).toLowerCase();
+    } else if (arg === "--module" && i + 1 < argv.length) {
+      opts.module = argv[++i].toLowerCase();
+    } else if (arg.startsWith("--module=")) {
+      opts.module = arg.slice("--module=".length).toLowerCase();
     } else {
       throw new Error(`Unbekanntes Argument: ${arg}`);
     }
@@ -217,11 +223,15 @@ function advanceTomlMultilineState(line, initialDelim) {
   return multilineDelim;
 }
 
-function mergeCodexToml(existingText) {
+function mergeCodexToml(existingText, moduleSlug = "") {
+  const tomlArgs =
+    moduleSlug && moduleSlug !== "prompt-werkstatt-tierwelt"
+      ? `args = ["${ABS_SERVER_TOML}", "--module", "${moduleSlug}"]`
+      : `args = ["${ABS_SERVER_TOML}"]`;
   const sectionBlock = [
     "[mcp_servers.workshop-wildlife]",
     'command = "node"',
-    `args = ["${ABS_SERVER_TOML}"]`,
+    tomlArgs,
   ].join("\n");
 
   if (!existingText || !existingText.trim()) {
@@ -263,11 +273,15 @@ function mergeCodexToml(existingText) {
   return (base ? base + "\n\n" : "") + sectionBlock + "\n";
 }
 
-function buildConfigForClient(client, existingText = "") {
+function buildConfigForClient(client, existingText = "", moduleSlug = "") {
+  const serverArgs =
+    moduleSlug && moduleSlug !== "prompt-werkstatt-tierwelt"
+      ? [ABS_SERVER_PATH, "--module", moduleSlug]
+      : [ABS_SERVER_PATH];
   if (client === "opencode") {
     return mergeJsonConfig(existingText, "mcp", {
       type: "local",
-      command: ["node", ABS_SERVER_PATH],
+      command: ["node", ...serverArgs],
       enabled: true,
     });
   }
@@ -275,16 +289,16 @@ function buildConfigForClient(client, existingText = "") {
     return mergeJsonConfig(existingText, "servers", {
       type: "stdio",
       command: "node",
-      args: [ABS_SERVER_PATH],
+      args: serverArgs,
     });
   }
   if (client === "codex") {
-    return mergeCodexToml(existingText);
+    return mergeCodexToml(existingText, moduleSlug);
   }
   // claude, gemini, cursor share mcpServers schema
   return mergeJsonConfig(existingText, "mcpServers", {
     command: "node",
-    args: [ABS_SERVER_PATH],
+    args: serverArgs,
   });
 }
 
@@ -326,7 +340,7 @@ function main() {
       !opts.printOnly && fs.existsSync(targetPath)
         ? fs.readFileSync(targetPath, "utf8")
         : "";
-    const nextText = buildConfigForClient(client, existingText);
+    const nextText = buildConfigForClient(client, existingText, opts.module);
 
     console.log(`=== ${client.toUpperCase()} (${opts.scope}) ===`);
     console.log(`Pfad: ${targetPath}`);

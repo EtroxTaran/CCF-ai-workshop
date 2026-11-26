@@ -1,0 +1,160 @@
+{
+  "id": "prompt-werkstatt-tierwelt",
+  "source": "legacy-export",
+  "isDefault": true,
+  "level": "L1",
+  "badge": "Einstieg · Zero-Install",
+  "title": "Prompt-Werkstatt · Verlässliche KI-Systeme",
+  "subtitle": "Vom ungefilterten Chat zum belegten Wissensnetz (68 öffentliche Wikipedia-Artikel)",
+  "domainLabel": "Tierwelt & Ökosysteme",
+  "mcpSupported": true,
+  "durationPresets": [30, 60, 90],
+  "tags": ["Prompting", "CO-STAR", "Guardrails", "Obsidian-Vault", "Web-Chat", "MCP"],
+  "eventOverlay": {
+    "unitLabel": "CCF",
+    "timeSlot": "11:00–12:00 Uhr",
+    "outroBanner": "13:00 Uhr Unit-Programm & World Café",
+    "organizerNote": "Clustertag Hands-on"
+  },
+  "audioScriptsFile": "audio-scripts.json",
+  "taxonomy": {
+    "groupFieldLabel": "Lebensraum",
+    "defaultSelectedSlug": "anemonenfische",
+    "walkLabel": "Frage 2 · Korallenriff-Kette (6 Artikel)",
+    "categories": [
+      {
+        "id": "lebensraum",
+        "label": "Lebensraum",
+        "plural": "Räume",
+        "subdir": "lebensraeume",
+        "color": "#A9C23F",
+        "radius": 11
+      },
+      {
+        "id": "konzept",
+        "label": "Konzept",
+        "plural": "Konzepte",
+        "subdir": "konzepte",
+        "color": "#34D399",
+        "radius": 7.5
+      },
+      {
+        "id": "tierart",
+        "label": "Tierart",
+        "plural": "Arten",
+        "subdir": "tierarten",
+        "color": "#CBD5C0",
+        "radius": 5.5
+      }
+    ],
+    "graphAnchors": {
+      "Arktis": [0.25, 0.24],
+      "Korallenriff": [0.77, 0.25],
+      "Tropischer Regenwald": [0.80, 0.72],
+      "Alpen": [0.22, 0.75],
+      "Savanne": [0.50, 0.84],
+      "Übergreifend": [0.50, 0.48]
+    },
+    "ragWalkSteps": [
+      {
+        "slug": "anemonenfische",
+        "note": "Start · [[anemonenfische]]: Geringer Sialinsäure-Anteil schützt vor Nesselzellen"
+      },
+      {
+        "slug": "seeanemonen",
+        "note": "Sprung 1/5 · [[seeanemonen]]: 7 von 10 Symbioseanemonen in Stichodactylidae"
+      },
+      {
+        "slug": "symbiose",
+        "note": "Sprung 2/5 · [[symbiose]]: Ektosymbiose (Clownfisch) vs. Endosymbiose (Koralle)"
+      },
+      {
+        "slug": "steinkorallen",
+        "note": "Sprung 3/5 · [[steinkorallen]]: Riffbildung bei 20–29 °C mit Zooxanthellen"
+      },
+      {
+        "slug": "korallenbleiche",
+        "note": "Sprung 4/5 · [[korallenbleiche]]: Ab ~29 °C Abstoßung, Tod binnen ~8 Wochen"
+      },
+      {
+        "slug": "korallenriff",
+        "note": "Sprung 5/5 · [[korallenriff]]: Synthese komplett · 70–90 % Wellenschutz"
+      }
+    ]
+  },
+  "guardrailDebugChallenge": {
+    "title": "Mini-Debug (2 Min.): Finde die 2 fehlenden Leitplanken!",
+    "subtitle": "Diese kurze Projekt-Regel verhindert Halluzinationen noch NICHT. Welche 2 Sätze fehlen zwingend?",
+    "brokenRule": "1. Antworte freundlich und verständlich auf alle Fragen.\n2. Strukturiere deine Antwort in Stichpunkten.",
+    "options": [
+      {
+        "id": "opt-grounding",
+        "text": "Nutze ausschließlich Fakten aus den bereitgestellten Dateien — kein Vorwissen ergänzen.",
+        "isCorrect": true,
+        "reason": "Ohne diese Bindung rät das Modell bei Fangfragen wie dem Schneeleoparden aus dem Trainingswissen."
+      },
+      {
+        "id": "opt-cite-missing",
+        "text": "Belege jede Aussage mit (datei.md) und schreibe bei Lücken zwingend „[Nicht in Quelle]“.",
+        "isCorrect": true,
+        "reason": "Erzwingt Überprüfbarkeit pro Satz und macht Wissenslücken sofort sichtbar."
+      },
+      {
+        "id": "opt-numbers",
+        "text": "Ergänze immer mindestens drei geschätzte Vergleichszahlen zur besseren Lesbarkeit.",
+        "isCorrect": false,
+        "reason": "Schätzwerte erzeugen Halluzinationen statt Verlässlichkeit."
+      },
+      {
+        "id": "opt-greeting",
+        "text": "Beginne jeden Abschnitt mit einer persönlichen Begrüßung.",
+        "isCorrect": false,
+        "reason": "Stilregel — schützt nicht vor erfundenen Fakten."
+      }
+    ],
+    "fixedRule": "1. Antworte freundlich und strukturiert.\n2. Nutze ausschließlich Fakten aus den bereitgestellten Dateien — kein Vorwissen ergänzen.\n3. Belege jede Aussage mit (datei.md) und schreibe bei fehlenden Angaben zwingend „[Nicht in Quelle]“."
+  },
+  "labPresets": {
+    "defaultQuery": "Anemonenfische Seeanemonen Symbiose",
+    "searchPresets": [
+      "Anemonenfische Symbiose",
+      "Eisbär Talg Squalen",
+      "Korallenbleiche Temperatur",
+      "Alpenmurmeltier Winterschlaf",
+      "Schneeleopard Nationalpark"
+    ],
+    "verifyDefaultClaim": "Eisbärentalg enthält kein Squalen und verhindert dadurch das Gefrieren des Fells.",
+    "verifyTrapClaim": "Im Schweizerischen Nationalpark leben 45 Schneeleoparden und das Ticket kostet 25 Euro."
+  },
+  "stagePackSpecs": {
+    "packs": [
+      {
+        "id": "arctic",
+        "filename": "arktis-4-artikel.md",
+        "title": "Paket Arktis & Klima (4 Artikel)",
+        "subtitle": "Für Frage 1 (Eisbär) & Frage 4",
+        "slugs": ["eisbaer", "arktis", "ringelrobbe", "klimawandel"]
+      },
+      {
+        "id": "reef",
+        "filename": "korallenriff-6-artikel.md",
+        "title": "Paket Korallenriff & Symbiose (6 Artikel)",
+        "subtitle": "Für Querverbindungs-Frage 2",
+        "slugs": ["anemonenfische", "seeanemonen", "symbiose", "steinkorallen", "korallenbleiche", "korallenriff"]
+      }
+    ]
+  },
+  "verify": {
+    "spotSearches": [
+      { "query": "walross", "expectedTopSlug": "walross" },
+      { "query": "Eisbär schwarze Haut Squalen", "expectedTopSlug": "eisbaer" },
+      { "query": "Alpensteinbock", "expectedTopSlug": "alpensteinbock" }
+    ],
+    "positiveClaims": [
+      "Der Eisbär hat unter seinem Fell schwarze Haut und produziert im Fettgewebe Squalen."
+    ],
+    "negativeTraps": [
+      "Im Schweizerischen Nationalpark leben 45 Schneeleoparden und ein Ticket kostet 25 Euro."
+    ]
+  }
+}

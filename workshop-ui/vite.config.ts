@@ -22,6 +22,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "@shared": path.resolve(__dirname, "../shared"),
     },
   },
   build: {
@@ -29,8 +30,6 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           const norm = id.replace(/\\/g, "/");
-          if (norm.includes("/src/data/searchIndex.json")) return "search-index";
-          if (norm.includes("/src/data/workshopData.json")) return "workshop-data";
           if (!norm.includes("node_modules")) return undefined;
           if (norm.includes("framer-motion")) return "vendor-motion";
           if (norm.includes("d3-")) return "vendor-d3";

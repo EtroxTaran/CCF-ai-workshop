@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { FolderOpen, Globe, Terminal } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { ToolMode } from "@/types/workshop";
+import type { AnimaticSpecs, ToolMode } from "@/types/workshop";
 
 export interface ToolHotspotGuideProps {
   toolMode: ToolMode;
+  spec?: AnimaticSpecs["toolHotspots"];
+  articleCount?: number;
   className?: string;
 }
 
@@ -118,10 +120,14 @@ function ModeSchematic({
   toolMode,
   activeId,
   onSelect,
+  spec: hotspotSpec,
+  articleCount = 68,
 }: {
   toolMode: ToolMode;
   activeId: number;
   onSelect: (id: number) => void;
+  spec?: AnimaticSpecs["toolHotspots"];
+  articleCount?: number;
 }) {
   if (toolMode === "web") {
     return (
@@ -159,7 +165,8 @@ function ModeSchematic({
             >
               <div className="font-semibold">KI-Antwort mit Quellenprüfung</div>
               <div className="mt-1 font-mono text-[11px] text-brand-ink">
-                • Eisbär: 42 Zähne (eisbaer.md) · Schneeleopard: [Nicht in Quelle]
+                {hotspotSpec?.webExampleAnswer ||
+                  "• Eisbär: 42 Zähne (eisbaer.md) · Schneeleopard: [Nicht in Quelle]"}
               </div>
             </button>
 
@@ -197,8 +204,12 @@ function ModeSchematic({
               <FolderOpen className="h-3.5 w-3.5 text-brand-ink" />
               <span>Ordner gewählt</span>
             </div>
-            <div className="font-mono text-[11px]">📁 stufe-2-skills-guardrails/</div>
-            <div className="font-mono text-[10px] opacity-75">├── docs/ (68 Artikel)</div>
+            <div className="font-mono text-[11px]">
+              {hotspotSpec?.desktopFolderExample || "📁 stufe-2-skills-guardrails/"}
+            </div>
+            <div className="font-mono text-[10px] opacity-75">
+              ├── docs/ ({articleCount} Dateien)
+            </div>
           </button>
 
           <div className="space-y-2 sm:col-span-7">
@@ -212,7 +223,7 @@ function ModeSchematic({
             >
               <div className="font-semibold">Projekt-Regeln aktiv (AGENTS.md)</div>
               <div className="font-mono text-[10px] opacity-80">
-                Skills: quellen-recherche · fakten-pruefer
+                {hotspotSpec?.desktopSkillsLabel || "Skills: quellen-recherche · fakten-pruefer"}
               </div>
             </button>
             <button
@@ -272,14 +283,15 @@ function ModeSchematic({
               : "border-[#232B20] bg-[#111610] text-[#D3DACD]"
           )}
         >
-          → MCP Tool: verify_claim_against_corpus(&quot;Schneeleopard...&quot;) → nicht_belegt
+          {hotspotSpec?.agentTrapSample ||
+            '→ MCP Tool: verify_claim_against_corpus("Schneeleopard...") → nicht_belegt'}
         </button>
       </div>
     </div>
   );
 }
 
-export function ToolHotspotGuide({ toolMode, className }: ToolHotspotGuideProps) {
+export function ToolHotspotGuide({ toolMode, spec: hotspotSpec, articleCount = 68, className }: ToolHotspotGuideProps) {
   const spec = MODE_GUIDES[toolMode];
   const [activeId, setActiveId] = useState<number>(1);
 
@@ -362,7 +374,13 @@ export function ToolHotspotGuide({ toolMode, className }: ToolHotspotGuideProps)
           ))}
         </div>
       ) : (
-        <ModeSchematic toolMode={toolMode} activeId={activeId} onSelect={setActiveId} />
+        <ModeSchematic
+          toolMode={toolMode}
+          activeId={activeId}
+          onSelect={setActiveId}
+          spec={hotspotSpec}
+          articleCount={articleCount}
+        />
       )}
 
       {/* Active Hotspot Detail */}

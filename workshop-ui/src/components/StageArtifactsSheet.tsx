@@ -10,8 +10,15 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { buildAll68ArticlesMarkdown, downloadMarkdownFile } from "@/lib/exportCorpusMd";
-import type { ExpressPackage, StageSpec, ToolMode, VaultArticle } from "@/types/workshop";
+import { buildAllArticlesMarkdown, downloadMarkdownFile } from "@/lib/exportCorpusMd";
+import type {
+  CorpusSearchIndex,
+  ExpressPackage,
+  StagePackSpecItem,
+  StageSpec,
+  ToolMode,
+  VaultArticle,
+} from "@/types/workshop";
 
 interface StageArtifactsSheetProps {
   stage: StageSpec;
@@ -19,7 +26,11 @@ interface StageArtifactsSheetProps {
   arcticPack: string;
   reefPack: string;
   all12Pack: string;
+  customPacks?: { item: StagePackSpecItem; content: string }[];
   vaultArticles?: VaultArticle[];
+  corpusIndex?: CorpusSearchIndex;
+  onLoadCorpusIndex?: () => Promise<CorpusSearchIndex>;
+  moduleTitle?: string;
   toolMode: ToolMode;
 }
 
@@ -29,11 +40,40 @@ export function StageArtifactsSheet({
   arcticPack,
   reefPack,
   all12Pack,
+  customPacks,
   vaultArticles,
+  corpusIndex,
+  onLoadCorpusIndex,
+  moduleTitle,
   toolMode,
 }: StageArtifactsSheetProps) {
   const isWeb = toolMode === "web";
   const tabCount = stage.skills.length + (stage.indexMd ? 3 : 2);
+  const packList =
+    customPacks && customPacks.length > 0
+      ? customPacks
+      : [
+          {
+            item: {
+              id: "arctic",
+              filename: "arktis-4-artikel.md",
+              title: "Paket Arktis & Klima (4 Artikel)",
+              subtitle: "Frage 1 & 4",
+              slugs: [],
+            },
+            content: arcticPack,
+          },
+          {
+            item: {
+              id: "reef",
+              filename: "korallenriff-6-artikel.md",
+              title: "Paket Korallenriff & Symbiose (6 Artikel)",
+              subtitle: "Frage 2",
+              slugs: [],
+            },
+            content: reefPack,
+          },
+        ];
 
   return (
     <Sheet>
@@ -135,65 +175,41 @@ export function StageArtifactsSheet({
                 <CopyButton text={expressArcticReef.content} label="Kopieren" variant="default" />
               </div>
 
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3.5">
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold">Paket Arktis &amp; Klima (4 Artikel)</div>
-                  <div className="text-xs text-muted-foreground">
-                    ~{arcticPack.length.toLocaleString("de-DE")} Zeichen · Frage 1 &amp; 4
+              {packList.map(({ item, content }) => (
+                <div
+                  key={item.id}
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3.5"
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold">{item.title}</div>
+                    <div className="text-xs text-muted-foreground">
+                      ~{content.length.toLocaleString("de-DE")} Zeichen · {item.subtitle}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CopyButton text={content} label="Kopieren" />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        downloadMarkdownFile(
+                          item.filename,
+                          content,
+                          `${item.title} (.md) heruntergeladen`
+                        )
+                      }
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      <span>.md</span>
+                    </Button>
                   </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <CopyButton text={arcticPack} label="Kopieren" />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      downloadMarkdownFile(
-                        "arktis-4-artikel.md",
-                        arcticPack,
-                        "Arktis-Paket (.md) heruntergeladen"
-                      )
-                    }
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    <span>.md</span>
-                  </Button>
-                </div>
-              </div>
+              ))}
 
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3.5">
                 <div className="min-w-0">
-                  <div className="text-sm font-semibold">
-                    Paket Korallenriff &amp; Symbiose (6 Artikel)
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    ~{reefPack.length.toLocaleString("de-DE")} Zeichen · Frage 2
-                  </div>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <CopyButton text={reefPack} label="Kopieren" />
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      downloadMarkdownFile(
-                        "korallenriff-6-artikel.md",
-                        reefPack,
-                        "Korallenriff-Paket (.md) heruntergeladen"
-                      )
-                    }
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    <span>.md</span>
-                  </Button>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3.5">
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold">Alle 12 Fokus-Artikel (.md)</div>
+                  <div className="text-sm font-semibold">Fokus-Dokumente (.md)</div>
                   <div className="text-xs text-muted-foreground">
                     ~{all12Pack.length.toLocaleString("de-DE")} Zeichen · direkt zum Hochladen
                   </div>
@@ -203,14 +219,14 @@ export function StageArtifactsSheet({
                   size="sm"
                   onClick={() =>
                     downloadMarkdownFile(
-                      "fokus-korpus-12-artikel.md",
+                      "fokus-dokumente.md",
                       all12Pack,
-                      "12 Fokus-Artikel (.md) heruntergeladen"
+                      "Fokus-Dokumente (.md) heruntergeladen"
                     )
                   }
                 >
                   <Download className="h-3.5 w-3.5" />
-                  <span>12 Artikel (.md)</span>
+                  <span>Fokus (.md)</span>
                 </Button>
               </div>
 
@@ -218,7 +234,7 @@ export function StageArtifactsSheet({
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-brand-lime/40 bg-secondary/25 p-3.5">
                   <div className="min-w-0">
                     <div className="text-sm font-semibold">
-                      Gesamte Wissensbasis ({vaultArticles.length} Artikel · .md)
+                      Gesamte Wissensbasis ({vaultArticles.length} Dokumente · .md)
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Komplettdatei zum Hochladen in Claude Projects, ChatGPT oder NotebookLM
@@ -228,13 +244,15 @@ export function StageArtifactsSheet({
                     type="button"
                     size="sm"
                     variant="secondary"
-                    onClick={() =>
+                    onClick={async () => {
+                      const idx =
+                        corpusIndex || (onLoadCorpusIndex ? await onLoadCorpusIndex() : {});
                       downloadMarkdownFile(
-                        "alle-68-artikel-wissensbasis.md",
-                        buildAll68ArticlesMarkdown(vaultArticles),
-                        "Alle 68 Artikel (.md) heruntergeladen"
-                      )
-                    }
+                        `alle-${vaultArticles.length}-dokumente-wissensbasis.md`,
+                        buildAllArticlesMarkdown(vaultArticles, idx, moduleTitle),
+                        `Alle ${vaultArticles.length} Dokumente (.md) heruntergeladen`
+                      );
+                    }}
                   >
                     <Download className="h-3.5 w-3.5" />
                     <span>Alle {vaultArticles.length} (.md)</span>

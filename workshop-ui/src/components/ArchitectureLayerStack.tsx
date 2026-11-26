@@ -14,7 +14,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import type { ArchitectureLayer, ToolMode } from "@/types/workshop";
+import type { AnimaticSpecs, ArchitectureLayer, ToolMode } from "@/types/workshop";
 
 interface ArchitectureLayerStackProps {
   layers: ArchitectureLayer[];
@@ -22,6 +22,7 @@ interface ArchitectureLayerStackProps {
   toolMode: ToolMode;
   agentsMdTemplate?: string;
   onCopyTemplate?: () => void;
+  contextWindowSpec?: AnimaticSpecs["contextWindow"];
 }
 
 export function ArchitectureLayerStack({
@@ -30,6 +31,7 @@ export function ArchitectureLayerStack({
   toolMode,
   agentsMdTemplate,
   onCopyTemplate,
+  contextWindowSpec,
 }: ArchitectureLayerStackProps) {
   const prefersReduced = useReducedMotion();
   const [activeIdx, setActiveIdx] = useState<number>(2);
@@ -210,7 +212,7 @@ export function ArchitectureLayerStack({
       </div>
 
       {/* Embedded Context Window Animatic */}
-      <ContextWindowAnimatic onResetChat={onCopyTemplate} />
+      <ContextWindowAnimatic spec={contextWindowSpec} onResetChat={onCopyTemplate} />
     </div>
   );
 }

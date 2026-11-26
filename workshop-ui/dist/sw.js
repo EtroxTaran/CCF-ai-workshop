@@ -1,4 +1,4 @@
-const CACHE_NAME = "v7-ccf-workshop-shell-v2";
+const CACHE_NAME = "v7-workshop-hub-shell-v3";
 const SHELL_ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./icons/icon.svg"];
 
 self.addEventListener("install", (event) => {

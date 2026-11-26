@@ -12,6 +12,7 @@ import {
   Globe,
   Hand,
   Layers,
+  LayoutGrid,
   Maximize2,
   Minimize2,
   Moon,
@@ -21,6 +22,7 @@ import {
   Plus,
   QrCode,
   RotateCcw,
+  Settings2,
   ShieldCheck,
   Sparkles,
   Sun,
@@ -28,7 +30,6 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
-import rawData from "@/data/workshopData.json";
 import {
   BeamerDemoSimulator,
   type DemoQuestionKey,
@@ -41,6 +42,7 @@ import { StageBackdrop } from "@/components/StageBackdrop";
 import { Virtual7Logo } from "@/components/Virtual7Logo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Dialog,
   DialogContent,
@@ -48,6 +50,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { DEFAULT_MODULE_ID, fetchModuleData } from "@/lib/moduleLoader";
 import {
   isSoundMuted,
   playOneMinuteChime,
@@ -56,9 +59,7 @@ import {
   toggleSoundMuted,
   unlockAudioContext,
 } from "@/lib/soundFx";
-import type { BeamerMode, ToolMode, WorkshopDataset } from "@/types/workshop";
-
-const data = rawData as unknown as WorkshopDataset;
+import type { BeamerMode, EventOverlaySpec, ToolMode, WorkshopDataset } from "@/types/workshop";
 
 type DemoSubTab = "stages" | "methods" | "layers" | "graph" | "mcp";
 
@@ -141,10 +142,97 @@ function cleanLayerLabel(label: string): string {
   return label.replace(/Harness\s*\(Skills\s*\+\s*Guardrails\)/i, "Regeln & Skills");
 }
 
-export function BeamerApp() {
+export function BeamerApp({ moduleId = DEFAULT_MODULE_ID }: { moduleId?: string }) {
+  const [data, setData] = useState<WorkshopDataset | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    setData(null);
+    setLoadError(null);
+    fetchModuleData(moduleId)
+      .then((loaded) => {
+        if (active) setData(loaded);
+      })
+      .catch((err) => {
+        if (active) {
+          setLoadError(err instanceof Error ? err.message : "Modul konnte nicht geladen werden.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [moduleId]);
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-center text-foreground">
+        <p className="text-lg font-bold text-destructive">{loadError}</p>
+        <a
+          href="#/hub"
+          className="inline-flex h-9 items-center rounded-lg border bg-card px-4 text-sm font-medium hover:bg-muted"
+        >
+          Zur Modul-Übersicht (Hub)
+        </a>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-6 text-sm text-muted-foreground">
+        Trainer-Bühne wird geladen…
+      </div>
+    );
+  }
+
+  return <BeamerAppInner data={data} moduleId={moduleId} />;
+}
+
+function BeamerAppInner({
+  data,
+  moduleId,
+}: {
+  data: WorkshopDataset;
+  moduleId: string;
+}) {
   const prefersReduced = useReducedMotion();
   const [darkBeamer, setDarkBeamer] = useState<boolean>(false);
   const [stageMode, setStageMode] = useState<BeamerMode>("stage");
+
+  // Live-Session Overlay (nur in sessionStorage, ueberschreibt keine Repo-Daten)
+  const overlayStorageKey = `v7-overlay:${moduleId}`;
+  const [overlayOpen, setOverlayOpen] = useState<boolean>(false);
+  const [overlay, setOverlay] = useState<EventOverlaySpec>(() => {
+    const defaults: EventOverlaySpec = {
+      unitLabel: data.eventOverlay?.unitLabel || data.meta.cluster,
+      timeSlot: data.eventOverlay?.timeSlot || data.meta.timeSlot,
+      outroBanner: data.eventOverlay?.outroBanner || "13:00 Uhr Unit-Programm & World Café",
+      roomHint: data.eventOverlay?.roomHint || "",
+    };
+    try {
+      const saved = sessionStorage.getItem(overlayStorageKey);
+      if (saved) return { ...defaults, ...JSON.parse(saved) };
+    } catch {
+      // ignore
+    }
+    return defaults;
+  });
+
+  const updateOverlay = useCallback(
+    (patch: Partial<EventOverlaySpec>) => {
+      setOverlay((prev) => {
+        const next = { ...prev, ...patch };
+        try {
+          sessionStorage.setItem(overlayStorageKey, JSON.stringify(next));
+        } catch {
+          // ignore
+        }
+        return next;
+      });
+    },
+    [overlayStorageKey]
+  );
 
   // Stage Timer & Audio state
   const [phaseIdx, setPhaseIdx] = useState<number>(0);
@@ -176,8 +264,15 @@ export function BeamerApp() {
     () =>
       data.testQuestions.find((q) => q.id === activePhase.activeQuestionId) ||
       data.testQuestions[0],
-    [activePhase.activeQuestionId]
+    [activePhase.activeQuestionId, data.testQuestions]
   );
+  const appHref = moduleId === DEFAULT_MODULE_ID ? "#/" : `#/m/${moduleId}`;
+  const joinUrl =
+    moduleId === DEFAULT_MODULE_ID
+      ? data.meta.pagesUrl
+      : `${data.meta.pagesUrl.replace(/\/$/, "")}/#/m/${moduleId}`;
+  const outroPrompts = data.animatics?.outroPrompts || OUTRO_PROMPTS;
+  const outroTakeaways = data.animatics?.outroTakeaways || OUTRO_TAKEAWAYS;
 
   // Sync .dark onto document.documentElement so Radix Dialog/Toaster inherit theme cleanly
   useEffect(() => {
@@ -275,15 +370,18 @@ export function BeamerApp() {
     setSecondsLeft(activePhase.durationMin * 60);
   }, [activePhase.durationMin]);
 
-  const goPhase = useCallback((idx: number) => {
-    const clamped = Math.max(0, Math.min(data.phases.length - 1, idx));
-    setPhaseIdx(clamped);
-    setRunning(false);
-    fired60Ref.current = false;
-    fired0Ref.current = false;
-    setSecondsLeft(data.phases[clamped].durationMin * 60);
-    setSolutionOpen(false);
-  }, []);
+  const goPhase = useCallback(
+    (idx: number) => {
+      const clamped = Math.max(0, Math.min(data.phases.length - 1, idx));
+      setPhaseIdx(clamped);
+      setRunning(false);
+      fired60Ref.current = false;
+      fired0Ref.current = false;
+      setSecondsLeft(data.phases[clamped].durationMin * 60);
+      setSolutionOpen(false);
+    },
+    [data.phases]
+  );
 
   const advanceDemoReveal = useCallback(() => {
     if (demoTab === "stages") {
@@ -308,7 +406,13 @@ export function BeamerApp() {
         prev >= data.architectureLayers.length ? 1 : prev + 1
       );
     }
-  }, [demoQuestionKey, demoRevealStep, demoTab]);
+  }, [
+    data.architectureLayers.length,
+    data.promptMethods.length,
+    demoQuestionKey,
+    demoRevealStep,
+    demoTab,
+  ]);
 
   // Global keyboard shortcuts with strict input/dialog/modifier guards
   useEffect(() => {
@@ -322,6 +426,14 @@ export function BeamerApp() {
         tag === "SELECT" ||
         target?.isContentEditable
       ) {
+        return;
+      }
+
+      if (overlayOpen) {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setOverlayOpen(false);
+        }
         return;
       }
 
@@ -368,6 +480,7 @@ export function BeamerApp() {
     advanceDemoReveal,
     goPhase,
     handleToggleMute,
+    overlayOpen,
     phaseIdx,
     solutionOpen,
     stageMode,
@@ -410,8 +523,8 @@ export function BeamerApp() {
         {/* Left Brand */}
         <div className="flex min-w-0 items-center gap-2.5">
           <Virtual7Logo compact className="text-foreground" />
-          <span className="hidden text-sm font-semibold tracking-tight text-muted-foreground xl:inline">
-            CCF Prompt-Werkstatt · Trainer-Bühne
+          <span className="hidden truncate text-sm font-semibold tracking-tight text-muted-foreground xl:inline">
+            {overlay.unitLabel || data.meta.cluster} · {data.meta.title}
           </span>
         </div>
 
@@ -566,13 +679,40 @@ export function BeamerApp() {
             )}
           </Button>
 
-          {/* Return link to static Participant Workshop App (#/) */}
+          {/* Session Overlay Settings */}
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            onClick={(e) => {
+              e.currentTarget.blur();
+              setOverlayOpen(true);
+            }}
+            className="h-8 w-8 shrink-0"
+            aria-label="Session-Overlay anpassen"
+            title="Live-Session Overlay (Cluster, Zeitfenster, Banner)"
+          >
+            <Settings2 className="h-4 w-4" />
+          </Button>
+
+          {/* Hub Link */}
           <a
-            href="#/"
+            href="#/hub"
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-card text-foreground transition-colors hover:bg-muted sm:w-auto sm:gap-1.5 sm:px-2.5"
+            aria-label="Alle Workshop-Module (Hub)"
+            title="Alle Module (Hub)"
+          >
+            <LayoutGrid className="h-3.5 w-3.5 text-brand-ink" />
+            <span className="hidden text-xs font-semibold lg:inline">Hub</span>
+          </a>
+
+          {/* Return link to static Participant Workshop App */}
+          <a
+            href={appHref}
             onClick={(e) => {
               if (window.location.pathname.startsWith("/beamer")) {
                 e.preventDefault();
-                window.history.replaceState(null, "", "./#/");
+                window.history.replaceState(null, "", `./${appHref}`);
                 window.dispatchEvent(new HashChangeEvent("hashchange"));
               }
             }}
@@ -803,7 +943,7 @@ export function BeamerApp() {
                         variant="outline"
                         className="border-rose-600/40 bg-rose-500/10 font-mono text-rose-700 dark:text-rose-300"
                       >
-                        0 Treffer in 68 Dateien
+                        0 Treffer in {data.vaultArticles.length} Dateien
                       </Badge>
                     )}
                   </div>
@@ -906,6 +1046,7 @@ export function BeamerApp() {
                   q4Mutated={q4Mutated}
                   onToggleQ4Mutated={() => setQ4Mutated((v) => !v)}
                   questions={data.testQuestions}
+                  demoScenarios={data.animatics?.demoScenarios}
                 />
               )}
 
@@ -1030,7 +1171,7 @@ export function BeamerApp() {
                     >
                       {layerRevealCount >= data.architectureLayers.length
                         ? "Auf Ebene 1 zurück"
-                        : "Alle 5 Ebenen zeigen"}
+                        : `Alle ${data.architectureLayers.length} Ebenen zeigen`}
                     </Button>
                   </div>
 
@@ -1099,6 +1240,7 @@ export function BeamerApp() {
                   <ObsidianKnowledgeGraph
                     articles={data.vaultArticles}
                     vaultIndexMarkdown={data.stages[2]?.indexMd}
+                    taxonomy={data.taxonomy}
                     projectorMode
                   />
                 </div>
@@ -1125,7 +1267,7 @@ export function BeamerApp() {
                             : "text-muted-foreground hover:text-foreground"
                         }`}
                       >
-                        search_wildlife_vault
+                        {data.animatics?.mcpPacket?.searchToolName || "search_wildlife_vault"}
                       </button>
                       <button
                         type="button"
@@ -1139,7 +1281,7 @@ export function BeamerApp() {
                             : "text-muted-foreground hover:text-foreground"
                         }`}
                       >
-                        verify_claim_against_corpus
+                        {data.animatics?.mcpPacket?.verifyToolName || "verify_claim_against_corpus"}
                       </button>
                     </div>
                   </div>
@@ -1148,6 +1290,8 @@ export function BeamerApp() {
                     projectorMode
                     toolMode="agent"
                     mode={mcpMode}
+                    spec={data.animatics?.mcpPacket}
+                    articleCount={data.vaultArticles.length}
                     className="dark:!border-border"
                   />
                 </div>
@@ -1183,7 +1327,7 @@ export function BeamerApp() {
                   className="pointer-events-none absolute -bottom-2.5 -right-2.5 h-7 w-7 rounded-br-2xl border-b-[3px] border-r-[3px] border-brand-lime"
                 />
                 <div className="lime-glow rounded-3xl bg-white p-3 shadow-2xl ring-2 ring-brand-lime/50 sm:p-5">
-                  <QrCodeSvg value={data.meta.pagesUrl} size={310} />
+                  <QrCodeSvg value={joinUrl} size={310} />
                 </div>
               </div>
 
@@ -1191,7 +1335,7 @@ export function BeamerApp() {
               <div className="min-w-0 max-w-xl space-y-5 text-center lg:text-left">
                 <div className="inline-flex items-center gap-2 rounded-full border border-brand-lime/45 bg-brand-lime/15 px-3.5 py-1 text-xs font-bold uppercase tracking-[0.1em] text-brand-ink">
                   <QrCode className="h-3.5 w-3.5" />
-                  Statische Workshop-App · 100 % öffentliche Daten
+                  {data.meta.title} · {overlay.unitLabel || data.meta.cluster}
                 </div>
 
                 <h1 className="font-display text-[clamp(2rem,3.5vw,3.5rem)] font-extrabold leading-[1.06] tracking-[-0.03em] text-foreground">
@@ -1201,9 +1345,9 @@ export function BeamerApp() {
                 {/* Primary GitHub Pages URL */}
                 <div className="card-elevated flex flex-wrap items-center justify-between gap-3 rounded-2xl border bg-card px-4 py-3.5">
                   <span className="wrap-safe font-mono text-base font-bold text-brand-ink sm:text-xl">
-                    {data.meta.pagesUrl}
+                    {joinUrl}
                   </span>
-                  <CopyButton text={data.meta.pagesUrl} label="URL" />
+                  <CopyButton text={joinUrl} label="URL" />
                 </div>
 
                 {/* Git Clone Command */}
@@ -1218,8 +1362,9 @@ export function BeamerApp() {
                     <CopyButton text={cloneCommand} label="Clone" />
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Optional nur für <strong className="text-foreground">Code-Agent</strong> — im
-                    Web-Chat reicht der QR-Code oder Link oben!
+                    <strong className="text-foreground">Am besten am Laptop öffnen</strong>{" "}
+                    (Split-Screen neben dem Chat) — Git Clone ist optional nur für{" "}
+                    <strong className="text-foreground">Code-Agent</strong>!
                   </p>
                 </div>
 
@@ -1236,7 +1381,7 @@ export function BeamerApp() {
                     },
                     {
                       n: "03",
-                      t: "15 Min. Aha-Kern + 30 Min. Praxis-Pfad durchlaufen",
+                      t: `${data.durationPresets?.[0] ? `${data.durationPresets[0]} Min.` : data.meta.timeSlot} · Aha-Kern + Praxis-Pfad durchlaufen`,
                     },
                   ].map((st) => (
                     <div key={st.n} className="card-elevated rounded-xl border bg-card/90 p-3.5">
@@ -1265,16 +1410,16 @@ export function BeamerApp() {
               <div className="space-y-2">
                 <div className="inline-flex items-center gap-2 rounded-full border border-brand-lime/45 bg-brand-lime/15 px-3.5 py-1 text-xs font-bold uppercase tracking-[0.1em] text-brand-ink">
                   <Hand className="h-3.5 w-3.5" />
-                  Moderierter Abschluss · Handzeichen-Debrief
+                  Moderierter Abschluss · {overlay.unitLabel || data.meta.cluster}
                 </div>
                 <h1 className="font-display text-[clamp(1.85rem,3.2vw,3.1rem)] font-extrabold leading-[1.08] tracking-[-0.03em] text-foreground">
-                  Was nehmt ihr in den CCF-Alltag mit?
+                  Was nehmt ihr in den Alltag mit?
                 </h1>
               </div>
 
               {/* 3 Moderated Hand-Raise Debrief Prompts */}
               <div className="grid gap-4 md:grid-cols-3">
-                {OUTRO_PROMPTS.map((item) => (
+                {outroPrompts.map((item) => (
                   <div
                     key={item.num}
                     className="card-elevated flex flex-col justify-between rounded-2xl border border-t-4 border-t-brand-lime bg-card p-5"
@@ -1296,7 +1441,7 @@ export function BeamerApp() {
 
               {/* 3 Key Take-aways */}
               <div className="grid gap-4 md:grid-cols-3">
-                {OUTRO_TAKEAWAYS.map((tk) => (
+                {outroTakeaways.map((tk) => (
                   <div
                     key={tk.title}
                     className="flex items-start gap-3 rounded-2xl border bg-muted/55 p-4"
@@ -1314,21 +1459,23 @@ export function BeamerApp() {
                 ))}
               </div>
 
-              {/* 13:00 Uhr Unit-Programm & World Café Banner */}
+              {/* Unit-Programm / Ausblick Banner */}
               <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 border-brand-lime bg-brand-lime/15 px-6 py-4">
                 <div className="flex items-center gap-3">
                   <Compass className="h-7 w-7 shrink-0 text-brand-ink" />
                   <div>
                     <div className="text-xs font-bold uppercase tracking-[0.1em] text-brand-ink">
-                      Ausblick auf den Nachmittag
+                      Ausblick{overlay.roomHint ? ` · ${overlay.roomHint}` : ""}
                     </div>
                     <div className="font-display text-xl font-extrabold text-foreground sm:text-2xl">
-                      13:00 Uhr Unit-Programm &amp; World Café
+                      {overlay.outroBanner ||
+                        data.eventOverlay?.outroBanner ||
+                        "13:00 Uhr Unit-Programm & World Café"}
                     </div>
                   </div>
                 </div>
                 <Badge variant="lime" className="px-4 py-1.5 text-sm font-extrabold">
-                  4-Rollen CCF-Transfer-Brücke aktiv
+                  {data.transferBridge.length}-Rollen Transfer-Brücke aktiv
                 </Badge>
               </div>
             </motion.div>
@@ -1407,8 +1554,92 @@ export function BeamerApp() {
                   </Badge>
                 ))
               ) : (
-                <Badge variant="danger">0 Treffer in 68 Dateien (Negativtest)</Badge>
+                <Badge variant="danger">
+                  0 Treffer in {data.vaultArticles.length} Dateien (Negativtest)
+                </Badge>
               )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Live-Session Overlay Settings Dialog (sessionStorage only) */}
+      <Dialog open={overlayOpen} onOpenChange={setOverlayOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Settings2 className="h-5 w-5 text-brand-ink" />
+              <span>Session-Overlay für diesen Termin</span>
+            </DialogTitle>
+            <DialogDescription>
+              Passt Cluster-Name, Zeitfenster, Raum und Abschluss-Banner nur für deine aktuelle
+              Browser-Session an (verändert keine Repo-Dateien).
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 text-sm">
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold text-muted-foreground">Cluster / Gruppe</span>
+              <Input
+                value={overlay.unitLabel || ""}
+                onChange={(e) => updateOverlay({ unitLabel: e.target.value })}
+                placeholder={data.meta.cluster}
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold text-muted-foreground">Zeitfenster</span>
+              <Input
+                value={overlay.timeSlot || ""}
+                onChange={(e) => updateOverlay({ timeSlot: e.target.value })}
+                placeholder={data.meta.timeSlot}
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold text-muted-foreground">
+                Raum / Call-Hinweis (optional)
+              </span>
+              <Input
+                value={overlay.roomHint || ""}
+                onChange={(e) => updateOverlay({ roomHint: e.target.value })}
+                placeholder="z. B. Raum Mannheim / Teams-Link"
+              />
+            </label>
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold text-muted-foreground">
+                Abschluss-Banner (Outro)
+              </span>
+              <Input
+                value={overlay.outroBanner || ""}
+                onChange={(e) => updateOverlay({ outroBanner: e.target.value })}
+                placeholder="z. B. 13:00 Uhr Unit-Programm & World Café"
+              />
+            </label>
+            <div className="flex justify-between pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const defaults: EventOverlaySpec = {
+                    unitLabel: data.eventOverlay?.unitLabel || data.meta.cluster,
+                    timeSlot: data.eventOverlay?.timeSlot || data.meta.timeSlot,
+                    outroBanner:
+                      data.eventOverlay?.outroBanner || "13:00 Uhr Unit-Programm & World Café",
+                    roomHint: data.eventOverlay?.roomHint || "",
+                  };
+                  setOverlay(defaults);
+                  try {
+                    sessionStorage.removeItem(overlayStorageKey);
+                  } catch {
+                    // ignore
+                  }
+                }}
+              >
+                Zurücksetzen
+              </Button>
+              <Button type="button" size="sm" onClick={() => setOverlayOpen(false)}>
+                Übernehmen
+              </Button>
             </div>
           </div>
         </DialogContent>

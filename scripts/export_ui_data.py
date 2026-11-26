@@ -373,10 +373,10 @@ def main() -> None:
                 "timeRange": "11:55–12:00",
                 "durationMin": 5,
                 "title": "Debrief & CCF-Transfer-Brücke",
-                "subtitle": "Handzeichen-Impulse, 4 Rollen & Ausblick auf 13:00 Uhr",
+                "subtitle": "Handzeichen-Impulse, 5 Rollen & Ausblick auf 13:00 Uhr",
                 "beamerHeadline": "Debrief: Was nehmt ihr in den CCF-Alltag mit?",
                 "modeCues": {
-                    "web": "Wählt euren Praxis-Alltagsfall aus der 4-Rollen Transfer-Brücke und teilt 1 Learning per Handzeichen.",
+                    "web": "Wählt euren Praxis-Alltagsfall aus der 5-Rollen Transfer-Brücke und teilt 1 Learning per Handzeichen.",
                     "desktop": "Übertragt das Ordner- & Regeln-Prinzip auf Fachkonzepte, Projektberichte oder Runbooks.",
                     "agent": "Nehmt AGENTS.md, Skills & schmale MCP-Tools als Blaupause für reproduzierbare Agenten-Workflows mit.",
                 },

@@ -1,0 +1,54 @@
+{
+  "generatedAt": "2026-11-26",
+  "defaultModuleId": "prompt-werkstatt-tierwelt",
+  "modules": [
+    {
+      "id": "prompt-werkstatt-tierwelt",
+      "title": "Prompt-Werkstatt · Verlässliche KI-Systeme",
+      "subtitle": "Vom ungefilterten Chat zum belegten Wissensnetz (68 öffentliche Wikipedia-Artikel)",
+      "level": "L1",
+      "badge": "Einstieg · Zero-Install",
+      "domainLabel": "Tierwelt & Ökosysteme",
+      "durationPresets": [
+        30,
+        60,
+        90
+      ],
+      "articleCount": 68,
+      "tags": [
+        "Prompting",
+        "CO-STAR",
+        "Guardrails",
+        "Obsidian-Vault",
+        "Web-Chat",
+        "MCP"
+      ],
+      "isDefault": true,
+      "mcpSupported": true
+    },
+    {
+      "id": "context-engineering-projekt",
+      "title": "Context Engineering · Projekt & Betrieb",
+      "subtitle": "Eigene Leitplanken, Skills & vernetzter Projekt-Vault an 10 synthetischen Dokumenten (Kernbank 2026)",
+      "level": "L2",
+      "badge": "Praxis · Synthetisches Projekt",
+      "domainLabel": "Projekt, SLA & Governance",
+      "durationPresets": [
+        30,
+        60,
+        90
+      ],
+      "articleCount": 10,
+      "tags": [
+        "Level 2",
+        "AGENTS.md",
+        "Skills",
+        "Runbooks",
+        "RFP",
+        "RTO/RPO"
+      ],
+      "isDefault": false,
+      "mcpSupported": true
+    }
+  ]
+}

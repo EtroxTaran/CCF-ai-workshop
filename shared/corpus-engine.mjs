@@ -103,10 +103,17 @@ export function parseFrontmatter(markdown) {
   return { meta, body: match[2] };
 }
 
-function categoryDir(category) {
-  if (category === "lebensraum") return "lebensraeume";
-  if (category === "tierart") return "tierarten";
-  return "konzepte";
+const DEFAULT_CATEGORY_DIRS = {
+  lebensraum: "lebensraeume",
+  tierart: "tierarten",
+  konzept: "konzepte",
+};
+
+function categoryDir(category, categoryDirMap = DEFAULT_CATEGORY_DIRS) {
+  if (categoryDirMap && Object.prototype.hasOwnProperty.call(categoryDirMap, category)) {
+    return categoryDirMap[category];
+  }
+  return String(category || "artikel").toLowerCase().replace(/[^a-z0-9_-]+/g, "-") || "artikel";
 }
 
 function slugifyTitle(title) {
@@ -207,6 +214,7 @@ function buildIndexedArticle(rawInput) {
     title: artObj.title,
     category: artObj.category,
     habitat: artObj.habitat,
+    group: artObj.group || artObj.habitat || "",
     status: artObj.status,
     tags: artObj.tags,
     source_file: artObj.source_file,
@@ -298,7 +306,10 @@ function scoreCorpus(articles, query, options = {}) {
   const category = typeof options.category === "string" ? options.category.trim() : "";
   const filtered = category
     ? preparedAll.filter(
-        (a) => a.category === category || normalize(a.habitat) === normalize(category)
+        (a) =>
+          a.category === category ||
+          normalize(a.habitat) === normalize(category) ||
+          normalize(a.group) === normalize(category)
       )
     : preparedAll;
 
@@ -400,7 +411,7 @@ export function verifyClaim(articles, claim) {
       claim,
       status: "nicht_belegt",
       confidence_label:
-        "Keine Treffer im Tierwelt-Korpus gefunden (mögliche Fangfrage oder fehlende Quelle).",
+        "Keine Treffer in der Wissensbasis gefunden (mögliche Fangfrage oder fehlende Quelle).",
       matched_token_ratio: 0,
       evidence: [],
     };
@@ -430,7 +441,7 @@ export function verifyClaim(articles, claim) {
 
   let status = "nicht_belegt";
   let confidence_label =
-    "Keine ausreichenden Belege im Korpus gefunden – mögliche Fangfrage!";
+    "Keine ausreichenden Belege in der Wissensbasis gefunden – mögliche Fangfrage!";
 
   if (
     missingInCorpus.length === 0 &&
@@ -442,7 +453,7 @@ export function verifyClaim(articles, claim) {
   ) {
     status = "belegt";
     confidence_label =
-      "Starke Übereinstimmung mit lokalen Vault-Artikeln — bitte genaue Passage prüfen.";
+      "Starke Abdeckung in den lokalen Artikeln – Belege verfügbar.";
   } else if (
     ratio >= 0.4 &&
     (top.hasTitleHit || top.matched_tokens.length >= 2) &&
@@ -451,8 +462,8 @@ export function verifyClaim(articles, claim) {
     status = "teilweise";
     confidence_label =
       missingInCorpus.length > 0
-        ? `Begriffe nicht im Korpus gefunden (${missingInCorpus.join(", ")}) — mögliche Fangfrage / gemischte Aussage!`
-        : "Teilweise Themenbezug gefunden — Detailaussage gegen Zitat prüfen.";
+        ? `Begriffe nicht in der Wissensbasis gefunden (${missingInCorpus.join(", ")}) — mögliche Fangfrage!`
+        : "Teilweise Themenbezug gefunden — Detailabgleich empfohlen.";
   }
 
   const rawEvidence =

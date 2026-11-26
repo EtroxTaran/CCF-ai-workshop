@@ -1,17 +1,154 @@
 export type ToolMode = "web" | "desktop" | "agent";
 export type WorkshopStepId = "start" | "methods" | "stages" | "paths";
 export type BeamerMode = "stage" | "demo" | "qr" | "outro";
+export type ModuleLevel = "L1" | "L2" | "L3";
+
+export interface CategoryTaxonomyItem {
+  id: string;
+  label: string;
+  plural: string;
+  subdir?: string;
+  color: string;
+  radius?: number;
+}
+
+export interface ModuleTaxonomy {
+  categories: CategoryTaxonomyItem[];
+  groupFieldLabel?: string;
+  graphAnchors?: Record<string, [number, number]>;
+  ragWalkSteps?: { slug: string; note: string }[];
+  defaultSelectedSlug?: string;
+  walkLabel?: string;
+}
+
+export interface EventOverlaySpec {
+  unitLabel?: string;
+  timeSlot?: string;
+  outroBanner?: string;
+  organizerNote?: string;
+  roomHint?: string;
+}
+
+export interface AudioGuideScriptSpec {
+  title: string;
+  durationLabel: string;
+  transcript: string;
+  tts?: string;
+}
+
+export interface GuardrailDebugChallengeSpec {
+  title: string;
+  subtitle: string;
+  brokenRule: string;
+  options: {
+    id: string;
+    text: string;
+    isCorrect: boolean;
+    reason: string;
+  }[];
+  fixedRule: string;
+}
+
+export interface AnimaticSpecs {
+  heroBeforeAfter?: {
+    trapQuestion: string;
+    unfilteredLabel: string;
+    unfilteredAnswer: string;
+    unfilteredTag: string;
+    guardedLabel: string;
+    guardedAnswer: string;
+    guardedTag: string;
+    factsAnswer: string;
+    factsTag: string;
+  };
+  guardrailShield?: {
+    claimText: string;
+    stages: {
+      id: string;
+      stageLabel: string;
+      subtitle: string;
+      blocked: boolean;
+      responseText: string;
+      badge: string;
+    }[];
+  };
+  contextWindow?: {
+    rawLabel: string;
+    indexLabel: string;
+    articleCountLabel: string;
+  };
+  mcpPacket?: {
+    sampleQuery: string;
+    sampleWikilinks: string[];
+    searchToolName?: string;
+    verifyToolName?: string;
+  };
+  toolHotspots?: {
+    webExampleAnswer: string;
+    desktopFolderExample: string;
+    desktopSkillsLabel: string;
+    agentTrapSample: string;
+  };
+  demoScenarios?: Record<
+    string,
+    {
+      tabLabel: string;
+      label: string;
+      question: string;
+      stages: {
+        num: string;
+        variant: "chaos" | "harness" | "vault";
+        title: string;
+        folder: string;
+        statusBadge: string;
+        badgeVar: "danger" | "warning" | "success";
+        stripe: string;
+        output: string;
+        highlightNote: string;
+        isGood: boolean;
+      }[];
+    }
+  >;
+  outroPrompts?: {
+    num: string;
+    title: string;
+    prompt: string;
+  }[];
+  outroTakeaways?: {
+    title: string;
+    detail: string;
+  }[];
+}
+
+export interface LabPresetsSpec {
+  defaultQuery: string;
+  searchPresets: string[];
+  verifyDefaultClaim: string;
+  verifyTrapClaim: string;
+}
+
+export interface StagePackSpecItem {
+  id: string;
+  filename: string;
+  title: string;
+  subtitle: string;
+  slugs: string[];
+}
 
 export interface WorkshopMeta {
+  moduleId?: string;
+  level?: ModuleLevel;
   title: string;
   subtitle: string;
   presenter: string;
   cluster: string;
+  domainLabel?: string;
   timeSlot: string;
   articleCount: number;
   complianceNote: string;
   pagesUrl: string;
   repoUrl: string;
+  zipUrl?: string;
 }
 
 export interface WorkshopStepSpec {
@@ -105,6 +242,7 @@ export interface TestQuestion {
     originalValue: string;
     mutatedValue: string;
     expectedCitation: string;
+    excerptTemplate?: string;
   };
 }
 
@@ -136,7 +274,7 @@ export interface StageSpec {
 }
 
 export interface ExpressPackage {
-  id: "methods" | "stages-arctic-reef";
+  id: string;
   title: string;
   description: string;
   charCount: number;
@@ -152,8 +290,8 @@ export interface PraxisPathModeVariant {
 }
 
 export interface PraxisPathSpec {
-  id: "pfad-recherche" | "pfad-praesentation" | "pfad-app";
-  number: 1 | 2 | 3;
+  id: string;
+  number: number;
   title: string;
   tag: string;
   durationMin: number;
@@ -176,16 +314,18 @@ export interface TransferBridgeRole {
 export interface StarterArticle {
   slug: string;
   title: string;
-  category: "lebensraum" | "tierart" | "konzept";
+  category: string;
   habitat: string;
+  group?: string;
   content: string;
 }
 
 export interface VaultArticle {
   slug: string;
   title: string;
-  category: "lebensraum" | "tierart" | "konzept";
+  category: string;
   habitat: string;
+  group?: string;
   status: string;
   tags: string[];
   summary: string;
@@ -205,8 +345,32 @@ export interface McpConfigSet {
   applyUserCommand: string;
 }
 
+export interface ChecklistItemSpec {
+  id: string;
+  stepId: WorkshopStepId;
+  label: string;
+}
+
+export interface ReflectionPillSpec {
+  id: string;
+  label: string;
+  hint: string;
+}
+
 export interface WorkshopDataset {
   meta: WorkshopMeta;
+  moduleId?: string;
+  level?: ModuleLevel;
+  durationPresets?: number[];
+  taxonomy?: ModuleTaxonomy;
+  eventOverlay?: EventOverlaySpec;
+  audioGuides?: Record<string, AudioGuideScriptSpec>;
+  guardrailDebugChallenge?: GuardrailDebugChallengeSpec;
+  animatics?: AnimaticSpecs;
+  labPresets?: LabPresetsSpec;
+  stagePackSpecs?: { packs: StagePackSpecItem[] };
+  checklistItems?: ChecklistItemSpec[];
+  reflectionPills?: ReflectionPillSpec[];
   steps: WorkshopStepSpec[];
   toolModes: ToolModeSpec[];
   openCodeHelp: OpenCodeHelpSpec;
@@ -223,6 +387,26 @@ export interface WorkshopDataset {
   starterArticles: StarterArticle[];
   vaultArticles: VaultArticle[];
   mcpConfigs: McpConfigSet;
+}
+
+export interface ModuleCatalogEntry {
+  id: string;
+  title: string;
+  subtitle: string;
+  level: ModuleLevel;
+  badge: string;
+  domainLabel: string;
+  durationPresets: number[];
+  articleCount: number;
+  tags: string[];
+  isDefault?: boolean;
+  mcpSupported?: boolean;
+}
+
+export interface ModuleCatalog {
+  generatedAt: string;
+  defaultModuleId: string;
+  modules: ModuleCatalogEntry[];
 }
 
 export interface EvidenceMatch {

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
   ArrowLeft,
@@ -17,6 +17,7 @@ import {
   Globe,
   HelpCircle,
   Layers,
+  LayoutGrid,
   Monitor,
   Network,
   RotateCcw,
@@ -25,7 +26,6 @@ import {
   Terminal,
   Wrench,
 } from "lucide-react";
-import rawData from "@/data/workshopData.json";
 import { ArchitectureLayerStack } from "@/components/ArchitectureLayerStack";
 import { CopyButton } from "@/components/CopyButton";
 import { ObsidianKnowledgeGraph } from "@/components/ObsidianKnowledgeGraph";
@@ -35,7 +35,9 @@ import { StageBackdrop } from "@/components/StageBackdrop";
 import { StageMiniDiagram } from "@/components/StageMiniDiagram";
 import { Virtual7Logo } from "@/components/Virtual7Logo";
 import { AudioGuideChip } from "@/components/guidance/AudioGuideChip";
+import { ByouRuleBuilder } from "@/components/guidance/ByouRuleBuilder";
 import { GlossaryTip } from "@/components/guidance/GlossaryTip";
+import { GuardrailDebugChallenge } from "@/components/guidance/GuardrailDebugChallenge";
 import { GuardrailShieldAnimatic } from "@/components/guidance/GuardrailShieldAnimatic";
 import { HeroBeforeAfterAnimatic } from "@/components/guidance/HeroBeforeAfterAnimatic";
 import {
@@ -73,19 +75,24 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  buildAll68ArticlesMarkdown,
+  buildAllArticlesMarkdown,
   downloadMarkdownFile,
 } from "@/lib/exportCorpusMd";
+import {
+  DEFAULT_MODULE_ID,
+  fetchModuleData,
+  fetchModuleSearchIndex,
+  moduleStorageKeys,
+} from "@/lib/moduleLoader";
 import { offlineSearchVault, offlineVerifyClaim } from "@/lib/offlineSearch";
 import type {
+  CorpusSearchIndex,
   EvidenceMatch,
   ToolMode,
   VerifyClaimResult,
   WorkshopDataset,
   WorkshopStepId,
 } from "@/types/workshop";
-
-const data = rawData as unknown as WorkshopDataset;
 
 const VALID_STEPS = new Set<WorkshopStepId>(["start", "methods", "stages", "paths"]);
 const VALID_MODES = new Set<ToolMode>(["web", "desktop", "agent"]);
@@ -99,19 +106,26 @@ interface PersistedUiState {
   activeStageIdx: number;
 }
 
-const STORAGE_KEY = "v7-ccf-workshop-state-v3";
-const SESSION_KEY = "v7-ccf-workshop-session-v2";
-
-function parseHashStep(): WorkshopStepId | null {
+function parseHashStep(moduleId: string): WorkshopStepId | null {
   if (typeof window === "undefined") return null;
   const rawHash = window.location.hash;
   if (!rawHash || rawHash === "#" || rawHash === "#/") return null;
-  if (/^#\/beamer(?:[/?#]|$)/.test(rawHash)) return null;
-  const normalized = rawHash.replace(/^#\/?/, "") as WorkshopStepId;
-  return VALID_STEPS.has(normalized) ? normalized : null;
+  if (/^#\/(?:hub|beamer)(?:[/?#]|$)/.test(rawHash)) return null;
+  const modMatch = rawHash.match(/^#\/m\/([^/]+)(?:\/([^/?#]+))?/);
+  if (modMatch) {
+    const sub = modMatch[2] as WorkshopStepId | undefined;
+    if (modMatch[2] === "beamer") return null;
+    return sub && VALID_STEPS.has(sub) ? sub : "start";
+  }
+  if (moduleId === DEFAULT_MODULE_ID) {
+    const normalized = rawHash.replace(/^#\/?/, "") as WorkshopStepId;
+    return VALID_STEPS.has(normalized) ? normalized : null;
+  }
+  return null;
 }
 
-function readInitialUiState(): PersistedUiState {
+function readInitialUiState(moduleId: string, stagesCount: number): PersistedUiState {
+  const { storageKey, sessionKey } = moduleStorageKeys(moduleId);
   const defaults: PersistedUiState = {
     step: "start",
     toolMode: "web",
@@ -122,7 +136,7 @@ function readInitialUiState(): PersistedUiState {
   };
   if (typeof window === "undefined") return defaults;
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = localStorage.getItem(storageKey);
     if (saved) {
       const parsed = JSON.parse(saved);
       if (VALID_MODES.has(parsed.toolMode)) defaults.toolMode = parsed.toolMode;
@@ -134,7 +148,7 @@ function readInitialUiState(): PersistedUiState {
         defaults.showAllQuestions = parsed.showAllQuestions;
       }
     }
-    const sessionSaved = sessionStorage.getItem(SESSION_KEY);
+    const sessionSaved = sessionStorage.getItem(sessionKey);
     if (sessionSaved) {
       const parsedSession = JSON.parse(sessionSaved);
       if (
@@ -146,7 +160,7 @@ function readInitialUiState(): PersistedUiState {
       if (
         typeof parsedSession.activeStageIdx === "number" &&
         parsedSession.activeStageIdx >= 0 &&
-        parsedSession.activeStageIdx < data.stages.length
+        parsedSession.activeStageIdx < stagesCount
       ) {
         defaults.activeStageIdx = parsedSession.activeStageIdx;
       }
@@ -154,7 +168,7 @@ function readInitialUiState(): PersistedUiState {
   } catch {
     // ignore storage errors
   }
-  const hashStep = parseHashStep();
+  const hashStep = parseHashStep(moduleId);
   if (hashStep) {
     defaults.step = hashStep;
   }
@@ -197,10 +211,10 @@ const CHECKLIST_ITEMS: { id: string; stepId: WorkshopStepId; label: string }[] =
   { id: "chk-setup", stepId: "start", label: "Werkzeug-Hilfe (Web-Chat, Desktop & Ordner oder Code-Agent) gewählt" },
   { id: "chk-methods", stepId: "methods", label: "Prompt-Methoden (Zero-Shot vs. CO-STAR/Few-Shot/RISEN) verglichen" },
   { id: "chk-rules", stepId: "methods", label: "Steuerungs-Ebenen & Kontext-Tank getestet" },
-  { id: "chk-stages", stepId: "stages", label: "3-Stufen-Experiment inkl. Fangfrage 3 & 38-Zähne-Check getestet" },
+  { id: "chk-stages", stepId: "stages", label: "3-Stufen-Experiment inkl. Fangfrage & Quellen-Treue getestet" },
   { id: "chk-reflect", stepId: "stages", label: "Eigene Beobachtung per Reflexions-Pill festgehalten" },
-  { id: "chk-path", stepId: "paths", label: "Praxis-Pfad oder 68-Artikel-Faktenprüfer ausprobiert" },
-  { id: "chk-transfer", stepId: "paths", label: "CCF-Transfer-Brücke für die eigene Rolle angesehen" },
+  { id: "chk-path", stepId: "paths", label: "Praxis-Pfad oder Wissensbasis-Faktenprüfer ausprobiert" },
+  { id: "chk-transfer", stepId: "paths", label: "Transfer-Brücke für die eigene Rolle angesehen" },
 ];
 
 const REFLECTION_PILLS: { id: string; label: string; hint: string }[] = [
@@ -212,7 +226,7 @@ const REFLECTION_PILLS: { id: string; label: string; hint: string }[] = [
   {
     id: "ref-rejected",
     label: "Regel hat abgelehnt",
-    hint: "In Stufe 2/3 hat der Guardrail Fangfrage 3 (Schneeleopard) sauber abgefangen.",
+    hint: "In Stufe 2/3 hat der Guardrail die Fangfrage sauber abgefangen.",
   },
   {
     id: "ref-linked",
@@ -221,9 +235,103 @@ const REFLECTION_PILLS: { id: string; label: string; hint: string }[] = [
   },
 ];
 
-export function ParticipantApp() {
+export function ParticipantApp({ moduleId = DEFAULT_MODULE_ID }: { moduleId?: string }) {
+  const [data, setData] = useState<WorkshopDataset | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [corpusIndex, setCorpusIndex] = useState<CorpusSearchIndex | null>(null);
+  const indexPromiseRef = useRef<Promise<CorpusSearchIndex> | null>(null);
+
+  const ensureCorpusIndex = useMemo(
+    () => async () => {
+      if (corpusIndex) return corpusIndex;
+      if (!indexPromiseRef.current) {
+        indexPromiseRef.current = fetchModuleSearchIndex(moduleId).then((loaded) => {
+          setCorpusIndex(loaded);
+          return loaded;
+        });
+      }
+      return indexPromiseRef.current;
+    },
+    [corpusIndex, moduleId]
+  );
+
+  useEffect(() => {
+    let active = true;
+    setData(null);
+    setLoadError(null);
+    setCorpusIndex(null);
+    indexPromiseRef.current = null;
+    fetchModuleData(moduleId)
+      .then((loaded) => {
+        if (active) setData(loaded);
+      })
+      .catch((err) => {
+        if (active) {
+          setLoadError(err instanceof Error ? err.message : "Modul konnte nicht geladen werden.");
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [moduleId]);
+
+  if (loadError) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background p-6 text-center text-foreground">
+        <p className="text-lg font-bold text-destructive">{loadError}</p>
+        <a
+          href="#/hub"
+          className="inline-flex h-9 items-center rounded-lg border bg-card px-4 text-sm font-medium hover:bg-muted"
+        >
+          Zur Modul-Übersicht (Hub)
+        </a>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background p-6 text-sm text-muted-foreground">
+        Workshop-Modul wird geladen…
+      </div>
+    );
+  }
+
+  return (
+    <ParticipantAppInner
+      data={data}
+      moduleId={moduleId}
+      corpusIndex={corpusIndex}
+      ensureCorpusIndex={ensureCorpusIndex}
+    />
+  );
+}
+
+function ParticipantAppInner({
+  data,
+  moduleId,
+  corpusIndex,
+  ensureCorpusIndex,
+}: {
+  data: WorkshopDataset;
+  moduleId: string;
+  corpusIndex: CorpusSearchIndex | null;
+  ensureCorpusIndex: () => Promise<CorpusSearchIndex>;
+}) {
   const prefersReduced = useReducedMotion();
-  const [initialState] = useState<PersistedUiState>(() => readInitialUiState());
+  const { storageKey, sessionKey } = useMemo(() => moduleStorageKeys(moduleId), [moduleId]);
+  const checklistItems = useMemo(
+    () => data.checklistItems || CHECKLIST_ITEMS,
+    [data.checklistItems]
+  );
+  const reflectionPills = useMemo(
+    () => data.reflectionPills || REFLECTION_PILLS,
+    [data.reflectionPills]
+  );
+
+  const [initialState] = useState<PersistedUiState>(() =>
+    readInitialUiState(moduleId, data.stages.length)
+  );
   const [step, setStep] = useState<WorkshopStepId>(initialState.step);
   const [toolMode, setToolMode] = useState<ToolMode>(initialState.toolMode);
   const [checked, setChecked] = useState<Record<string, boolean>>(initialState.checked);
@@ -239,14 +347,23 @@ export function ParticipantApp() {
   const [showGraphEarly, setShowGraphEarly] = useState(false);
   const [graphSelectedSlug, setGraphSelectedSlug] = useState<string | undefined>(undefined);
   const [q4SimulatedMutated, setQ4SimulatedMutated] = useState(true);
+  const [revealQ4Answer, setRevealQ4Answer] = useState(false);
+  const [durationPreset, setDurationPreset] = useState<"self" | number>(
+    () => data.durationPresets?.[0] ?? 45
+  );
   const [activePathId, setActivePathId] = useState<string>(data.praxisPaths[0]?.id || "pfad-recherche");
 
-  // Step 04 In-Browser 68-Article Search & Claim Verifier state
+  // Step 04 In-Browser Corpus Search & Claim Verifier state
   const [labTab, setLabTab] = useState<"search" | "verify">("search");
-  const [mcpQuery, setMcpQuery] = useState("Anemonenfische Seeanemonen Symbiose");
+  const [mcpQuery, setMcpQuery] = useState(
+    data.labPresets?.defaultQuery ||
+      data.labPresets?.searchPresets?.[0] ||
+      "Anemonenfische Seeanemonen Symbiose"
+  );
   const [mcpResults, setMcpResults] = useState<EvidenceMatch[] | null>(null);
   const [verifyClaim, setVerifyClaim] = useState(
-    "Eisbärentalg enthält kein Squalen und verhindert dadurch das Gefrieren des Fells."
+    data.labPresets?.verifyDefaultClaim ||
+      "Eisbärentalg enthält kein Squalen und verhindert dadurch das Gefrieren des Fells."
   );
   const [verifyOutput, setVerifyOutput] = useState<VerifyClaimResult | null>(null);
   const [mcpActiveHop, setMcpActiveHop] = useState<number>(0);
@@ -255,14 +372,14 @@ export function ParticipantApp() {
   useEffect(() => {
     try {
       localStorage.setItem(
-        STORAGE_KEY,
+        storageKey,
         JSON.stringify({ toolMode, checked, reflections, showAllQuestions })
       );
-      sessionStorage.setItem(SESSION_KEY, JSON.stringify({ step, activeStageIdx }));
+      sessionStorage.setItem(sessionKey, JSON.stringify({ step, activeStageIdx }));
     } catch {
       // ignore storage errors
     }
-  }, [toolMode, checked, reflections, showAllQuestions, step, activeStageIdx]);
+  }, [storageKey, sessionKey, toolMode, checked, reflections, showAllQuestions, step, activeStageIdx]);
 
   // First-visit OnboardingTour auto-open
   useEffect(() => {
@@ -281,29 +398,29 @@ export function ParticipantApp() {
   useEffect(() => {
     function onHashChange() {
       const rawHash = window.location.hash;
-      if (/^#\/beamer(?:[/?#]|$)/.test(rawHash)) return;
-      if (!rawHash || rawHash === "#" || rawHash === "#/") {
+      if (/^#\/(?:hub|(?:m\/[^/]+\/)?beamer)(?:[/?#]|$)/.test(rawHash)) return;
+      if (moduleId === DEFAULT_MODULE_ID && (!rawHash || rawHash === "#" || rawHash === "#/")) {
         setStep("start");
         return;
       }
-      const parsed = parseHashStep();
+      const parsed = parseHashStep(moduleId);
       if (parsed) setStep(parsed);
     }
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
-  }, []);
+  }, [moduleId]);
 
   const methodsExpressPack = useMemo(
     () =>
       data.expressPackages.find((p) => p.id === "methods") || data.expressPackages[0],
-    []
+    [data.expressPackages]
   );
   const stagesExpressPack = useMemo(
     () =>
       data.expressPackages.find((p) => p.id === "stages-arctic-reef") ||
       data.expressPackages[1] ||
       data.expressPackages[0],
-    []
+    [data.expressPackages]
   );
 
   const stagePacks = useMemo(() => {
@@ -314,25 +431,34 @@ export function ParticipantApp() {
         .filter((a) => slugs.includes(a.slug))
         .map(formatArticle)
         .join("\n\n");
+    const customPacks = (data.stagePackSpecs?.packs || []).map((item) => ({
+      item,
+      content: pick(item.slugs),
+    }));
     return {
-      arctic: pick(["eisbaer", "arktis", "ringelrobbe", "klimawandel"]),
-      reef: pick([
-        "anemonenfische",
-        "seeanemonen",
-        "symbiose",
-        "steinkorallen",
-        "korallenbleiche",
-        "korallenriff",
-      ]),
+      arctic:
+        customPacks[0]?.content ||
+        pick(["eisbaer", "arktis", "ringelrobbe", "klimawandel"]),
+      reef:
+        customPacks[1]?.content ||
+        pick([
+          "anemonenfische",
+          "seeanemonen",
+          "symbiose",
+          "steinkorallen",
+          "korallenbleiche",
+          "korallenriff",
+        ]),
+      customPacks,
       all12: data.starterArticles.map(formatArticle).join("\n\n"),
     };
-  }, []);
+  }, [data.stagePackSpecs?.packs, data.starterArticles]);
 
   const completedCount = useMemo(
-    () => CHECKLIST_ITEMS.filter((item) => checked[item.id]).length,
-    [checked]
+    () => checklistItems.filter((item) => checked[item.id]).length,
+    [checklistItems, checked]
   );
-  const progressPct = Math.round((completedCount / CHECKLIST_ITEMS.length) * 100);
+  const progressPct = Math.round((completedCount / checklistItems.length) * 100);
 
   function markChecked(id: string) {
     setChecked((prev) => (prev[id] ? prev : { ...prev, [id]: true }));
@@ -357,10 +483,17 @@ export function ParticipantApp() {
     setStep(next);
     if (
       typeof window !== "undefined" &&
-      !/^#\/beamer(?:[/?#]|$)/.test(window.location.hash) &&
+      !/^#\/(?:m\/[^/]+\/)?beamer(?:[/?#]|$)/.test(window.location.hash) &&
       !window.location.pathname.startsWith("/beamer")
     ) {
-      const targetHash = next === "start" ? "#/" : `#/${next}`;
+      const targetHash =
+        moduleId === DEFAULT_MODULE_ID
+          ? next === "start"
+            ? "#/"
+            : `#/${next}`
+          : next === "start"
+            ? `#/m/${moduleId}`
+            : `#/m/${moduleId}/${next}`;
       window.history.replaceState(null, "", targetHash);
     }
     window.scrollTo({ top: 0, behavior: prefersReduced ? "auto" : "smooth" });
@@ -368,8 +501,8 @@ export function ParticipantApp() {
 
   function resetProgress() {
     try {
-      localStorage.removeItem(STORAGE_KEY);
-      sessionStorage.removeItem(SESSION_KEY);
+      localStorage.removeItem(storageKey);
+      sessionStorage.removeItem(sessionKey);
     } catch {
       // ignore
     }
@@ -384,7 +517,11 @@ export function ParticipantApp() {
       typeof window !== "undefined" &&
       !window.location.pathname.startsWith("/beamer")
     ) {
-      window.history.replaceState(null, "", "#/");
+      window.history.replaceState(
+        null,
+        "",
+        moduleId === DEFAULT_MODULE_ID ? "#/" : `#/m/${moduleId}`
+      );
     }
     window.scrollTo({ top: 0, behavior: prefersReduced ? "auto" : "smooth" });
   }
@@ -401,22 +538,24 @@ export function ParticipantApp() {
     window.setTimeout(() => setMcpActiveHop(0), 1500);
   }
 
-  function runOfflineSearch(customQuery?: string) {
+  async function runOfflineSearch(customQuery?: string) {
     const q = (customQuery ?? mcpQuery).trim();
     if (customQuery !== undefined) setMcpQuery(customQuery);
     setLabTab("search");
     markChecked("chk-path");
     animatePipelinePulse();
-    setMcpResults(offlineSearchVault(q, data.vaultArticles, data.starterArticles, 5));
+    const idx = await ensureCorpusIndex();
+    setMcpResults(offlineSearchVault(q, data.vaultArticles, data.starterArticles, 5, idx));
   }
 
-  function runOfflineVerify(customClaim?: string) {
+  async function runOfflineVerify(customClaim?: string) {
     const c = (customClaim ?? verifyClaim).trim();
     if (customClaim !== undefined) setVerifyClaim(customClaim);
     setLabTab("verify");
     markChecked("chk-path");
     animatePipelinePulse();
-    setVerifyOutput(offlineVerifyClaim(c, data.vaultArticles, data.starterArticles));
+    const idx = await ensureCorpusIndex();
+    setVerifyOutput(offlineVerifyClaim(c, data.vaultArticles, data.starterArticles, idx));
   }
 
   const currentStage = data.stages[activeStageIdx] || data.stages[0];
@@ -439,32 +578,37 @@ export function ParticipantApp() {
   const compactStage3Index = useMemo(() => {
     const raw = data.stages[2]?.indexMd || "";
     if (!raw) return "";
+    const focusSlugs = data.starterArticles.map((a) => a.slug.toLowerCase());
     const keepLines = raw.split("\n").filter((line) => {
       const low = line.toLowerCase();
       return (
         line.startsWith("#") ||
+        focusSlugs.some((slug) => low.includes(slug)) ||
         low.includes("arktis") ||
-        low.includes("eisbaer") ||
-        low.includes("ringelrobbe") ||
-        low.includes("klimawandel") ||
-        low.includes("korallen") ||
-        low.includes("anemon") ||
-        low.includes("symbiose") ||
-        low.includes("zooxanthellen")
+        low.includes("korallen")
       );
     });
-    return keepLines.join("\n").slice(0, 2200);
-  }, []);
+    return (keepLines.length > 0 ? keepLines.join("\n") : raw).slice(0, 2200);
+  }, [data.stages, data.starterArticles]);
+
+  const isSelfPaced = durationPreset === "self";
+  const durationLabel = isSelfPaced ? "Selbstlernen" : `${durationPreset} Min.`;
 
   const stageWebCopyPayload = useMemo(() => {
     if (currentStage.id === "stufe-1") {
-      return `HINTERGRUNDTEXTE EINLESEN:\nLies die folgenden 10 Artikel still ein und antworte vorerst NUR mit: „Texte bereit — stelle deine erste Frage.“\n\n---\n\n${stagesExpressPack.content}`;
+      return `HINTERGRUNDTEXTE EINLESEN:\nLies die folgenden ${data.starterArticles.length} Fokus-Artikel still ein und antworte vorerst NUR mit: „Texte bereit — stelle deine erste Frage.“\n\n---\n\n${stagesExpressPack.content}`;
     }
     if (currentStage.id === "stufe-2") {
       return `REGELN & TEXTE EINLESEN:\nMerke dir zuerst diese verbindlichen Hausregeln und lies danach die Artikel still ein. Antworte vorerst NUR mit: „Regeln aktiv & Texte bereit — stelle deine erste Frage.“\n\n${data.chatRulesTemplate}\n\n---\n\n${stagesExpressPack.content}`;
     }
     return `WISSENSNETZ-REGELN, KOMPAKT-INDEX & TEXTE:\nMerke dir die Regeln und die Verknüpfungen im Kompakt-Index und lies die Artikel still ein. Antworte vorerst NUR mit: „Wissensnetz aktiv — stelle deine erste Frage.“\n\n${data.chatRulesTemplate}\n\n---\n\n${compactStage3Index}\n\n---\n\n${stagesExpressPack.content}`;
-  }, [currentStage, stagesExpressPack, compactStage3Index]);
+  }, [
+    currentStage,
+    data.chatRulesTemplate,
+    data.starterArticles.length,
+    stagesExpressPack,
+    compactStage3Index,
+  ]);
 
   const activePraxisPath =
     data.praxisPaths.find((p) => p.id === activePathId) || data.praxisPaths[0];
@@ -477,14 +621,14 @@ export function ParticipantApp() {
     <div className="min-h-dvh bg-background text-foreground">
       {/* Slim Single-Row Sticky Header (56px) */}
       <header className="sticky top-0 z-40 h-14 border-b bg-background/90 backdrop-blur-md">
-        <div className="mx-auto flex h-full max-w-[1320px] items-center justify-between gap-2 px-2.5 sm:px-4">
+        <div className="mx-auto flex h-full max-w-[1320px] items-center justify-between gap-1 px-2 sm:gap-2 sm:px-4">
           <div className="flex min-w-0 items-center gap-1.5 lg:gap-2">
             <Virtual7Logo compact className="shrink-0 lg:hidden" />
             <Virtual7Logo className="hidden h-7 lg:block" />
             <Separator orientation="vertical" className="hidden h-5 lg:block" />
-            <span className="whitespace-nowrap font-display text-sm font-bold tracking-tight">
-              <span className="hidden sm:inline lg:hidden">CCF</span>
-              <span className="hidden lg:inline">Workshop-App</span>
+            <span className="truncate whitespace-nowrap font-display text-sm font-bold tracking-tight">
+              <span className="hidden sm:inline lg:hidden">{data.meta.cluster}</span>
+              <span className="hidden lg:inline">{data.meta.title}</span>
             </span>
           </div>
 
@@ -523,6 +667,17 @@ export function ParticipantApp() {
               })}
             </div>
 
+            {/* Hub Switcher */}
+            <a
+              href="#/hub"
+              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground sm:h-9 sm:w-auto sm:gap-1.5 sm:px-2.5"
+              title="Alle Workshop-Module (Hub)"
+              aria-label="Alle Workshop-Module (Hub)"
+            >
+              <LayoutGrid className="h-3.5 w-3.5 text-brand-ink" />
+              <span className="hidden lg:inline">Module</span>
+            </a>
+
             {/* Hilfe, Glossar & FAQ Drawer */}
             <HelpFaqSheet
               open={helpOpen}
@@ -533,6 +688,9 @@ export function ParticipantApp() {
               }}
               starterArticles={data.starterArticles}
               vaultArticles={data.vaultArticles}
+              corpusIndex={corpusIndex ?? undefined}
+              onLoadCorpusIndex={ensureCorpusIndex}
+              moduleTitle={data.meta.title}
             />
 
             {/* Checklist Drawer Trigger */}
@@ -543,14 +701,14 @@ export function ParticipantApp() {
                   size="sm"
                   variant="outline"
                   data-tour="checklist-trigger"
-                  className="num-tabular h-8 gap-1 px-2 text-xs sm:h-9 sm:gap-1.5 sm:px-2.5"
-                  aria-label={`Fortschritt & Checkliste öffnen (${completedCount} von ${CHECKLIST_ITEMS.length})`}
+                  className="num-tabular h-8 gap-1 px-1.5 text-xs sm:h-9 sm:gap-1.5 sm:px-2.5"
+                  aria-label={`Fortschritt & Checkliste öffnen (${completedCount} von ${checklistItems.length})`}
                   title="Fortschritt & Checkliste öffnen"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5 text-brand-ink" />
                   <span>
                     <span className="hidden sm:inline">To-do </span>
-                    {completedCount}/{CHECKLIST_ITEMS.length}
+                    {completedCount}/{checklistItems.length}
                   </span>
                 </Button>
               </SheetTrigger>
@@ -571,7 +729,7 @@ export function ParticipantApp() {
                   </div>
 
                   <div className="space-y-2">
-                    {CHECKLIST_ITEMS.map((item) => (
+                    {checklistItems.map((item) => (
                       <div
                         key={item.id}
                         className="flex items-start justify-between gap-2 rounded-xl border p-3 text-sm hover:bg-muted/40"
@@ -621,7 +779,7 @@ export function ParticipantApp() {
 
             {/* Trainer-Bühne Link (#/beamer) */}
             <a
-              href="#/beamer"
+              href={moduleId === DEFAULT_MODULE_ID ? "#/beamer" : `#/m/${moduleId}/beamer`}
               data-tour="beamer-link"
               className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground sm:h-9 sm:w-9"
               title="Zur Trainer-Bühne (#/beamer)"
@@ -701,7 +859,7 @@ export function ParticipantApp() {
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
-              <span>68 öffentliche Wikipedia-Artikel</span>
+              <span>{data.vaultArticles.length} öffentliche Artikel</span>
             </div>
           </div>
         </aside>
@@ -729,7 +887,7 @@ export function ParticipantApp() {
                           <div className="inline-flex flex-wrap items-center gap-2 rounded-full border border-[#A9C23F]/35 bg-[#A9C23F]/15 px-3 py-1 text-xs font-semibold text-[#A9C23F]">
                             <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
                             <span>
-                              15 Min. Aha-Kern · 30 Min. Praxis-Pfad ·{" "}
+                              {data.meta.level || "L1"} · {durationLabel} ·{" "}
                               <span className="whitespace-nowrap">100&nbsp;% öffentliche Daten</span>
                             </span>
                           </div>
@@ -740,17 +898,24 @@ export function ParticipantApp() {
                           </h1>
 
                           <p className="editorial-measure text-sm leading-relaxed text-[#D3DACD] sm:text-base">
-                            Erlebe in 4 klaren Schritten, wie aus vagen Antworten belegte
-                            Ergebnisse werden — zuerst 15 Minuten gemeinsam im{" "}
-                            <strong>Aha-Kern</strong>, danach 30 Minuten frei in deinem{" "}
-                            <strong>Praxis-Pfad</strong>.
+                            {data.meta.subtitle ||
+                              "Erlebe in 4 klaren Schritten, wie aus vagen Antworten belegte Ergebnisse werden."}
                           </p>
 
                           <div className="grid grid-cols-2 gap-2.5 pt-1 sm:grid-cols-4">
                             {[
-                              { val: "15 Min.", lbl: "Gemeinsamer Aha-Kern" },
-                              { val: "30 Min.", lbl: "Freier Praxis-Pfad" },
-                              { val: "68", lbl: "Öffentliche Artikel" },
+                              {
+                                val: durationLabel,
+                                lbl: isSelfPaced ? "Eigenes Tempo" : "Zeit-Format",
+                              },
+                              {
+                                val: `${data.starterArticles.length}`,
+                                lbl: "Fokus-Artikel",
+                              },
+                              {
+                                val: `${data.vaultArticles.length}`,
+                                lbl: "Öffentliche Artikel",
+                              },
                               { val: "0", lbl: "Vertrauliche Daten" },
                             ].map((kpi) => (
                               <div
@@ -769,12 +934,15 @@ export function ParticipantApp() {
                         </div>
 
                         <div className="lg:col-span-5">
-                          <HeroBeforeAfterAnimatic />
+                          <HeroBeforeAfterAnimatic
+                            spec={data.animatics?.heroBeforeAfter}
+                            articleCount={data.vaultArticles.length}
+                          />
                         </div>
                       </div>
                     </section>
 
-                    <AudioGuideChip clipId="step-01" />
+                    <AudioGuideChip clipId="step-01" audioGuides={data.audioGuides} />
 
                     {/* 3-Way Werkzeug-Hilfe Selector */}
                     <section className="space-y-3">
@@ -926,16 +1094,17 @@ export function ParticipantApp() {
                               type="button"
                               size="sm"
                               variant="outline"
-                              onClick={() =>
+                              onClick={async () => {
+                                const idx = await ensureCorpusIndex();
                                 downloadMarkdownFile(
-                                  "alle-68-artikel-wissensbasis.md",
-                                  buildAll68ArticlesMarkdown(data.vaultArticles),
-                                  "Alle 68 Artikel (.md) heruntergeladen"
-                                )
-                              }
+                                  `alle-${data.vaultArticles.length}-artikel-wissensbasis.md`,
+                                  buildAllArticlesMarkdown(data.vaultArticles, idx, data.meta.title),
+                                  `Alle ${data.vaultArticles.length} Artikel (.md) heruntergeladen`
+                                );
+                              }}
                             >
                               <Download className="h-3.5 w-3.5" />
-                              <span>Alle 68 Artikel (.md)</span>
+                              <span>Alle {data.vaultArticles.length} Artikel (.md)</span>
                             </Button>
                           </div>
                         </div>
@@ -970,7 +1139,7 @@ export function ParticipantApp() {
                             <span>Alle Begriffe &amp; FAQ öffnen</span>
                           </Button>
                         </div>
-                        <AudioGuideChip clipId="what-is-markdown" />
+                        <AudioGuideChip clipId="what-is-markdown" audioGuides={data.audioGuides} />
                       </section>
                     )}
 
@@ -1019,38 +1188,77 @@ export function ParticipantApp() {
                     )}
 
                     {/* Mode-Specific ToolHotspotGuide */}
-                    <ToolHotspotGuide toolMode={toolMode} />
+                    <ToolHotspotGuide
+                      toolMode={toolMode}
+                      spec={data.animatics?.toolHotspots}
+                      articleCount={data.vaultArticles.length}
+                    />
 
-                    {/* 4-Phase Schedule Accordion */}
+                    {/* Duration Preset Switcher + 4-Phase Schedule Accordion */}
                     <Accordion type="single" collapsible className="rounded-2xl border bg-card px-5">
                       <AccordionItem value="schedule" className="border-none">
                         <AccordionTrigger className="font-display text-sm font-semibold">
-                          Ablaufplan ansehen ({data.phases.length} Phasen · {data.meta.timeSlot})
+                          Ablaufplan ansehen ({data.phases.length} Phasen ·{" "}
+                          {isSelfPaced
+                            ? "Eigenes Tempo (ohne Uhrzeit)"
+                            : `${durationLabel} (${data.meta.timeSlot})`}
+                          )
                         </AccordionTrigger>
-                        <AccordionContent className="divide-y pb-3">
-                          {data.phases.map((p) => (
-                            <div
-                              key={p.id}
-                              className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between"
-                            >
-                              <div className="space-y-0.5">
-                                <div className="flex items-center gap-3">
-                                  <span className="num-tabular font-mono text-xs font-semibold text-brand-ink">
-                                    {p.timeRange}
-                                  </span>
-                                  <span className="text-sm font-semibold">
-                                    {p.number}. {p.title}
-                                  </span>
+                        <AccordionContent className="space-y-3 pb-3">
+                          <div className="flex flex-wrap items-center gap-1.5 border-b pb-3">
+                            <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+                              Zeit-Format:
+                            </span>
+                            {(["self", ...(data.durationPresets || [45, 60, 90])] as const).map(
+                              (preset) => {
+                                const active = preset === durationPreset;
+                                const label =
+                                  preset === "self" ? "Selbstlernen" : `${preset} Min.`;
+                                return (
+                                  <button
+                                    key={String(preset)}
+                                    type="button"
+                                    onClick={() => setDurationPreset(preset)}
+                                    className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
+                                      active
+                                        ? "border-brand-lime bg-secondary/70 font-semibold text-foreground"
+                                        : "bg-muted/40 text-muted-foreground hover:text-foreground"
+                                    }`}
+                                  >
+                                    {label}
+                                  </button>
+                                );
+                              }
+                            )}
+                          </div>
+
+                          <div className="divide-y">
+                            {data.phases.map((p) => (
+                              <div
+                                key={p.id}
+                                className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between"
+                              >
+                                <div className="space-y-0.5">
+                                  <div className="flex items-center gap-3">
+                                    {!isSelfPaced && (
+                                      <span className="num-tabular font-mono text-xs font-semibold text-brand-ink">
+                                        {p.timeRange}
+                                      </span>
+                                    )}
+                                    <span className="text-sm font-semibold">
+                                      {p.number}. {p.title}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {p.modeCues[toolMode]}
+                                  </div>
                                 </div>
-                                <div className="text-xs text-muted-foreground">
-                                  {p.modeCues[toolMode]}
-                                </div>
+                                <Badge variant="outline" className="w-fit shrink-0 text-[11px]">
+                                  {p.durationMin} Min.
+                                </Badge>
                               </div>
-                              <Badge variant="outline" className="w-fit shrink-0 text-[11px]">
-                                {p.durationMin} Min.
-                              </Badge>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </AccordionContent>
                       </AccordionItem>
                     </Accordion>
@@ -1074,7 +1282,7 @@ export function ParticipantApp() {
                         Few-Shot, RISEN + CoT) völlig unterschiedliche Ergebnisse erzwingt — und
                         warum System-Regeln im Kontext-Fenster überleben.
                       </p>
-                      <AudioGuideChip clipId="step-02" />
+                      <AudioGuideChip clipId="step-02" audioGuides={data.audioGuides} />
                     </div>
 
                     <PromptMethodComparator
@@ -1092,6 +1300,7 @@ export function ParticipantApp() {
                       chatRulesTemplate={data.chatRulesTemplate}
                       toolMode={toolMode}
                       agentsMdTemplate={data.stages[1]?.agentsMd}
+                      contextWindowSpec={data.animatics?.contextWindow}
                       onCopyTemplate={() => markChecked("chk-rules")}
                     />
                   </div>
@@ -1114,7 +1323,7 @@ export function ParticipantApp() {
                         Erlebe an denselben Testfragen den Sprung von ungefiltertem Raten (Stufe 1)
                         über verbindliche Regeln (Stufe 2) hin zum verknüpften Wissensnetz (Stufe 3).
                       </p>
-                      <AudioGuideChip clipId="step-03" />
+                      <AudioGuideChip clipId="step-03" audioGuides={data.audioGuides} />
                     </div>
 
                     {/* 3-Stage Selector Cards */}
@@ -1217,12 +1426,20 @@ export function ParticipantApp() {
                               />
                             )}
                             {currentStage.id === "stufe-3" && currentStage.indexMd && (
-                              <CopyButton
-                                text={`${data.chatRulesTemplate}\n\n---\n\n${compactStage3Index}`}
-                                label="Regeln + Kompakt-Index"
-                                variant="secondary"
-                                onCopy={() => markChecked("chk-stages")}
-                              />
+                              <>
+                                <CopyButton
+                                  text={`${data.chatRulesTemplate}\n\n---\n\n${compactStage3Index}\n\n---\n\nAUFGABE (Turn 1 · nur Index):\nWelche 1-2 Dateien aus _index.md sollten wir zuerst lesen für folgende Frage? Nenne NUR die Dateinamen:\n${data.testQuestions[1]?.question || ""}`}
+                                  label="Turn 1: Nur _index.md + Frage 2"
+                                  variant="secondary"
+                                  onCopy={() => markChecked("chk-stages")}
+                                />
+                                <CopyButton
+                                  text={`HIER SIND DIE ANGEFORDERTEN ARTIKEL:\n\n${stagePacks.reef || stagePacks.all12}`}
+                                  label="Turn 2: Fokus-Artikel"
+                                  variant="secondary"
+                                  onCopy={() => markChecked("chk-stages")}
+                                />
+                              </>
                             )}
                             <Button
                               type="button"
@@ -1230,15 +1447,15 @@ export function ParticipantApp() {
                               variant="outline"
                               onClick={() => {
                                 downloadMarkdownFile(
-                                  "fokus-korpus-12-artikel.md",
+                                  `fokus-korpus-${data.starterArticles.length}-artikel.md`,
                                   stagePacks.all12,
-                                  "12 Fokus-Artikel (.md) heruntergeladen"
+                                  `${data.starterArticles.length} Fokus-Artikel (.md) heruntergeladen`
                                 );
                                 markChecked("chk-stages");
                               }}
                             >
                               <Download className="h-3.5 w-3.5" />
-                              <span>12 Fokus-Artikel (.md)</span>
+                              <span>{data.starterArticles.length} Fokus-Artikel (.md)</span>
                             </Button>
                           </>
                         ) : toolMode === "desktop" ? (
@@ -1266,17 +1483,18 @@ export function ParticipantApp() {
                               type="button"
                               size="sm"
                               variant="outline"
-                              onClick={() => {
+                              onClick={async () => {
+                                const idx = await ensureCorpusIndex();
                                 downloadMarkdownFile(
-                                  "alle-68-artikel-wissensbasis.md",
-                                  buildAll68ArticlesMarkdown(data.vaultArticles),
-                                  "Alle 68 Artikel (.md) heruntergeladen"
+                                  `alle-${data.vaultArticles.length}-artikel-wissensbasis.md`,
+                                  buildAllArticlesMarkdown(data.vaultArticles, idx, data.meta.title),
+                                  `Alle ${data.vaultArticles.length} Artikel (.md) heruntergeladen`
                                 );
                                 markChecked("chk-stages");
                               }}
                             >
                               <Download className="h-3.5 w-3.5" />
-                              <span>Alle 68 (.md)</span>
+                              <span>Alle {data.vaultArticles.length} (.md)</span>
                             </Button>
                           </>
                         ) : (
@@ -1294,100 +1512,150 @@ export function ParticipantApp() {
                           arcticPack={stagePacks.arctic}
                           reefPack={stagePacks.reef}
                           all12Pack={stagePacks.all12}
+                          customPacks={stagePacks.customPacks}
                           vaultArticles={data.vaultArticles}
+                          corpusIndex={corpusIndex ?? undefined}
+                          onLoadCorpusIndex={ensureCorpusIndex}
+                          moduleTitle={data.meta.title}
                           toolMode={toolMode}
                         />
                       </div>
                     </div>
 
-                    {/* Guardrail Shield Animatic + Interactive Q4 38 Zähne Preview */}
+                    {/* Guardrail Shield Animatic + Guardrail Debug Challenge + Hidden-by-Default Q4 Preview */}
                     <GuardrailShieldAnimatic
                       activeStageIdx={activeStageIdx}
                       onSelectStage={setActiveStageIdx}
+                      spec={data.animatics?.guardrailShield}
+                      articleCount={data.vaultArticles.length}
                     />
 
-                    {q4Spec?.manipulationCheck && (
-                      <div className="rounded-2xl border bg-card p-5 space-y-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <div className="space-y-0.5">
-                            <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
-                              Live-Vorschau · Frage 4 („38 Zähne“ statt „42 Zähne“)
-                            </div>
-                            <p className="text-xs text-muted-foreground">
-                              Testet, ob Regeln dein lokales Dokument stärker gewichten als das
-                              Trainingswissen der KI.
-                            </p>
-                          </div>
-                          <div className="inline-flex rounded-lg border bg-muted p-0.5 text-xs">
-                            <button
-                              type="button"
-                              onClick={() => setQ4SimulatedMutated(true)}
-                              className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
-                                q4SimulatedMutated
-                                  ? "bg-card text-foreground shadow-sm"
-                                  : "text-muted-foreground"
-                              }`}
-                            >
-                              Test-Änderung: 38 Zähne
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setQ4SimulatedMutated(false)}
-                              className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
-                                !q4SimulatedMutated
-                                  ? "bg-card text-foreground shadow-sm"
-                                  : "text-muted-foreground"
-                              }`}
-                            >
-                              Original: 42 Zähne
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="grid gap-3 md:grid-cols-2 text-xs">
-                          <div className="rounded-xl border bg-muted/30 p-3 space-y-1">
-                            <div className="font-mono text-[11px] font-semibold text-muted-foreground">
-                              Ausschnitt ({q4Spec.manipulationCheck.targetFile})
-                            </div>
-                            <p className="text-foreground">
-                              „Wie die meisten Bären besitzen Eisbären{" "}
-                              <strong className="rounded bg-brand-lime/35 px-1 text-foreground">
-                                {q4SimulatedMutated
-                                  ? q4Spec.manipulationCheck.mutatedValue
-                                  : q4Spec.manipulationCheck.originalValue}
-                              </strong>
-                              , und wie alle Bären sind sie Sohlengänger.“
-                            </p>
-                          </div>
-
-                          <div className="rounded-xl border border-[#A9C23F]/50 bg-secondary/35 p-3 space-y-1">
-                            <div className="font-mono text-[11px] font-semibold text-brand-ink">
-                              Erwartete Antwort mit Guardrail (Stufe 2/3)
-                            </div>
-                            <p className="text-foreground">
-                              „Laut dem vorliegenden Dokument besitzt ein Eisbär{" "}
-                              <strong>
-                                {q4SimulatedMutated
-                                  ? q4Spec.manipulationCheck.mutatedValue
-                                  : q4Spec.manipulationCheck.originalValue}
-                              </strong>{" "}
-                              <code>{q4Spec.manipulationCheck.expectedCitation}</code>.“
-                            </p>
-                            <p className="text-[11px] text-muted-foreground">
-                              {toolMode === "web" ? (
-                                "Im Web-Chat ändert die Testfrage unten den Wert nur für diesen Chat — du musst keine Datei anfassen."
-                              ) : (
-                                <>
-                                  Bei lokalem Dateitest danach wieder auf{" "}
-                                  <code>{q4Spec.manipulationCheck.originalValue}</code>{" "}
-                                  zurücksetzen!
-                                </>
-                              )}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
+                    {data.guardrailDebugChallenge && (
+                      <GuardrailDebugChallenge
+                        challenge={data.guardrailDebugChallenge}
+                        onSolved={() => markChecked("chk-stages")}
+                      />
                     )}
+
+                    {q4Spec?.manipulationCheck && (() => {
+                      const mc = q4Spec.manipulationCheck;
+                      const activeVal = q4SimulatedMutated ? mc.mutatedValue : mc.originalValue;
+                      const excerptParts = mc.excerptTemplate
+                        ? mc.excerptTemplate.split("{{VALUE}}")
+                        : null;
+                      return (
+                        <div className="rounded-2xl border bg-card p-5 space-y-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="space-y-0.5">
+                              <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+                                Live-Vorschau · Frage {q4Spec.number} („{mc.mutatedValue}“ statt „
+                                {mc.originalValue}“)
+                              </div>
+                              <p className="text-xs text-muted-foreground">
+                                Testet, ob Regeln dein lokales Dokument stärker gewichten als das
+                                Trainingswissen der KI.
+                              </p>
+                            </div>
+                            <div className="inline-flex rounded-lg border bg-muted p-0.5 text-xs">
+                              <button
+                                type="button"
+                                onClick={() => setQ4SimulatedMutated(true)}
+                                className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
+                                  q4SimulatedMutated
+                                    ? "bg-card text-foreground shadow-sm"
+                                    : "text-muted-foreground"
+                                }`}
+                              >
+                                Test-Änderung: {mc.mutatedValue}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setQ4SimulatedMutated(false)}
+                                className={`rounded-md px-2.5 py-1 font-medium transition-colors ${
+                                  !q4SimulatedMutated
+                                    ? "bg-card text-foreground shadow-sm"
+                                    : "text-muted-foreground"
+                                }`}
+                              >
+                                Original: {mc.originalValue}
+                              </button>
+                            </div>
+                          </div>
+
+                          <div className="grid gap-3 md:grid-cols-2 text-xs">
+                            <div className="rounded-xl border bg-muted/30 p-3 space-y-1">
+                              <div className="font-mono text-[11px] font-semibold text-muted-foreground">
+                                Ausschnitt ({mc.targetFile})
+                              </div>
+                              <p className="text-foreground">
+                                {excerptParts && excerptParts.length >= 2 ? (
+                                  <>
+                                    {excerptParts[0]}
+                                    <strong className="rounded bg-brand-lime/35 px-1 text-foreground">
+                                      {activeVal}
+                                    </strong>
+                                    {excerptParts.slice(1).join(activeVal)}
+                                  </>
+                                ) : (
+                                  <>
+                                    „Wie die meisten Bären besitzen Eisbären{" "}
+                                    <strong className="rounded bg-brand-lime/35 px-1 text-foreground">
+                                      {activeVal}
+                                    </strong>
+                                    , und wie alle Bären sind sie Sohlengänger.“
+                                  </>
+                                )}
+                              </p>
+                            </div>
+
+                            <div className="rounded-xl border border-[#A9C23F]/50 bg-secondary/35 p-3 space-y-2">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="font-mono text-[11px] font-semibold text-brand-ink">
+                                  Erwartete Antwort mit Guardrail (Stufe 2/3)
+                                </span>
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2 text-[11px]"
+                                  onClick={() => setRevealQ4Answer((v) => !v)}
+                                >
+                                  <Eye className="h-3 w-3" />
+                                  <span>
+                                    {revealQ4Answer ? "Verbergen" : "Antwort-Vergleich aufdecken"}
+                                  </span>
+                                </Button>
+                              </div>
+                              {revealQ4Answer ? (
+                                <>
+                                  <p className="text-foreground">
+                                    „Laut dem vorliegenden Dokument ({mc.targetFile}) gilt der Wert{" "}
+                                    <strong>{activeVal}</strong>{" "}
+                                    <code>{mc.expectedCitation}</code>.“
+                                  </p>
+                                  <p className="text-[11px] text-muted-foreground">
+                                    {toolMode === "web" ? (
+                                      "Im Web-Chat ändert die Testfrage unten den Wert nur für diesen Chat — du musst keine Datei anfassen."
+                                    ) : (
+                                      <>
+                                        Bei lokalem Dateitest danach wieder auf{" "}
+                                        <code>{mc.originalValue}</code> zurücksetzen!
+                                      </>
+                                    )}
+                                  </p>
+                                </>
+                              ) : (
+                                <p className="text-[11px] italic text-muted-foreground">
+                                  Vermute zuerst selbst: Übernimmt die KI „{activeVal}“ aus der
+                                  Datei oder rät sie ihren Trainingswert „{mc.originalValue}“? Danach
+                                  aufdecken.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Focus Test Questions (2 per stage + toggle for all 4) */}
                     <section className="space-y-4">
@@ -1532,7 +1800,7 @@ export function ParticipantApp() {
                       </div>
 
                       <div className="grid gap-2.5 sm:grid-cols-3">
-                        {REFLECTION_PILLS.map((pill) => {
+                        {reflectionPills.map((pill) => {
                           const active = Boolean(reflections[pill.id]);
                           return (
                             <button
@@ -1568,9 +1836,9 @@ export function ParticipantApp() {
                               Warum Stufe 3 gewinnt: Inhaltsverzeichnis &amp; Wissens-Graph
                             </h2>
                             <p className="editorial-measure text-sm text-muted-foreground">
-                              Statt alle 68 Artikel in den Chat zu laden, folgt das System dem{" "}
-                              <code>_index.md</code> und seinen <code>[[Wikilinks]]</code> in 5
-                              Sprüngen zum Ziel.
+                              Statt alle {data.vaultArticles.length} Artikel in den Chat zu laden,
+                              folgt das System dem <code>_index.md</code> und seinen{" "}
+                              <code>[[Wikilinks]]</code> gezielt zum Ziel.
                             </p>
                           </div>
                           {activeStageIdx !== 2 && (
@@ -1585,10 +1853,16 @@ export function ParticipantApp() {
                           )}
                         </div>
 
-                        <Stage3AgentWalkPlayer onSelectSlug={(slug) => setGraphSelectedSlug(slug)} />
+                        <Stage3AgentWalkPlayer
+                          steps={data.taxonomy?.ragWalkSteps}
+                          walkLabel={data.taxonomy?.walkLabel}
+                          articleCount={data.vaultArticles.length}
+                          onSelectSlug={(slug) => setGraphSelectedSlug(slug)}
+                        />
                         <ObsidianKnowledgeGraph
                           articles={data.vaultArticles}
                           vaultIndexMarkdown={data.stages[2]?.indexMd}
+                          taxonomy={data.taxonomy}
                           externalSelectedSlug={graphSelectedSlug}
                         />
                       </section>
@@ -1597,7 +1871,10 @@ export function ParticipantApp() {
                         <div className="space-y-0.5">
                           <div className="flex items-center gap-2 text-sm font-bold text-foreground">
                             <Network className="h-4 w-4 text-brand-ink" />
-                            <span>Vorschau auf Stufe 3: Interaktiver 68-Artikel-Wissens-Graph</span>
+                            <span>
+                              Vorschau auf Stufe 3: Interaktiver {data.vaultArticles.length}
+                              -Artikel-Wissens-Graph
+                            </span>
                           </div>
                           <p className="text-xs text-muted-foreground">
                             Öffnet sich automatisch bei Stufe 3 — oder jederzeit per Klick aufrufen.
@@ -1632,7 +1909,7 @@ export function ParticipantApp() {
                         Wähle frei eines von drei Praxis-Zielen — die Prompts passen sich automatisch
                         an deine Werkzeug-Hilfe (<strong>{currentToolModeSpec.label}</strong>) an.
                       </p>
-                      <AudioGuideChip clipId="step-04" />
+                      <AudioGuideChip clipId="step-04" audioGuides={data.audioGuides} />
                     </div>
 
                     {/* 3 Praxis-Pfad Selector Cards */}
@@ -1680,7 +1957,7 @@ export function ParticipantApp() {
                     {/* Active Praxis-Pfad Detail Card */}
                     {(() => {
                       const modePrompt = activePraxisPath.promptsByMode[toolMode];
-                      const webBundledPrompt = `${modePrompt.prompt}\n\n---\nALLE 12 FOKUS-ARTIKEL (.md):\n\n${stagePacks.all12}`;
+                      const webBundledPrompt = `${modePrompt.prompt}\n\n---\nALLE ${data.starterArticles.length} FOKUS-ARTIKEL (.md):\n\n${stagePacks.all12}`;
                       return (
                         <div className="rounded-2xl border bg-card p-5 space-y-4">
                           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1704,8 +1981,8 @@ export function ParticipantApp() {
                                 <>
                                   <CopyButton
                                     text={webBundledPrompt}
-                                    label="Prompt + 12 Artikel kopieren"
-                                    toastMessage={`${activePraxisPath.title}: Prompt (oben) + 12 Artikel kopiert`}
+                                    label={`Prompt + ${data.starterArticles.length} Artikel kopieren`}
+                                    toastMessage={`${activePraxisPath.title}: Prompt (oben) + ${data.starterArticles.length} Artikel kopiert`}
                                     variant="default"
                                     onCopy={() => markChecked("chk-path")}
                                   />
@@ -1731,15 +2008,15 @@ export function ParticipantApp() {
                                   variant="secondary"
                                   onClick={() => {
                                     downloadMarkdownFile(
-                                      "fokus-korpus-12-artikel.md",
+                                      `fokus-korpus-${data.starterArticles.length}-artikel.md`,
                                       stagePacks.all12,
-                                      "12 Fokus-Artikel (.md) heruntergeladen"
+                                      `${data.starterArticles.length} Fokus-Artikel (.md) heruntergeladen`
                                     );
                                     markChecked("chk-path");
                                   }}
                                 >
                                   <Download className="h-3.5 w-3.5" />
-                                  <span>12 Artikel (.md)</span>
+                                  <span>{data.starterArticles.length} Artikel (.md)</span>
                                 </Button>
                               )}
                             </div>
@@ -1775,21 +2052,24 @@ export function ParticipantApp() {
                       );
                     })()}
 
-                    {/* Path 1 Special: Built-in 68-Article Search & Claim Verifier + McpPacketAnimatic + Multi-CLI */}
+                    {/* Path 1 Special: Built-in Corpus Search & Claim Verifier + McpPacketAnimatic + Multi-CLI */}
                     {activePraxisPath.includesInBrowserLab && (
                       <div className="space-y-6">
                         <McpPacketAnimatic
                           activeHop={mcpActiveHop}
                           mode={labTab}
                           toolMode={toolMode}
+                          spec={data.animatics?.mcpPacket}
+                          articleCount={data.vaultArticles.length}
                         />
 
-                        {/* 100% Client-Side 68-Article Search & Claim Verifier */}
+                        {/* 100% Client-Side Corpus Search & Claim Verifier */}
                         <div className="rounded-2xl border bg-card p-4 sm:p-6 space-y-4">
                           <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
                             <div>
                               <h3 className="font-display text-base font-bold text-foreground">
-                                Live-Suche &amp; Faktenprüfer über alle 68 Artikel
+                                Live-Suche &amp; Faktenprüfer über alle {data.vaultArticles.length}{" "}
+                                Artikel
                               </h3>
                               <p className="text-xs text-muted-foreground">
                                 Läuft komplett hier im Browser — auch ohne eigenes KI-Konto oder
@@ -1800,16 +2080,17 @@ export function ParticipantApp() {
                               type="button"
                               size="sm"
                               variant="outline"
-                              onClick={() =>
+                              onClick={async () => {
+                                const idx = await ensureCorpusIndex();
                                 downloadMarkdownFile(
-                                  "alle-68-artikel-wissensbasis.md",
-                                  buildAll68ArticlesMarkdown(data.vaultArticles),
-                                  "Alle 68 Artikel (.md) heruntergeladen"
-                                )
-                              }
+                                  `alle-${data.vaultArticles.length}-artikel-wissensbasis.md`,
+                                  buildAllArticlesMarkdown(data.vaultArticles, idx, data.meta.title),
+                                  `Alle ${data.vaultArticles.length} Artikel (.md) heruntergeladen`
+                                );
+                              }}
                             >
                               <Download className="h-3.5 w-3.5" />
-                              <span>Alle 68 Artikel (.md)</span>
+                              <span>Alle {data.vaultArticles.length} Artikel (.md)</span>
                             </Button>
                           </div>
 
@@ -1824,10 +2105,13 @@ export function ParticipantApp() {
                                 className="justify-start gap-1.5 px-3 py-2 text-xs sm:text-sm"
                               >
                                 <Wrench className="h-3.5 w-3.5 shrink-0" />
-                                <span>Wissensbasis durchsuchen (68 Artikel)</span>
+                                <span>
+                                  Wissensbasis durchsuchen ({data.vaultArticles.length} Artikel)
+                                </span>
                                 {toolMode === "agent" && (
                                   <code className="hidden text-[11px] opacity-70 sm:inline">
-                                    search_wildlife_vault
+                                    {data.animatics?.mcpPacket?.searchToolName ||
+                                      "search_wildlife_vault"}
                                   </code>
                                 )}
                               </TabsTrigger>
@@ -1839,7 +2123,8 @@ export function ParticipantApp() {
                                 <span>Fakten prüfen</span>
                                 {toolMode === "agent" && (
                                   <code className="hidden text-[11px] opacity-70 sm:inline">
-                                    verify_claim_against_corpus
+                                    {data.animatics?.mcpPacket?.verifyToolName ||
+                                      "verify_claim_against_corpus"}
                                   </code>
                                 )}
                               </TabsTrigger>
@@ -1864,13 +2149,15 @@ export function ParticipantApp() {
                               </div>
 
                               <div className="flex flex-wrap gap-1.5">
-                                {[
-                                  "Anemonenfische Symbiose",
-                                  "Eisbär Talg Squalen",
-                                  "Korallenbleiche Temperatur",
-                                  "Alpenmurmeltier Winterschlaf",
-                                  "Schneeleopard Nationalpark",
-                                ].map((preset) => (
+                                {(
+                                  data.labPresets?.searchPresets || [
+                                    "Anemonenfische Symbiose",
+                                    "Eisbär Talg Squalen",
+                                    "Korallenbleiche Temperatur",
+                                    "Alpenmurmeltier Winterschlaf",
+                                    "Schneeleopard Nationalpark",
+                                  ]
+                                ).map((preset) => (
                                   <button
                                     key={preset}
                                     type="button"
@@ -1886,7 +2173,8 @@ export function ParticipantApp() {
                                 <div className="divide-y rounded-xl border bg-muted/20">
                                   {mcpResults.length === 0 && (
                                     <div className="p-4 text-xs text-muted-foreground">
-                                      0 Treffer in den 68 Artikeln gefunden.
+                                      0 Treffer in den {data.vaultArticles.length} Artikeln
+                                      gefunden.
                                     </div>
                                   )}
                                   {mcpResults.map((m) => {
@@ -1921,7 +2209,7 @@ export function ParticipantApp() {
                               <Textarea
                                 value={verifyClaim}
                                 onChange={(e) => setVerifyClaim(e.target.value)}
-                                placeholder="Behauptung zum Prüfen gegen alle 68 Artikel eingeben…"
+                                placeholder={`Behauptung zum Prüfen gegen alle ${data.vaultArticles.length} Artikel eingeben…`}
                                 aria-label="Behauptung gegen Wissensbasis prüfen"
                                 rows={2}
                               />
@@ -1935,7 +2223,8 @@ export function ParticipantApp() {
                                   size="sm"
                                   onClick={() =>
                                     runOfflineVerify(
-                                      "Im Schweizerischen Nationalpark leben 45 Schneeleoparden und das Ticket kostet 25 Euro."
+                                      data.labPresets?.verifyTrapClaim ||
+                                        "Im Schweizerischen Nationalpark leben 45 Schneeleoparden und das Ticket kostet 25 Euro."
                                     )
                                   }
                                 >
@@ -1961,8 +2250,9 @@ export function ParticipantApp() {
                                   </div>
                                   {verifyOutput.evidence.length === 0 && (
                                     <div className="rounded-lg border border-dashed bg-card p-3 text-muted-foreground">
-                                      0 verlässliche Belege in den 68 Artikeln – korrekte
-                                      System-Reaktion: Behauptung nicht bestätigen.
+                                      0 verlässliche Belege in den {data.vaultArticles.length}{" "}
+                                      Artikeln – korrekte System-Reaktion: Behauptung nicht
+                                      bestätigen.
                                     </div>
                                   )}
                                   {verifyOutput.evidence.map((ev) => {
@@ -2107,19 +2397,24 @@ export function ParticipantApp() {
 
                     <Separator />
 
-                    {/* CCF-Transfer-Brücke */}
+                    {/* BYOU Mini-Builder + Transfer-Brücke */}
+                    <ByouRuleBuilder
+                      rolePresets={data.transferBridge}
+                      onCopyOutput={() => markChecked("chk-transfer")}
+                    />
+
                     <section className="space-y-4">
                       <div className="space-y-1">
                         <div className="text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
-                          Transfer-Brücke · Vom Tierwelt-Beispiel in deinen CCF-Alltag
+                          Transfer-Brücke · In deinen Arbeitsalltag übertragen
                         </div>
                         <h2 className="font-display text-xl font-bold">
-                          {data.transferBridge.length} Rollen im Customer Cluster Finance
+                          {data.transferBridge.length} Rollen-Vorlagen ({data.meta.cluster})
                         </h2>
                         <p className="editorial-measure text-sm text-muted-foreground">
                           Übertrage die drei Muster (CO-STAR/RISEN, verbindliche Regeln, verknüpfte
                           Wissensbasis) direkt auf deinen Arbeitsbereich — immer unter Einhaltung der
-                          CCF-Datenschutzregeln.
+                          geltenden Datenschutz- und Compliance-Regeln.
                         </p>
                       </div>
 
@@ -2140,7 +2435,7 @@ export function ParticipantApp() {
                               </div>
                               <div className="text-xs font-medium text-brand-ink">{role.roles}</div>
                               <p className="text-xs leading-relaxed text-muted-foreground">
-                                <strong className="text-foreground">CCF-Einsatz: </strong>
+                                <strong className="text-foreground">Praxis-Einsatz: </strong>
                                 {role.ccfUseCase}
                               </p>
                               <div className="rounded-xl bg-muted/50 p-2.5 text-[11px] leading-relaxed text-muted-foreground">
@@ -2173,7 +2468,7 @@ export function ParticipantApp() {
                             <Badge variant={completedCount >= 5 ? "success" : "outline"}>
                               {completedCount >= 5
                                 ? "Stark — alle Kernmuster erlebt!"
-                                : `Dein Stand: ${completedCount}/${CHECKLIST_ITEMS.length} Häkchen`}
+                                : `Dein Stand: ${completedCount}/${checklistItems.length} Häkchen`}
                             </Badge>
                             <span className="num-tabular text-xs font-semibold text-brand-ink">
                               {progressPct}% abgeschlossen

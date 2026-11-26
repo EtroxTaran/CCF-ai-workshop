@@ -30,9 +30,9 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import type { VaultArticle } from "@/types/workshop";
+import type { CategoryTaxonomyItem, ModuleTaxonomy, VaultArticle } from "@/types/workshop";
 
-const RAG_WALK_STEPS: { slug: string; note: string }[] = [
+const DEFAULT_RAG_WALK_STEPS: { slug: string; note: string }[] = [
   {
     slug: "anemonenfische",
     note: "Start · [[anemonenfische]]: Geringer Sialinsäure-Anteil schützt vor Nesselzellen",
@@ -59,9 +59,16 @@ const RAG_WALK_STEPS: { slug: string; note: string }[] = [
   },
 ];
 
+const DEFAULT_CATEGORIES: CategoryTaxonomyItem[] = [
+  { id: "lebensraum", label: "Lebensraum", plural: "Räume", color: "#A9C23F", radius: 11 },
+  { id: "konzept", label: "Konzept", plural: "Konzepte", color: "#34D399", radius: 7.5 },
+  { id: "tierart", label: "Tierart", plural: "Arten", color: "#CBD5C0", radius: 5.5 },
+];
+
 export interface ObsidianKnowledgeGraphProps {
   articles: VaultArticle[];
   vaultIndexMarkdown?: string;
+  taxonomy?: ModuleTaxonomy;
   projectorMode?: boolean;
   externalSelectedSlug?: string;
   onSelectArticle?: (article: VaultArticle) => void;
@@ -70,7 +77,7 @@ export interface ObsidianKnowledgeGraphProps {
 interface GraphNode extends SimulationNodeDatum {
   slug: string;
   title: string;
-  category: VaultArticle["category"];
+  category: string;
   habitat: string;
   degree: number;
   x: number;
@@ -85,14 +92,39 @@ interface GraphLink extends SimulationLinkDatum<GraphNode> {
 const WIDTH = 760;
 const HEIGHT = 500;
 
-const HABITAT_ANCHORS: Record<string, { x: number; y: number }> = {
-  Arktis: { x: WIDTH * 0.25, y: HEIGHT * 0.24 },
-  Korallenriff: { x: WIDTH * 0.77, y: HEIGHT * 0.25 },
-  "Tropischer Regenwald": { x: WIDTH * 0.80, y: HEIGHT * 0.72 },
-  Alpen: { x: WIDTH * 0.22, y: HEIGHT * 0.75 },
-  Savanne: { x: WIDTH * 0.50, y: HEIGHT * 0.84 },
-  Übergreifend: { x: WIDTH * 0.50, y: HEIGHT * 0.48 },
+const DEFAULT_HABITAT_ANCHORS: Record<string, [number, number]> = {
+  Arktis: [0.25, 0.24],
+  Korallenriff: [0.77, 0.25],
+  "Tropischer Regenwald": [0.8, 0.72],
+  Alpen: [0.22, 0.75],
+  Savanne: [0.5, 0.84],
+  Übergreifend: [0.5, 0.48],
 };
+
+function computeAnchors(
+  articles: VaultArticle[],
+  customAnchors?: Record<string, [number, number]>
+): Record<string, { x: number; y: number }> {
+  const source = customAnchors || DEFAULT_HABITAT_ANCHORS;
+  const out: Record<string, { x: number; y: number }> = {};
+  for (const [k, [rx, ry]] of Object.entries(source)) {
+    out[k] = { x: WIDTH * rx, y: HEIGHT * ry };
+  }
+  const missingGroups = [
+    ...new Set(articles.map((a) => a.group || a.habitat || "Allgemein").filter((g) => !out[g])),
+  ];
+  missingGroups.forEach((grp, idx) => {
+    const angle = (idx / Math.max(missingGroups.length, 1)) * Math.PI * 2;
+    out[grp] = {
+      x: WIDTH * (0.5 + Math.cos(angle) * 0.26),
+      y: HEIGHT * (0.5 + Math.sin(angle) * 0.26),
+    };
+  });
+  if (!out["Übergreifend"]) {
+    out["Übergreifend"] = { x: WIDTH * 0.5, y: HEIGHT * 0.5 };
+  }
+  return out;
+}
 
 function normSearch(text: string): string {
   return String(text || "")
@@ -107,32 +139,27 @@ function getSlug(endpoint: string | GraphNode): string {
   return typeof endpoint === "string" ? endpoint : endpoint.slug;
 }
 
-function nodeColor(category: VaultArticle["category"]): string {
-  if (category === "lebensraum") return "#A9C23F";
-  if (category === "konzept") return "#34D399";
-  return "#CBD5C0";
-}
-
-function nodeBaseRadius(node: GraphNode): number {
-  if (node.category === "lebensraum") return 11;
-  if (node.category === "konzept") return 7.5;
-  return 4.5 + Math.min(3, node.degree * 0.28);
-}
-
 export function ObsidianKnowledgeGraph({
   articles,
   vaultIndexMarkdown,
+  taxonomy,
   projectorMode = false,
   externalSelectedSlug,
   onSelectArticle,
 }: ObsidianKnowledgeGraphProps) {
   const prefersReduced = useReducedMotion();
+  const categoryDefs = taxonomy?.categories?.length ? taxonomy.categories : DEFAULT_CATEGORIES;
+  const primaryCategoryId = categoryDefs[0]?.id || "lebensraum";
+  const ragWalkSteps = taxonomy?.ragWalkSteps?.length ? taxonomy.ragWalkSteps : DEFAULT_RAG_WALK_STEPS;
+  const defaultSlug = taxonomy?.defaultSelectedSlug || articles[0]?.slug || "anemonenfische";
+  const groupFieldLabel = taxonomy?.groupFieldLabel || "Bereich";
+
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"graph" | "list" | "index">("graph");
-  const [selectedSlug, setSelectedSlug] = useState<string>("anemonenfische");
+  const [selectedSlug, setSelectedSlug] = useState<string>(defaultSlug);
   const [hoveredSlug, setHoveredSlug] = useState<string | null>(null);
-  const [trail, setTrail] = useState<string[]>(["anemonenfische"]);
+  const [trail, setTrail] = useState<string[]>([defaultSlug]);
   const [zoom, setZoom] = useState<number>(1);
   const [showRawYaml, setShowRawYaml] = useState<boolean>(false);
   const [ragWalkIdx, setRagWalkIdx] = useState<number | null>(null);
@@ -143,11 +170,32 @@ export function ObsidianKnowledgeGraph({
 
   const svgRef = useRef<SVGSVGElement | null>(null);
 
+  const categoryColor = (catId: string) =>
+    categoryDefs.find((c) => c.id === catId)?.color || "#CBD5C0";
+
+  const nodeBaseRadius = (node: GraphNode): number => {
+    const foundIdx = categoryDefs.findIndex((c) => c.id === node.category);
+    if (foundIdx === 0) return categoryDefs[0]?.radius ?? 11;
+    if (foundIdx === 1) return categoryDefs[1]?.radius ?? 7.5;
+    if (foundIdx >= 2 && categoryDefs[foundIdx]?.radius) {
+      return categoryDefs[foundIdx].radius!;
+    }
+    return 4.5 + Math.min(3, node.degree * 0.28);
+  };
+
   const bySlug = useMemo(() => {
     const map = new Map<string, VaultArticle>();
     for (const a of articles) map.set(a.slug, a);
     return map;
   }, [articles]);
+
+  useEffect(() => {
+    if (!bySlug.has(selectedSlug)) {
+      const next = bySlug.has(defaultSlug) ? defaultSlug : articles[0]?.slug || defaultSlug;
+      setSelectedSlug(next);
+      setTrail([next]);
+    }
+  }, [articles, bySlug, defaultSlug, selectedSlug]);
 
   useEffect(() => {
     if (!externalSelectedSlug) return;
@@ -164,17 +212,17 @@ export function ObsidianKnowledgeGraph({
 
   useEffect(() => {
     if (ragWalkIdx === null) return;
-    const step = RAG_WALK_STEPS[ragWalkIdx];
+    const step = ragWalkSteps[ragWalkIdx];
     if (step) {
       setSelectedSlug(step.slug);
-      setTrail(RAG_WALK_STEPS.slice(0, ragWalkIdx + 1).map((s) => s.slug));
+      setTrail(ragWalkSteps.slice(0, ragWalkIdx + 1).map((s) => s.slug));
       const art = bySlug.get(step.slug);
       if (art) onSelectArticle?.(art);
     }
     if (!ragWalkPlaying) return;
     const timer = window.setTimeout(
       () => {
-        if (ragWalkIdx + 1 < RAG_WALK_STEPS.length) {
+        if (ragWalkIdx + 1 < ragWalkSteps.length) {
           setRagWalkIdx(ragWalkIdx + 1);
         } else {
           setRagWalkPlaying(false);
@@ -183,7 +231,7 @@ export function ObsidianKnowledgeGraph({
       prefersReduced ? 2200 : 1600
     );
     return () => window.clearTimeout(timer);
-  }, [ragWalkIdx, ragWalkPlaying, prefersReduced, bySlug, onSelectArticle]);
+  }, [ragWalkIdx, ragWalkPlaying, prefersReduced, bySlug, onSelectArticle, ragWalkSteps]);
 
   function clientToSvg(clientX: number, clientY: number): { x: number; y: number } | null {
     const svg = svgRef.current;
@@ -200,8 +248,9 @@ export function ObsidianKnowledgeGraph({
     };
   }
 
-  // Compute deterministic settled force layout once for the 68 vault nodes
+  // Compute deterministic settled force layout once per module corpus
   const { layoutNodes, layoutLinks, neighborsMap } = useMemo(() => {
+    const anchors = computeAnchors(articles, taxonomy?.graphAnchors);
     const slugSet = new Set(articles.map((a) => a.slug));
     const edgeSeen = new Set<string>();
     const rawLinks: GraphLink[] = [];
@@ -225,12 +274,13 @@ export function ObsidianKnowledgeGraph({
     }
 
     const nodes: GraphNode[] = articles.map((a) => {
-      const anchor = HABITAT_ANCHORS[a.habitat] || HABITAT_ANCHORS["Übergreifend"];
+      const grp = a.group || a.habitat || "Übergreifend";
+      const anchor = anchors[grp] || anchors["Übergreifend"];
       return {
         slug: a.slug,
         title: a.title,
         category: a.category,
-        habitat: a.habitat,
+        habitat: grp,
         degree: degreeCount.get(a.slug) || 1,
         x: anchor.x + ((a.slug.charCodeAt(0) % 7) - 3) * 14,
         y: anchor.y + ((a.slug.charCodeAt(a.slug.length - 1) % 7) - 3) * 14,
@@ -247,20 +297,14 @@ export function ObsidianKnowledgeGraph({
             const t = getSlug(l.target);
             const sCat = bySlug.get(s)?.category;
             const tCat = bySlug.get(t)?.category;
-            return sCat === "lebensraum" || tCat === "lebensraum" ? 56 : 40;
+            return sCat === primaryCategoryId || tCat === primaryCategoryId ? 56 : 40;
           })
           .strength(0.32)
       )
       .force("charge", forceManyBody().strength(-120))
       .force("center", forceCenter(WIDTH / 2, HEIGHT / 2))
-      .force(
-        "x",
-        forceX<GraphNode>((d) => (HABITAT_ANCHORS[d.habitat] || HABITAT_ANCHORS["Übergreifend"]).x).strength(0.08)
-      )
-      .force(
-        "y",
-        forceY<GraphNode>((d) => (HABITAT_ANCHORS[d.habitat] || HABITAT_ANCHORS["Übergreifend"]).y).strength(0.08)
-      )
+      .force("x", forceX<GraphNode>((d) => (anchors[d.habitat] || anchors["Übergreifend"]).x).strength(0.08))
+      .force("y", forceY<GraphNode>((d) => (anchors[d.habitat] || anchors["Übergreifend"]).y).strength(0.08))
       .force("collide", forceCollide<GraphNode>((d) => nodeBaseRadius(d) + 14))
       .stop();
 
@@ -274,16 +318,14 @@ export function ObsidianKnowledgeGraph({
     }
 
     return { layoutNodes: nodes, layoutLinks: rawLinks, neighborsMap: adj };
-  }, [articles, bySlug]);
+  }, [articles, bySlug, taxonomy?.graphAnchors, primaryCategoryId]);
 
-  const counts = useMemo(
-    () => ({
-      all: articles.length,
-      lebensraum: articles.filter((a) => a.category === "lebensraum").length,
-      konzept: articles.filter((a) => a.category === "konzept").length,
-      tierart: articles.filter((a) => a.category === "tierart").length,
-    }),
-    [articles]
+  const walkedSlugs = useMemo(
+    () =>
+      ragWalkIdx !== null
+        ? new Set(ragWalkSteps.slice(0, ragWalkIdx + 1).map((x) => x.slug))
+        : null,
+    [ragWalkIdx, ragWalkSteps]
   );
 
   const matchingSlugs = useMemo(() => {
@@ -292,13 +334,14 @@ export function ObsidianKnowledgeGraph({
     const matched = new Set<string>();
     for (const a of articles) {
       if (category !== "all" && a.category !== category) continue;
+      const grp = a.group || a.habitat || "";
       if (
         !qRaw ||
         a.title.toLowerCase().includes(qRaw) ||
         normSearch(a.title).includes(qNorm) ||
         a.slug.toLowerCase().includes(qRaw) ||
-        a.habitat.toLowerCase().includes(qRaw) ||
-        normSearch(a.habitat).includes(qNorm) ||
+        grp.toLowerCase().includes(qRaw) ||
+        normSearch(grp).includes(qNorm) ||
         a.summary.toLowerCase().includes(qRaw) ||
         normSearch(a.summary).includes(qNorm) ||
         a.tags.some((t) => t.toLowerCase().includes(qRaw) || normSearch(t).includes(qNorm))
@@ -314,14 +357,6 @@ export function ObsidianKnowledgeGraph({
     [articles, matchingSlugs]
   );
 
-  const walkedSlugs = useMemo(
-    () =>
-      ragWalkIdx !== null
-        ? new Set(RAG_WALK_STEPS.slice(0, ragWalkIdx + 1).map((x) => x.slug))
-        : null,
-    [ragWalkIdx]
-  );
-
   const selected = bySlug.get(selectedSlug) ?? articles[0];
   const focusSlug = hoveredSlug || selectedSlug;
   const focusNeighbors = neighborsMap.get(focusSlug) || new Set<string>();
@@ -335,7 +370,7 @@ export function ObsidianKnowledgeGraph({
       if (n.slug === hoveredSlug) return 6;
       if (n.slug === selectedSlug) return 5;
       if (walkedSlugs?.has(n.slug)) return 4;
-      if (n.category === "lebensraum") return 3;
+      if (n.category === primaryCategoryId) return 3;
       if (focusNeighbors.has(n.slug)) return 2;
       if (isFiltering && matchingSlugs.has(n.slug) && matchingSlugs.size <= 16) return 1;
       return 0;
@@ -386,7 +421,7 @@ export function ObsidianKnowledgeGraph({
     if (ragWalkPlaying) {
       setRagWalkPlaying(false);
     } else {
-      if (ragWalkIdx >= RAG_WALK_STEPS.length - 1) setRagWalkIdx(0);
+      if (ragWalkIdx >= ragWalkSteps.length - 1) setRagWalkIdx(0);
       setRagWalkPlaying(true);
     }
   }
@@ -400,7 +435,7 @@ export function ObsidianKnowledgeGraph({
   function handleNextStep() {
     setViewMode("graph");
     setRagWalkPlaying(false);
-    setRagWalkIdx((i) => (i === null ? 0 : Math.min(RAG_WALK_STEPS.length - 1, i + 1)));
+    setRagWalkIdx((i) => (i === null ? 0 : Math.min(ragWalkSteps.length - 1, i + 1)));
   }
 
   const viewW = WIDTH / zoom;
@@ -411,6 +446,8 @@ export function ObsidianKnowledgeGraph({
   const canvasHeightClass = projectorMode
     ? "h-[400px] sm:h-[500px] lg:h-[580px]"
     : "h-[360px] sm:h-[460px] lg:h-[510px]";
+
+  const walkTotalJumps = Math.max(1, ragWalkSteps.length - 1);
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[#232B20] bg-[#0B0F0A] text-[#F2F4EE] shadow-xl">
@@ -426,7 +463,7 @@ export function ObsidianKnowledgeGraph({
                 projectorMode ? "text-lg sm:text-xl" : "text-sm sm:text-base"
               }`}
             >
-              Interaktive Wissenskarte · {articles.length} Artikel &amp; {layoutLinks.length} Querverweise
+              Interaktive Wissenskarte · {articles.length} Dateien &amp; {layoutLinks.length} Querverweise
             </div>
             <div className="text-xs text-[#9FA998]">
               Klick auf einen Kreis folgt Verknüpfungen · Ziehen bewegt Knoten
@@ -435,7 +472,7 @@ export function ObsidianKnowledgeGraph({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {/* RAG Walk Controls: Play/Pause + Prev + Next + Stop + 68 Dateien vs. 5 Sprünge */}
+          {/* RAG Walk Controls */}
           <div className="inline-flex items-center gap-1 rounded-lg border border-[#232B20] bg-[#0B0F0A] p-1">
             <button
               type="button"
@@ -464,7 +501,7 @@ export function ObsidianKnowledgeGraph({
             <button
               type="button"
               onClick={handleNextStep}
-              disabled={ragWalkIdx !== null && ragWalkIdx >= RAG_WALK_STEPS.length - 1}
+              disabled={ragWalkIdx !== null && ragWalkIdx >= ragWalkSteps.length - 1}
               aria-label="Nächster Schritt"
               title="Nächster Schritt"
               className="inline-flex h-9 w-8 items-center justify-center rounded-md text-[#9FA998] hover:bg-[#1B2419] hover:text-[#F2F4EE] disabled:opacity-40"
@@ -488,8 +525,8 @@ export function ObsidianKnowledgeGraph({
           </div>
 
           <span className="num-tabular shrink-0 rounded-lg border border-[#A9C23F]/40 bg-[#1B2419] px-2.5 py-1.5 font-mono text-[11px] font-semibold text-[#A9C23F]">
-            {articles.length} Dateien vs. 5 Sprünge
-            {ragWalkIdx !== null ? ` · ${ragWalkIdx}/5` : ""}
+            {articles.length} Dateien vs. {walkTotalJumps} Sprünge
+            {ragWalkIdx !== null ? ` · ${ragWalkIdx}/${walkTotalJumps}` : ""}
           </span>
 
           <div className="relative min-w-[190px] flex-1 sm:w-52 sm:flex-none">
@@ -497,7 +534,7 @@ export function ObsidianKnowledgeGraph({
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Artikel / Habitat suchen…"
+              placeholder={`Dokument / ${groupFieldLabel} suchen…`}
               className="h-9 border-[#232B20] bg-[#0B0F0A] pl-8 pr-16 text-xs text-[#F2F4EE] placeholder:text-[#737C6D]"
             />
             <span className="pointer-events-none absolute right-7 top-1/2 -translate-y-1/2 font-mono text-[10px] text-[#9FA998]">
@@ -517,10 +554,11 @@ export function ObsidianKnowledgeGraph({
 
           <div className="no-scrollbar flex max-w-full items-center gap-1 overflow-x-auto rounded-lg border border-[#232B20] bg-[#0B0F0A] p-1">
             {[
-              { id: "all", label: `Alle ${counts.all}` },
-              { id: "lebensraum", label: `Räume ${counts.lebensraum}` },
-              { id: "konzept", label: `Konzepte ${counts.konzept}` },
-              { id: "tierart", label: `Arten ${counts.tierart}` },
+              { id: "all", label: `Alle ${articles.length}` },
+              ...categoryDefs.map((c) => ({
+                id: c.id,
+                label: `${c.plural} ${articles.filter((a) => a.category === c.id).length}`,
+              })),
             ].map((f) => (
               <button
                 key={f.id}
@@ -586,18 +624,15 @@ export function ObsidianKnowledgeGraph({
           >
             {/* Legend + Zoom Controls */}
             <div className="pointer-events-none absolute left-3 top-3 z-10 flex flex-wrap gap-2 text-[11px] text-[#9FA998]">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#232B20] bg-[#111610]/90 px-2.5 py-0.5">
-                <span className="h-2 w-2 rounded-full bg-[#A9C23F]" />
-                Lebensraum
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#232B20] bg-[#111610]/90 px-2.5 py-0.5">
-                <span className="h-2 w-2 rounded-full bg-[#34D399]" />
-                Konzept
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[#232B20] bg-[#111610]/90 px-2.5 py-0.5">
-                <span className="h-2 w-2 rounded-full bg-[#CBD5C0]" />
-                Tierart
-              </span>
+              {categoryDefs.map((c) => (
+                <span
+                  key={c.id}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[#232B20] bg-[#111610]/90 px-2.5 py-0.5"
+                >
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: c.color }} />
+                  {c.label}
+                </span>
+              ))}
             </div>
 
             <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1 rounded-lg border border-[#232B20] bg-[#111610]/90 p-1">
@@ -722,7 +757,7 @@ export function ObsidianKnowledgeGraph({
 
                   const r = nodeBaseRadius(node) + (isSelected || isHovered ? 2 : 0);
                   const showLabel = visibleLabelSlugs.has(node.slug);
-                  const baseFontSize = node.category === "lebensraum" ? 11.5 : 10;
+                  const baseFontSize = node.category === primaryCategoryId ? 11.5 : 10;
 
                   return (
                     <g
@@ -743,7 +778,7 @@ export function ObsidianKnowledgeGraph({
                       }}
                       style={{ cursor: "grab", opacity, transition: "opacity 160ms ease" }}
                     >
-                      {(isSelected || isWalked || node.category === "lebensraum") && (
+                      {(isSelected || isWalked || node.category === primaryCategoryId) && (
                         <circle
                           r={r + 4.5}
                           fill="none"
@@ -755,7 +790,7 @@ export function ObsidianKnowledgeGraph({
                       )}
                       <circle
                         r={r}
-                        fill={isSelected || isWalked ? "#A9C23F" : nodeColor(node.category)}
+                        fill={isSelected || isWalked ? "#A9C23F" : categoryColor(node.category)}
                       />
                       {showLabel && (
                         <text
@@ -763,7 +798,7 @@ export function ObsidianKnowledgeGraph({
                           y={3.5}
                           fill={isSelected || isHovered || isWalked ? "#FFFFFF" : "#D3DACD"}
                           fontSize={projectorMode ? baseFontSize + 2 : baseFontSize}
-                          fontWeight={isSelected || isWalked || node.category === "lebensraum" ? 700 : 500}
+                          fontWeight={isSelected || isWalked || node.category === primaryCategoryId ? 700 : 500}
                           fontFamily="Inter, system-ui, sans-serif"
                           style={{
                             pointerEvents: "none",
@@ -789,7 +824,7 @@ export function ObsidianKnowledgeGraph({
                     0 Treffer im Wissens-Graph
                   </div>
                   <p className="mt-1 text-xs text-[#9FA998]">
-                    Keine Artikel für „{query || category}“ gefunden (mögliche Fangfrage!).
+                    Keine Dateien für „{query || category}“ gefunden (mögliche Fangfrage!).
                   </p>
                   <button
                     type="button"
@@ -802,9 +837,9 @@ export function ObsidianKnowledgeGraph({
               </div>
             )}
 
-            {ragWalkIdx !== null && RAG_WALK_STEPS[ragWalkIdx] && (
+            {ragWalkIdx !== null && ragWalkSteps[ragWalkIdx] && (
               <div className="pointer-events-none absolute bottom-3 left-3 z-10 max-w-[calc(100%-8.5rem)] rounded-xl border border-[#A9C23F]/50 bg-[#111610]/95 px-3 py-2 text-xs font-medium text-[#F2F4EE] shadow-lg">
-                {RAG_WALK_STEPS[ragWalkIdx].note}
+                {ragWalkSteps[ragWalkIdx].note}
               </div>
             )}
           </div>
@@ -933,7 +968,7 @@ export function ObsidianKnowledgeGraph({
                     "---",
                     `title: "${selected.title}"`,
                     `category: ${selected.category}`,
-                    `habitat: "${selected.habitat}"`,
+                    `${groupFieldLabel.toLowerCase()}: "${selected.habitat}"`,
                     `status: "${selected.status}"`,
                     `source_file: "${selected.source_file}"`,
                     `tags: [${selected.tags.join(", ")}]`,

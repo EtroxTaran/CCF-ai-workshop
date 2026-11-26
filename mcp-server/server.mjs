@@ -27,10 +27,41 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, "..");
-const VAULT_ROOT = path.join(REPO_ROOT, "stufe-3-obsidian-vault");
+const DEFAULT_MODULE_ID = "prompt-werkstatt-tierwelt";
+
+function resolveModuleArg(argv) {
+  for (let i = 0; i < argv.length; i++) {
+    const arg = argv[i];
+    if (arg === "--module" && i + 1 < argv.length) {
+      return String(argv[i + 1]).trim();
+    }
+    if (arg.startsWith("--module=")) {
+      return arg.slice("--module=".length).trim();
+    }
+  }
+  return String(process.env.WORKSHOP_MODULE || DEFAULT_MODULE_ID).trim() || DEFAULT_MODULE_ID;
+}
+
+const ACTIVE_MODULE_ID = resolveModuleArg(process.argv.slice(2));
+const MODULES_DIR = path.join(REPO_ROOT, "modules");
+const ACTIVE_MODULE_DIR = path.join(MODULES_DIR, ACTIVE_MODULE_ID);
+const ACTIVE_MODULE_SPEC = (() => {
+  const p = path.join(ACTIVE_MODULE_DIR, "module.json");
+  if (!fs.existsSync(p)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(p, "utf8"));
+  } catch {
+    return null;
+  }
+})();
+
+const IS_DEFAULT_MODULE = ACTIVE_MODULE_ID === DEFAULT_MODULE_ID;
+const VAULT_ROOT = IS_DEFAULT_MODULE
+  ? path.join(REPO_ROOT, "stufe-3-obsidian-vault")
+  : ACTIVE_MODULE_DIR;
 const WIKI_ROOT = path.join(VAULT_ROOT, "wiki");
+const CORPUS_ROOT = path.join(ACTIVE_MODULE_DIR, "corpus");
 const INDEX_PATH = path.join(VAULT_ROOT, "_index.md");
-const WIKI_SUBDIRS = ["lebensraeume", "tierarten", "konzepte"];
 
 const fileCache = new Map();
 let cachedArticles = [];
@@ -43,16 +74,48 @@ function extractHeadingTitle(body, fallback) {
 
 function collectActiveFiles() {
   const found = [];
+  if (!IS_DEFAULT_MODULE) {
+    if (fs.existsSync(CORPUS_ROOT)) {
+      for (const entry of fs.readdirSync(CORPUS_ROOT, { withFileTypes: true })) {
+        if (entry.isFile() && entry.name.endsWith(".md")) {
+          found.push({
+            fullPath: path.join(CORPUS_ROOT, entry.name),
+            relPath: `corpus/${entry.name}`,
+            defaultCategory: ACTIVE_MODULE_SPEC?.taxonomy?.categories?.[0]?.id || "dokument",
+            slug: entry.name.replace(/\.md$/, ""),
+          });
+        } else if (entry.isDirectory()) {
+          const subDir = path.join(CORPUS_ROOT, entry.name);
+          for (const subFile of fs.readdirSync(subDir)) {
+            if (!subFile.endsWith(".md")) continue;
+            found.push({
+              fullPath: path.join(subDir, subFile),
+              relPath: `corpus/${entry.name}/${subFile}`,
+              defaultCategory: ACTIVE_MODULE_SPEC?.taxonomy?.categories?.[0]?.id || entry.name,
+              slug: subFile.replace(/\.md$/, ""),
+            });
+          }
+        }
+      }
+    }
+    return found;
+  }
+
   if (fs.existsSync(WIKI_ROOT)) {
-    for (const sub of WIKI_SUBDIRS) {
+    const subdirs = fs
+      .readdirSync(WIKI_ROOT, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name)
+      .sort();
+    for (const sub of subdirs) {
       const dir = path.join(WIKI_ROOT, sub);
-      if (!fs.existsSync(dir)) continue;
       for (const file of fs.readdirSync(dir)) {
         if (!file.endsWith(".md")) continue;
         found.push({
           fullPath: path.join(dir, file),
           relPath: `wiki/${sub}/${file}`,
-          defaultCategory: sub === "lebensraeume" ? "lebensraum" : sub === "tierarten" ? "tierart" : "konzept",
+          defaultCategory:
+            sub === "lebensraeume" ? "lebensraum" : sub === "tierarten" ? "tierart" : "konzept",
           slug: file.replace(/\.md$/, ""),
         });
       }
@@ -97,10 +160,11 @@ function buildArticleRecord(entryMeta, rawMarkdown) {
     slug,
     title,
     category: meta.category || entryMeta.defaultCategory,
-    habitat: meta.habitat || "",
+    group: meta.group || meta.habitat || "",
+    habitat: meta.habitat || meta.group || "",
     status: meta.status || "",
     tags: Array.isArray(meta.tags) ? meta.tags : [],
-    source_file: meta.source_file || `raw/${slug}.md`,
+    source_file: meta.source_file || entryMeta.relPath || `raw/${slug}.md`,
     rel_path: entryMeta.relPath,
     wikilinks,
     body,
@@ -151,20 +215,60 @@ function loadVaultArticles() {
 }
 
 function loadVaultIndex() {
-  if (!fs.existsSync(INDEX_PATH)) {
-    cachedIndex = null;
-    return null;
+  if (fs.existsSync(INDEX_PATH)) {
+    const st = fs.statSync(INDEX_PATH);
+    if (!cachedIndex || cachedIndex.mtimeMs !== st.mtimeMs || cachedIndex.size !== st.size) {
+      const content = fs.readFileSync(INDEX_PATH, "utf8");
+      cachedIndex = {
+        mtimeMs: st.mtimeMs,
+        size: st.size,
+        content,
+      };
+    }
+    return cachedIndex.content;
   }
-  const st = fs.statSync(INDEX_PATH);
-  if (!cachedIndex || cachedIndex.mtimeMs !== st.mtimeMs || cachedIndex.size !== st.size) {
-    const content = fs.readFileSync(INDEX_PATH, "utf8");
-    cachedIndex = {
-      mtimeMs: st.mtimeMs,
-      size: st.size,
-      content,
-    };
+  if (!IS_DEFAULT_MODULE) {
+    const articles = loadVaultArticles();
+    const lines = [
+      `# Inhaltsverzeichnis: ${ACTIVE_MODULE_SPEC?.title || ACTIVE_MODULE_ID}`,
+      "",
+      `Aktives Modul: \`${ACTIVE_MODULE_ID}\` (${articles.length} Dokumente)`,
+      "",
+    ];
+    for (const art of articles) {
+      lines.push(`- [[${art.slug}|${art.title}]] (${art.category}) — ${art.rel_path}`);
+    }
+    return lines.join("\n");
   }
-  return cachedIndex.content;
+  cachedIndex = null;
+  return null;
+}
+
+function listModules() {
+  const modules = [];
+  if (fs.existsSync(MODULES_DIR)) {
+    for (const entry of fs.readdirSync(MODULES_DIR, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      const specPath = path.join(MODULES_DIR, entry.name, "module.json");
+      if (!fs.existsSync(specPath)) continue;
+      try {
+        const spec = JSON.parse(fs.readFileSync(specPath, "utf8"));
+        modules.push({
+          id: spec.id || entry.name,
+          title: spec.title || entry.name,
+          level: spec.level || "",
+          domainLabel: spec.domainLabel || "",
+          isDefault: Boolean(spec.isDefault),
+        });
+      } catch {
+        // skip unreadable module.json
+      }
+    }
+  }
+  return {
+    active_module: ACTIVE_MODULE_ID,
+    modules,
+  };
 }
 
 function searchVault(query, category, limit = 5) {
@@ -214,7 +318,8 @@ function readVaultArticle(rawSlug) {
 
   const normalizedSlugPart = clean
     .replace(/^vault:\/\//i, "")
-    .replace(/^wiki\/(?:lebensraeume|tierarten|konzepte)\//i, "")
+    .replace(/^wiki\/[^/]+\//i, "")
+    .replace(/^corpus\//i, "")
     .replace(/^raw\//i, "")
     .replace(/^docs\//i, "")
     .replace(/\.md$/i, "");
@@ -305,63 +410,106 @@ function readResource(uri) {
   };
 }
 
+const CATEGORY_ENUM = IS_DEFAULT_MODULE
+  ? ["lebensraum", "tierart", "konzept"]
+  : Array.isArray(ACTIVE_MODULE_SPEC?.taxonomy?.categories) &&
+      ACTIVE_MODULE_SPEC.taxonomy.categories.length > 0
+    ? ACTIVE_MODULE_SPEC.taxonomy.categories.map((c) => c.id)
+    : undefined;
+
+const CATEGORY_SCHEMA = CATEGORY_ENUM
+  ? {
+      type: "string",
+      enum: CATEGORY_ENUM,
+      description: "Optionaler Filter auf Kategorie.",
+    }
+  : {
+      type: "string",
+      description: "Optionaler Filter auf Kategorie.",
+    };
+
+const SEARCH_INPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    query: {
+      type: "string",
+      description: "Suchbegriff oder Frage.",
+    },
+    category: CATEGORY_SCHEMA,
+    limit: {
+      type: "integer",
+      minimum: 1,
+      maximum: 15,
+      default: 5,
+      description: "Maximale Anzahl Treffer (Standard: 5).",
+    },
+  },
+  required: ["query"],
+};
+
+const VERIFY_INPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    claim: {
+      type: "string",
+      description: "Die zu prüfende Aussage oder Faktenbehauptung.",
+    },
+  },
+  required: ["claim"],
+};
+
+const READ_INPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    slug: {
+      type: "string",
+      description: "Artikel-Slug (z. B. '_index', '[[slug]]' oder relativer Pfad).",
+    },
+  },
+  required: ["slug"],
+};
+
 const TOOLS = [
+  {
+    name: "search_vault",
+    description: `Durchsucht die Wissensbasis des aktiven Moduls (${ACTIVE_MODULE_ID}) und liefert [[Wikilinks]] sowie Textauszüge.`,
+    inputSchema: SEARCH_INPUT_SCHEMA,
+  },
+  {
+    name: "verify_claim",
+    description: `Prüft eine Aussage gegen alle lokalen Dokumente des aktiven Moduls (${ACTIVE_MODULE_ID}) und deckt unbelegte Behauptungen auf.`,
+    inputSchema: VERIFY_INPUT_SCHEMA,
+  },
+  {
+    name: "read_article",
+    description: "Liest den vollständigen Markdown-Inhalt eines Dokuments (oder '_index') anhand von Slug, Titel, [[Wikilink]] oder relativem Pfad.",
+    inputSchema: READ_INPUT_SCHEMA,
+  },
+  {
+    name: "list_modules",
+    description: "Listet alle verfügbaren Workshop-Module unter modules/ und markiert das aktive Modul.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
   {
     name: "search_wildlife_vault",
     description:
-      "Durchsucht den strukturierten Obsidian-Vault (stufe-3-obsidian-vault/wiki/) nach Lebensräumen, Tierarten und ökologischen Konzepten und liefert [[Wikilinks]] sowie Textauszüge.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        query: {
-          type: "string",
-          description: "Suchbegriff oder Frage (z. B. 'Eisbär Ringelrobbe Klimawandel').",
-        },
-        category: {
-          type: "string",
-          enum: ["lebensraum", "tierart", "konzept"],
-          description: "Optionaler Filter auf Kategorie.",
-        },
-        limit: {
-          type: "integer",
-          minimum: 1,
-          maximum: 15,
-          default: 5,
-          description: "Maximale Anzahl Treffer (Standard: 5).",
-        },
-      },
-      required: ["query"],
-    },
+      "Kompatibilitäts-Alias für search_vault: Durchsucht die Wissensbasis und liefert [[Wikilinks]] sowie Textauszüge.",
+    inputSchema: SEARCH_INPUT_SCHEMA,
   },
   {
     name: "verify_claim_against_corpus",
     description:
-      "Prüft eine Aussage oder Behauptung gegen alle lokalen Artikel im Tierwelt-Korpus und deckt unbelegte Behauptungen bzw. Fangfragen auf.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        claim: {
-          type: "string",
-          description: "Die zu prüfende Aussage oder Faktenbehauptung.",
-        },
-      },
-      required: ["claim"],
-    },
+      "Kompatibilitäts-Alias für verify_claim: Prüft eine Aussage gegen alle lokalen Artikel im Korpus.",
+    inputSchema: VERIFY_INPUT_SCHEMA,
   },
   {
     name: "read_vault_article",
     description:
-      "Liest den vollständigen Markdown-Inhalt eines Artikels (oder '_index') aus dem Obsidian-Vault anhand von Slug, Titel, [[Wikilink]] oder relativem Pfad.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        slug: {
-          type: "string",
-          description: "Artikel-Slug (z. B. 'eisbaer', '_index', '[[eisbaer]]' oder 'wiki/tierarten/eisbaer.md').",
-        },
-      },
-      required: ["slug"],
-    },
+      "Kompatibilitäts-Alias für read_article: Liest den vollständigen Markdown-Inhalt eines Artikels (oder '_index').",
+    inputSchema: READ_INPUT_SCHEMA,
   },
 ];
 
@@ -409,14 +557,16 @@ async function handleRequest(req) {
       const args = params?.arguments || {};
 
       let data;
-      if (toolName === "search_wildlife_vault") {
+      if (toolName === "search_vault" || toolName === "search_wildlife_vault") {
         if (!args.query) throw new Error("Parameter 'query' fehlt.");
         data = searchVault(args.query, args.category, args.limit);
-      } else if (toolName === "verify_claim_against_corpus") {
+      } else if (toolName === "verify_claim" || toolName === "verify_claim_against_corpus") {
         if (!args.claim) throw new Error("Parameter 'claim' fehlt.");
         data = verifyClaim(loadVaultArticles(), args.claim);
-      } else if (toolName === "read_vault_article") {
+      } else if (toolName === "read_article" || toolName === "read_vault_article") {
         data = readVaultArticle(args.slug);
+      } else if (toolName === "list_modules") {
+        data = listModules();
       } else {
         writeMessage({
           jsonrpc: "2.0",

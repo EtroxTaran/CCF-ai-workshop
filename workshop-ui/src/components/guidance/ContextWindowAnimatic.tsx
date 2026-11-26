@@ -4,8 +4,11 @@ import { AlertTriangle, CheckCircle2, MessageSquarePlus, RotateCcw, ShieldCheck 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
+import type { AnimaticSpecs } from "@/types/workshop";
+
 export interface ContextWindowAnimaticProps {
   className?: string;
+  spec?: AnimaticSpecs["contextWindow"];
   onResetChat?: () => void;
 }
 
@@ -47,10 +50,19 @@ const STEPS = [
   },
 ];
 
-export function ContextWindowAnimatic({ className, onResetChat }: ContextWindowAnimaticProps) {
+export function ContextWindowAnimatic({ className, spec, onResetChat }: ContextWindowAnimaticProps) {
   const prefersReduced = useReducedMotion();
   const [stepIdx, setStepIdx] = useState<number>(0);
-  const current = STEPS[stepIdx] || STEPS[0];
+  const rawLabel = spec?.rawLabel || "332 KB Rohdaten";
+  const indexLabel = spec?.indexLabel || "~17 KB Index (_index.md)";
+  const articleCountLabel = spec?.articleCountLabel || "Alle 68 Dateien";
+  const current =
+    stepIdx === STEPS.length - 1
+      ? {
+          ...STEPS[stepIdx],
+          note: `Nachricht 5: ${rawLabel} überfluten das Fenster! Lösung: + Neuer Chat oder AGENTS.md + Index.`,
+        }
+      : STEPS[stepIdx] || STEPS[0];
 
   function handleNextMessage() {
     setStepIdx((prev) => Math.min(STEPS.length - 1, prev + 1));
@@ -189,13 +201,13 @@ export function ContextWindowAnimatic({ className, onResetChat }: ContextWindowA
             <div className="rounded-xl border border-rose-300/60 bg-rose-50/50 p-3 dark:border-rose-500/30 dark:bg-rose-500/10">
               <div className="flex items-center justify-between text-xs font-bold text-rose-800 dark:text-rose-300">
                 <span>Stufe 1/2 · Roh-Dump</span>
-                <span className="num-tabular font-mono">332 KB Rohdaten</span>
+                <span className="num-tabular font-mono">{rawLabel}</span>
               </div>
               <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-rose-200/70 dark:bg-rose-950">
                 <div className="h-full w-full rounded-full bg-rose-500" />
               </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
-                Alle 68 Dateien auf einmal verstopfen das Kontext-Fenster.
+                {articleCountLabel} auf einmal verstopfen das Kontext-Fenster.
               </p>
             </div>
 
@@ -205,7 +217,7 @@ export function ContextWindowAnimatic({ className, onResetChat }: ContextWindowA
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   Stufe 3 · Vault + AGENTS.md
                 </span>
-                <span className="num-tabular font-mono">~17 KB Index (_index.md)</span>
+                <span className="num-tabular font-mono">{indexLabel}</span>
               </div>
               <div className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-muted">
                 <div className="h-full w-[6%] min-w-[10px] rounded-full bg-[#A9C23F]" />

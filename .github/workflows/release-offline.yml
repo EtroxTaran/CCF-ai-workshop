@@ -1,0 +1,59 @@
+name: Release Offline Workshop Bundles
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: "workshop-ui/package-lock.json"
+
+      - name: Build modules and UI
+        working-directory: workshop-ui
+        run: |
+          npm ci
+          cd ..
+          node scripts/build_modules.mjs
+          node scripts/validate_modules.mjs
+          cd workshop-ui
+          npm run build
+
+      - name: Package Offline Workshop Hub & Desktop Exercise ZIPs
+        run: |
+          mkdir -p release-artifacts
+          mkdir -p offline-staging/workshop-ui
+          cp -r workshop-ui/dist offline-staging/workshop-ui/dist
+          cp workshop-ui/server.mjs offline-staging/workshop-ui/server.mjs
+          cp start-workshop.bat start-workshop.sh start-beamer.bat start-beamer.sh offline-staging/
+          cp README.md aufgaben.md LOESUNGEN_TRAINER.md offline-staging/
+          (cd offline-staging && zip -rq ../release-artifacts/workshop-offline-bundle.zip .)
+
+          for modDir in modules/*/; do
+            slug=$(basename "$modDir")
+            if [ -d "${modDir}corpus" ]; then
+              (cd "$modDir" && zip -rq "../../release-artifacts/module-${slug}-exercises.zip" .)
+            fi
+          done
+          zip -rq release-artifacts/tierwelt-stufe-ordner.zip stufe-1-chaos stufe-2-skills-guardrails stufe-3-obsidian-vault mcp-server shared
+
+      - name: Upload Offline Release Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-workshop-bundles
+          path: release-artifacts/*.zip
+          retention-days: 90

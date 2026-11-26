@@ -19,36 +19,20 @@ ROOT = Path(__file__).resolve().parent.parent
 AUDIO_DIR = ROOT / "workshop-ui" / "public" / "audio"
 DEFAULT_VOICE_ID = os.environ.get("ELEVENLABS_VOICE_ID", "EXAVITQu4vr4xnSDxMaL")  # Sarah (multilingual v2)
 DEFAULT_MODEL_ID = "eleven_multilingual_v2"
+DEFAULT_SCRIPTS_FILE = ROOT / "modules" / "prompt-werkstatt-tierwelt" / "audio-scripts.json"
 
-SCRIPTS: dict[str, str] = {
-    "what-is-markdown": (
-        "Kurz erklärt: Punkt M D steht für Markdown. Das ist einfach eine ganz normale, leicht lesbare "
-        "Textdatei mit Überschriften. Du musst sie am PC gar nicht selbst öffnen. Lade sie entweder über das "
-        "Plus- oder Büroklammer-Symbol direkt in Claude oder ChatGPT hoch — oder klicke einfach auf unseren "
-        "Button Paket kopieren, dann ist alles fertig in deiner Zwischenablage."
-    ),
-    "step-01": (
-        "Willkommen bei Schritt eins! Öffne am besten in einem zweiten Browser-Tab ChatGPT oder Claude. "
-        "Hier wählst du oben aus, ob du im Browser arbeitest, einen Ordner am Computer öffnest oder ein "
-        "Programmier-Werkzeug im Terminal nutzt. Du kannst diesen Filter jederzeit ohne Datenverlust umschalten."
-    ),
-    "step-02": (
-        "In Schritt zwei vergleichen wir zwei Arten zu fragen. Oben drückst du einmal auf Kompakt-Paket "
-        "kopieren und fügst alles direkt in einen neuen Chat ein. Sieh selbst, wie eine klare Struktur wie "
-        "CO-STAR sofort saubere Listen mit Dateiquellen erzeugt — statt nur vagem Fließtext."
-    ),
-    "step-03": (
-        "Jetzt kommt das Herzstück in Schritt drei: Warum erfindet eine KI manchmal Dinge, und wie stoppen "
-        "wir sie? Schalte nacheinander durch Stufe eins, zwei und drei und stelle jeweils zuerst die Fangfrage "
-        "nach dem Schneeleoparden. In Stufe eins rät die KI oft mit. Ab Stufe zwei lehnt sie ehrlich ab, weil "
-        "sie feste Hausregeln hat."
-    ),
-    "step-04": (
-        "Schritt vier ist deine freie Praxis-Phase! Suche dir genau einen Pfad aus: Fakten prüfen in der "
-        "Wissensbasis, eine schicke Übersichtsseite bauen oder eine kleine interaktive Web-App erzeugen. Alle "
-        "nötigen Wikipedia-Texte werden jetzt automatisch mitkopiert oder als Markdown-Datei heruntergeladen."
-    ),
-}
+
+def load_scripts(scripts_path: Path) -> dict[str, str]:
+    raw = json.loads(scripts_path.read_text(encoding="utf-8"))
+    out: dict[str, str] = {}
+    for clip_id, entry in raw.items():
+        if isinstance(entry, dict):
+            text = str(entry.get("tts") or entry.get("transcript") or "").strip()
+        else:
+            text = str(entry).strip()
+        if text:
+            out[clip_id] = text
+    return out
 
 
 def synthesize_clip(api_key: str, voice_id: str, text: str, out_path: Path) -> None:
@@ -82,6 +66,16 @@ def synthesize_clip(api_key: str, voice_id: str, text: str, out_path: Path) -> N
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate German ElevenLabs audio guides.")
     parser.add_argument("--voice-id", default=DEFAULT_VOICE_ID, help="ElevenLabs Voice ID")
+    parser.add_argument(
+        "--scripts",
+        default=str(DEFAULT_SCRIPTS_FILE),
+        help="Path to module audio-scripts.json (single source of truth)",
+    )
+    parser.add_argument(
+        "--out-dir",
+        default=str(AUDIO_DIR),
+        help="Output directory for generated .mp3 files",
+    )
     parser.add_argument("--overwrite", action="store_true", help="Overwrite existing MP3 files")
     args = parser.parse_args()
 
@@ -97,11 +91,13 @@ def main() -> int:
         )
         return 1
 
-    AUDIO_DIR.mkdir(parents=True, exist_ok=True)
-    for clip_id, script in SCRIPTS.items():
-        target = AUDIO_DIR / f"{clip_id}.mp3"
+    scripts_map = load_scripts(Path(args.scripts))
+    out_dir = Path(args.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for clip_id, script in scripts_map.items():
+        target = out_dir / f"{clip_id}.mp3"
         if target.exists() and not args.overwrite:
-            print(f"[SKIP] {target.relative_to(ROOT)} existiert bereits (--overwrite zum Neu-Erzeugen).")
+            print(f"[SKIP] {target} existiert bereits (--overwrite zum Neu-Erzeugen).")
             continue
         try:
             synthesize_clip(api_key, args.voice_id, script, target)

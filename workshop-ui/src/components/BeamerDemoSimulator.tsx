@@ -2,7 +2,7 @@ import { Eye, Lock, Network, RefreshCw, ShieldAlert, ShieldCheck, Sparkles } fro
 import { StageMiniDiagram } from "@/components/StageMiniDiagram";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { TestQuestion } from "@/types/workshop";
+import type { AnimaticSpecs, TestQuestion } from "@/types/workshop";
 
 export type DemoQuestionKey = "q1" | "q2" | "q3" | "q4";
 
@@ -15,6 +15,7 @@ export interface BeamerDemoSimulatorProps {
   q4Mutated: boolean;
   onToggleQ4Mutated: () => void;
   questions?: TestQuestion[];
+  demoScenarios?: AnimaticSpecs["demoScenarios"];
 }
 
 interface StageOutcome {
@@ -265,8 +266,14 @@ export function BeamerDemoSimulator({
   q4Mutated,
   onToggleQ4Mutated,
   questions,
+  demoScenarios,
 }: BeamerDemoSimulatorProps) {
-  const scenario = buildScenario(questionKey, q4Mutated, questions);
+  const override = demoScenarios?.[questionKey];
+  const fallback = buildScenario(questionKey, q4Mutated, questions);
+  const q4Spec = questions?.find((q) => q.id === "q4")?.manipulationCheck;
+  const scenario: DemoScenario = override
+    ? { key: questionKey, ...override }
+    : fallback;
 
   return (
     <div className="flex flex-1 flex-col justify-between gap-4">
@@ -289,12 +296,9 @@ export function BeamerDemoSimulator({
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <div className="no-scrollbar inline-flex max-w-full overflow-x-auto rounded-xl border bg-muted p-1">
             {QUESTION_ORDER.map((qKey) => {
-              const labelMap: Record<DemoQuestionKey, string> = {
-                q1: "Q1 · Eisbär",
-                q2: "Q2 · Verbund",
-                q3: "Q3 · Fangfrage",
-                q4: "Q4 · Kontext-Check",
-              };
+              const tabText =
+                demoScenarios?.[qKey]?.tabLabel ||
+                buildScenario(qKey, q4Mutated, questions).tabLabel;
               const active = questionKey === qKey;
               return (
                 <button
@@ -310,7 +314,7 @@ export function BeamerDemoSimulator({
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {labelMap[qKey]}
+                  {tabText}
                 </button>
               );
             })}
@@ -351,9 +355,15 @@ export function BeamerDemoSimulator({
           <div className="flex items-center gap-2.5 text-base font-semibold text-foreground sm:text-lg">
             <Sparkles className="h-5 w-5 shrink-0 text-brand-ink" />
             <span>
-              Live-Kontext-Test in <code className="rounded bg-card px-1.5 py-0.5 font-mono text-sm">eisbaer.md</code>:{" "}
+              Live-Kontext-Test in{" "}
+              <code className="rounded bg-card px-1.5 py-0.5 font-mono text-sm">
+                {q4Spec?.targetFile || "eisbaer.md"}
+              </code>
+              :{" "}
               <strong className="text-brand-ink">
-                {q4Mutated ? "38 Zähne (testweise überschrieben)" : "42 Zähne (Originalwert)"}
+                {q4Mutated
+                  ? `${q4Spec?.mutatedValue || "38 Zähne"} (testweise überschrieben)`
+                  : `${q4Spec?.originalValue || "42 Zähne"} (Originalwert)`}
               </strong>
             </span>
           </div>
@@ -367,7 +377,8 @@ export function BeamerDemoSimulator({
             }}
             className="h-auto min-h-9 max-w-full py-1.5 text-center font-semibold"
           >
-            Test-Schalter: eisbaer.md = 38 Zähne ↔ 42 Zähne
+            Test-Schalter: {q4Spec?.targetFile || "eisbaer.md"} ={" "}
+            {q4Spec?.mutatedValue || "38 Zähne"} ↔ {q4Spec?.originalValue || "42 Zähne"}
           </Button>
         </div>
       )}

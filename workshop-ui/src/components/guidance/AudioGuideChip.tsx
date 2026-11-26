@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { ChevronDown, FileText, Pause, Play, Volume2 } from "lucide-react";
+import type { AudioGuideScriptSpec } from "@/types/workshop";
 
 const AVAILABLE_AUDIO = new Set(
   typeof __AUDIO_GUIDE_FILES__ !== "undefined" ? __AUDIO_GUIDE_FILES__ : []
@@ -7,7 +8,7 @@ const AVAILABLE_AUDIO = new Set(
 
 export type AudioGuideId = "step-01" | "step-02" | "step-03" | "step-04" | "what-is-markdown";
 
-const AUDIO_SCRIPTS: Record<AudioGuideId, { title: string; durationLabel: string; transcript: string }> = {
+const AUDIO_SCRIPTS: Record<AudioGuideId, AudioGuideScriptSpec> = {
   "what-is-markdown": {
     title: "Was ist eigentlich eine .md-Datei?",
     durationLabel: "0:22",
@@ -24,13 +25,13 @@ const AUDIO_SCRIPTS: Record<AudioGuideId, { title: string; durationLabel: string
     title: "Prompt-Methoden in 20 Sekunden erklärt",
     durationLabel: "0:20",
     transcript:
-      "Klicke zuerst auf „Kompakt-Paket kopieren“ — unsere App packt deine Frage automatisch ganz nach oben und die passenden Wikipedia-Texte direkt darunter. Vergleiche in deinem Chat, wie viel sauberer eine klare Struktur (CO-STAR) gegenüber einem einzelnen Satz antwortet.",
+      "Klicke zuerst auf „Kompakt-Paket kopieren“ — unsere App packt deine Frage automatisch ganz nach oben und die passenden Quelltexte direkt darunter. Vergleiche in deinem Chat, wie viel sauberer eine klare Struktur (CO-STAR) gegenüber einem einzelnen Satz antwortet.",
   },
   "step-03": {
     title: "Das 3-Stufen-Experiment in 25 Sekunden",
     durationLabel: "0:25",
     transcript:
-      "Schalte nacheinander durch Stufe 1, 2 und 3 und starte pro Stufe immer einen frischen Chat. Stelle zuerst die Schneeleoparden-Fangfrage: Ohne Regeln (Stufe 1) rät die KI oft Zahlen dazu. Ab Stufe 2 greifen feste Hausregeln — sie lehnt ehrlich ab.",
+      "Schalte nacheinander durch Stufe 1, 2 und 3 und starte pro Stufe immer einen frischen Chat. Stelle zuerst die Fangfrage: Ohne Regeln (Stufe 1) rät die KI oft Zahlen dazu. Ab Stufe 2 greifen feste Hausregeln — sie lehnt ehrlich ab.",
   },
   "step-04": {
     title: "Praxis-Pfade & Transfer in 20 Sekunden",
@@ -42,14 +43,16 @@ const AUDIO_SCRIPTS: Record<AudioGuideId, { title: string; durationLabel: string
 
 export function AudioGuideChip({
   clipId,
+  audioGuides,
   className = "",
 }: {
   clipId: AudioGuideId;
+  audioGuides?: Record<string, AudioGuideScriptSpec>;
   className?: string;
 }) {
   const filename = `${clipId}.mp3`;
   const hasAudioFile = AVAILABLE_AUDIO.has(filename);
-  const spec = AUDIO_SCRIPTS[clipId];
+  const spec = audioGuides?.[clipId] || AUDIO_SCRIPTS[clipId];
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [rate, setRate] = useState<1 | 1.25>(1);

@@ -1,8 +1,5 @@
 import { toast } from "sonner";
-import rawSearchIndex from "@/data/searchIndex.json";
 import type { CorpusSearchIndex, StarterArticle, VaultArticle } from "@/types/workshop";
-
-const fullBodyIndex = rawSearchIndex as CorpusSearchIndex;
 
 export function downloadMarkdownFile(filename: string, content: string, description?: string) {
   const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
@@ -15,25 +12,42 @@ export function downloadMarkdownFile(filename: string, content: string, descript
   toast.success(description || `${filename} heruntergeladen — jetzt per „+“ oder 📎 im Chat hochladen.`);
 }
 
-export function buildAll68ArticlesMarkdown(vaultArticles: VaultArticle[]): string {
+export function buildAllArticlesMarkdown(
+  vaultArticles: VaultArticle[],
+  corpusIndex: CorpusSearchIndex = {},
+  moduleTitle = "Prompt-Werkstatt · Gesamte Wissensbasis"
+): string {
   const header = [
-    "# CCF Prompt-Werkstatt · Gesamte Wissensbasis (68 öffentliche Wikipedia-Artikel)",
+    `# ${moduleTitle} (${vaultArticles.length} Dokumente)`,
     "",
-    "> Hinweis: 100 % öffentliche Wikipedia-Texte (Tierwelt & Ökosysteme), gebündelt zum Hochladen in Web-Chats oder Projekte.",
+    "> Hinweis: 100 % öffentliche / synthetische Klartext-Dokumente zum Hochladen in Web-Chats oder Projekte.",
     "",
   ].join("\n");
 
   const sections = vaultArticles.map((art) => {
-    const body = fullBodyIndex[art.slug] || art.summary;
-    return `=== ${art.slug}.md · ${art.title} ===\nKategorie: ${art.category} | Lebensraum: ${art.habitat}\n\n# ${art.title}\n\n${body}\n\n[Quelle: ${art.slug}.md]`;
+    const body = corpusIndex[art.slug] || art.summary;
+    const grp = art.group || art.habitat || "Allgemein";
+    return `=== ${art.slug}.md · ${art.title} ===\nKategorie: ${art.category} | Bereich: ${grp}\n\n# ${art.title}\n\n${body}\n\n[Quelle: ${art.slug}.md]`;
   });
 
   return `${header}${sections.join("\n\n---\n\n")}\n`;
 }
 
-export function buildStarterBundleMarkdown(starterArticles: StarterArticle[]): string {
+/** Backwards-compatible alias */
+export function buildAll68ArticlesMarkdown(
+  vaultArticles: VaultArticle[],
+  corpusIndex: CorpusSearchIndex = {},
+  moduleTitle?: string
+): string {
+  return buildAllArticlesMarkdown(vaultArticles, corpusIndex, moduleTitle);
+}
+
+export function buildStarterBundleMarkdown(
+  starterArticles: StarterArticle[],
+  moduleTitle = "Prompt-Werkstatt · Fokus-Dokumente"
+): string {
   const header = [
-    "# CCF Prompt-Werkstatt · 12 Fokus-Artikel (Arktis, Korallenriff & Alpen)",
+    `# ${moduleTitle} (${starterArticles.length} Fokus-Dokumente)`,
     "",
     "> Ideal für den schnellen Upload in Claude.ai, ChatGPT oder Microsoft Copilot.",
     "",
