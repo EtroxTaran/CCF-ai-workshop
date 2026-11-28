@@ -1110,6 +1110,9 @@ function BeamerAppInner({
                         ? `${ahaGroupMin} Min. gemeinsamer Aha-Kern`
                         : `${praxisGroupMin} Min. freier Praxis-Pfad`}
                     </Badge>
+                    <Badge variant="secondary" className="text-xs font-semibold">
+                      {data.meta.title}
+                    </Badge>
                   </div>
 
                   <h1 className="font-display text-[clamp(1.75rem,3.1vw,3.15rem)] font-extrabold leading-[1.08] tracking-[-0.03em] text-foreground">
