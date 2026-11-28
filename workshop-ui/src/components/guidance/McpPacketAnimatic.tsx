@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { BookOpen, Bot, Cpu, Network, Play } from "lucide-react";
+import { BookOpen, Bot, CheckCircle2, Cpu, Network, Play } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ToolMode } from "@/types/workshop";
@@ -9,6 +10,7 @@ export interface McpPacketAnimaticProps {
   activeHop?: number;
   mode?: "search" | "verify";
   toolMode?: ToolMode;
+  defaultView?: "klartext" | "json";
   compact?: boolean;
   projectorMode?: boolean;
   triggerPulse?: number;
@@ -27,6 +29,7 @@ export function McpPacketAnimatic({
   activeHop: controlledHop,
   mode = "search",
   toolMode = "web",
+  defaultView,
   compact = false,
   projectorMode = false,
   triggerPulse,
@@ -37,19 +40,41 @@ export function McpPacketAnimatic({
 }: McpPacketAnimaticProps) {
   const sampleQuery = spec?.sampleQuery || "Anemonenfische Symbiose";
   const sampleWikilinks = spec?.sampleWikilinks || ["[[anemonenfische]]", "[[symbiose]]"];
-  const searchToolName = spec?.searchToolName || "search_wildlife_vault";
-  const verifyToolName = spec?.verifyToolName || "verify_claim_against_corpus";
+  const searchToolName = spec?.searchToolName || "search_vault";
+  const verifyToolName = spec?.verifyToolName || "verify_claim";
   const prefersReduced = useReducedMotion();
   const [internalHop, setInternalHop] = useState<number>(0);
+  const [packetStatus, setPacketStatus] = useState<"idle" | "sending" | "done">("idle");
+  const [packetCount, setPacketCount] = useState<number>(0);
+  const timeoutsRef = useRef<number[]>([]);
+  const isTechnicalMode = toolMode === "agent" || toolMode === "ide";
   const [inspectorView, setInspectorView] = useState<"klartext" | "json">(
-    toolMode === "agent" ? "json" : "klartext"
+    defaultView ?? (isTechnicalMode ? "json" : "klartext")
   );
 
   const activeHop = typeof controlledHop === "number" ? controlledHop : internalHop;
 
+  function clearDemoTimeouts() {
+    for (const id of timeoutsRef.current) {
+      window.clearTimeout(id);
+    }
+    timeoutsRef.current = [];
+  }
+
   useEffect(() => {
-    setInspectorView(toolMode === "agent" ? "json" : "klartext");
-  }, [toolMode]);
+    return () => clearDemoTimeouts();
+  }, []);
+
+  useEffect(() => {
+    setInspectorView(defaultView ?? (isTechnicalMode ? "json" : "klartext"));
+  }, [defaultView, isTechnicalMode]);
+
+  useEffect(() => {
+    clearDemoTimeouts();
+    setPacketStatus("idle");
+    setPacketCount(0);
+    setInternalHop(0);
+  }, [mode]);
 
   useEffect(() => {
     if (!triggerPulse) return;
@@ -60,15 +85,25 @@ export function McpPacketAnimatic({
   function runInternalDemo() {
     onRunAnimation?.();
     if (typeof controlledHop === "number") return;
+    clearDemoTimeouts();
     if (prefersReduced) {
       setInternalHop(4);
+      setPacketStatus("done");
+      setPacketCount((c) => c + 1);
       return;
     }
+    setPacketStatus("sending");
     setInternalHop(1);
-    window.setTimeout(() => setInternalHop(2), 200);
-    window.setTimeout(() => setInternalHop(3), 420);
-    window.setTimeout(() => setInternalHop(4), 640);
-    window.setTimeout(() => setInternalHop(0), 1800);
+    timeoutsRef.current = [
+      window.setTimeout(() => setInternalHop(2), 200),
+      window.setTimeout(() => setInternalHop(3), 420),
+      window.setTimeout(() => setInternalHop(4), 640),
+      window.setTimeout(() => {
+        setPacketStatus("done");
+        setPacketCount((c) => c + 1);
+      }, 900),
+      window.setTimeout(() => setInternalHop(0), 1800),
+    ];
   }
 
   const stations = [
@@ -76,18 +111,18 @@ export function McpPacketAnimatic({
       hop: 1,
       icon: Bot,
       title: "1 · Frage / App",
-      desc: toolMode === "agent" ? "Code-Agent / IDE" : "Workshop-App oder Chat",
+      desc: isTechnicalMode ? "IDE / Code-Agent" : "Workshop-App oder Chat",
     },
     {
       hop: 2,
       icon: Network,
-      title: toolMode === "agent" ? "2 · MCP-Protokoll" : "2 · Fester Ablaufschritt",
-      desc: toolMode === "agent" ? "Standardisiertes JSON-RPC 2.0" : "Einheitliches Frage-Antwort-Format",
+      title: isTechnicalMode ? "2 · MCP-Protokoll" : "2 · Fester Ablaufschritt",
+      desc: isTechnicalMode ? "Standardisiertes JSON-RPC 2.0" : "Einheitliches Frage-Antwort-Format",
     },
     {
       hop: 3,
       icon: Cpu,
-      title: toolMode === "agent" ? "3 · Werkzeug-Server" : "3 · Such- & Prüf-Dienst",
+      title: isTechnicalMode ? "3 · Werkzeug-Server" : "3 · Such- & Prüf-Dienst",
       desc:
         toolMode === "agent"
           ? "mcp-server/server.mjs (Tools)"
@@ -116,6 +151,16 @@ export function McpPacketAnimatic({
       ? `{\n  "jsonrpc": "2.0",\n  "method": "tools/call",\n  "params": { "name": "${verifyToolName}", "arguments": { "claim": "..." } }\n}`
       : `{\n  "jsonrpc": "2.0",\n  "method": "tools/call",\n  "params": { "name": "${searchToolName}", "arguments": { "query": "${sampleQuery}" } }\n}`;
 
+  const klartextResponse =
+    mode === "verify"
+      ? `Status: belegt (Treffer über ${articleCount} Dokumente)\nBeleg: ${sampleWikilinks[0] || "[[dokument]]"} · Quelle verifiziert · 0 Halluzinationen`
+      : `Treffer für „${sampleQuery}“: ${sampleWikilinks.join(", ")}\nGeprüft über ${articleCount} Dokumente · Quelle direkt zitierbar`;
+
+  const jsonResponse =
+    mode === "verify"
+      ? `{\n  "jsonrpc": "2.0",\n  "result": {\n    "tool": "${verifyToolName}",\n    "status": "belegt",\n    "evidence": ${JSON.stringify(sampleWikilinks)},\n    "hallucinations": 0\n  }\n}`
+      : `{\n  "jsonrpc": "2.0",\n  "result": {\n    "tool": "${searchToolName}",\n    "query": "${sampleQuery}",\n    "matches": ${JSON.stringify(sampleWikilinks)},\n    "corpusSize": ${articleCount}\n  }\n}`;
+
   return (
     <div
       className={cn(
@@ -143,9 +188,14 @@ export function McpPacketAnimatic({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg border bg-muted p-0.5 text-xs">
+          <div
+            role="group"
+            aria-label="Antwortformat wählen"
+            className="inline-flex rounded-lg border bg-muted p-0.5 text-xs"
+          >
             <button
               type="button"
+              aria-pressed={inspectorView === "klartext"}
               onClick={() => setInspectorView("klartext")}
               className={cn(
                 "rounded-md px-2.5 py-1 font-medium transition-colors",
@@ -158,6 +208,7 @@ export function McpPacketAnimatic({
             </button>
             <button
               type="button"
+              aria-pressed={inspectorView === "json"}
               onClick={() => setInspectorView("json")}
               className={cn(
                 "rounded-md px-2.5 py-1 font-mono text-[11px] font-medium transition-colors",
@@ -253,6 +304,49 @@ export function McpPacketAnimatic({
       >
         {inspectorView === "klartext" ? klartextPayload : jsonPayload}
       </pre>
+
+      {/* Live Demo Status + Persistent Simulated Response */}
+      {typeof controlledHop !== "number" && packetStatus !== "idle" && (
+        <div
+          data-testid="mcp-packet-response"
+          className={cn(
+            "space-y-2 rounded-xl border p-3.5 transition-colors",
+            packetStatus === "done"
+              ? "border-emerald-500/45 bg-emerald-500/10"
+              : "border-brand-lime/50 bg-secondary/40"
+          )}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <Badge
+              aria-live="polite"
+              variant={packetStatus === "done" ? "success" : "lime"}
+              className="text-[11px]"
+            >
+              {packetStatus === "done" && <CheckCircle2 className="h-3 w-3" />}
+              <span>
+                {packetStatus === "sending"
+                  ? "Sende MCP-Anfrage…"
+                  : "Antwort empfangen · Belegt · 0 Halluzinationen"}
+              </span>
+            </Badge>
+            {packetStatus === "done" && packetCount > 0 && (
+              <span className="font-mono text-[11px] text-muted-foreground">
+                Simulierte Antwort #{packetCount}
+              </span>
+            )}
+          </div>
+          {packetStatus === "done" && (
+            <pre
+              className={cn(
+                "overflow-x-auto whitespace-pre-wrap break-words rounded-lg border bg-card p-3 font-mono leading-relaxed text-foreground",
+                projectorMode ? "text-sm" : "text-xs"
+              )}
+            >
+              {inspectorView === "klartext" ? klartextResponse : jsonResponse}
+            </pre>
+          )}
+        </div>
+      )}
     </div>
   );
 }

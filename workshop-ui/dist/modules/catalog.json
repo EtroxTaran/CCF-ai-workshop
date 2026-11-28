@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-11-26",
+  "generatedAt": "2026-11-28",
   "defaultModuleId": "prompt-werkstatt-tierwelt",
   "modules": [
     {
@@ -11,10 +11,18 @@
       "domainLabel": "Tierwelt & Ökosysteme",
       "durationPresets": [
         30,
+        45,
         60,
         90
       ],
       "articleCount": 68,
+      "checklistTotal": 6,
+      "goals": [
+        "prompting",
+        "app-building",
+        "presentations",
+        "everyday-ai"
+      ],
       "tags": [
         "Prompting",
         "CO-STAR",
@@ -32,15 +40,23 @@
       "subtitle": "Eigene Leitplanken, Skills & vernetzter Projekt-Vault an 10 synthetischen Dokumenten (Kernbank 2026)",
       "level": "L2",
       "badge": "Praxis · Synthetisches Projekt",
-      "domainLabel": "Projekt, SLA & Governance",
+      "domainLabel": "Kernbank 2026 · Projekt, SLA & Governance",
       "durationPresets": [
         30,
+        45,
         60,
         90
       ],
       "articleCount": 10,
+      "checklistTotal": 6,
+      "goals": [
+        "prompting",
+        "app-building",
+        "presentations",
+        "everyday-ai"
+      ],
       "tags": [
-        "Level 2",
+        "Context Engineering",
         "AGENTS.md",
         "Skills",
         "Runbooks",

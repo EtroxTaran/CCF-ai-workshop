@@ -30,16 +30,21 @@ declare module "@shared/corpus-engine.mjs" {
     claim: string
   ): {
     claim: string;
-    status: "belegt" | "teilweise" | "nicht_belegt";
+    status: "belegt" | "teilweise" | "nicht_belegt" | "widerspruch";
     confidence_label: string;
     matched_token_ratio: number;
+    mismatch_reasons?: string[];
     evidence: Array<{
       slug: string;
       title: string;
       category: string;
       habitat?: string;
       group?: string;
+      status?: string;
+      rel_path?: string;
+      source_file?: string;
       wikilink: string;
+      related_wikilinks?: string[];
       matched_tokens?: string[];
       score: number;
       snippet: string;

@@ -167,22 +167,42 @@ def check_multi_cli_and_mirrors(root: Path, errors: list[str], summary: list[str
     expected_server = (root / "mcp-server" / "server.mjs").resolve()
 
     mcp_targets = [
-        (root / ".mcp.json", "mcpServers", root),
-        (root / ".gemini" / "settings.json", "mcpServers", root),
-        (root / ".vscode" / "mcp.json", "servers", root),
-        (root / "stufe-3-obsidian-vault" / ".mcp.json", "mcpServers", root / "stufe-3-obsidian-vault"),
+        (root / ".mcp.json", "mcpServers", root, "workshop-wildlife"),
+        (root / ".cursor" / "mcp.json", "mcpServers", root, "workshop-wildlife"),
+        (root / ".gemini" / "settings.json", "mcpServers", root, "workshop-wildlife"),
+        (root / ".vscode" / "mcp.json", "servers", root, "workshop-wildlife"),
+        (
+            root / "stufe-3-obsidian-vault" / ".mcp.json",
+            "mcpServers",
+            root / "stufe-3-obsidian-vault",
+            "workshop-wildlife",
+        ),
+        (
+            root / "stufe-3-obsidian-vault" / ".cursor" / "mcp.json",
+            "mcpServers",
+            root / "stufe-3-obsidian-vault",
+            "workshop-wildlife",
+        ),
         (
             root / "stufe-3-obsidian-vault" / ".gemini" / "settings.json",
             "mcpServers",
             root / "stufe-3-obsidian-vault",
+            "workshop-wildlife",
         ),
         (
             root / "stufe-3-obsidian-vault" / ".vscode" / "mcp.json",
             "servers",
             root / "stufe-3-obsidian-vault",
+            "workshop-wildlife",
+        ),
+        (
+            root / "modules" / "context-engineering-projekt" / ".cursor" / "mcp.json",
+            "mcpServers",
+            root / "modules" / "context-engineering-projekt",
+            "workshop-context-engineering-projekt",
         ),
     ]
-    for cfg_path, root_key, workspace_dir in mcp_targets:
+    for cfg_path, root_key, workspace_dir, expected_server_key in mcp_targets:
         rel = cfg_path.relative_to(root)
         if not cfg_path.is_file():
             errors.append(f"Missing MCP config: {rel}")
@@ -196,9 +216,9 @@ def check_multi_cli_and_mirrors(root: Path, errors: list[str], summary: list[str
         if not isinstance(servers_obj, dict):
             errors.append(f"Missing '{root_key}' object in {rel}")
             continue
-        entry = servers_obj.get("workshop-wildlife")
+        entry = servers_obj.get(expected_server_key)
         if not isinstance(entry, dict):
-            errors.append(f"Missing 'workshop-wildlife' entry in {rel}")
+            errors.append(f"Missing '{expected_server_key}' entry in {rel}")
             continue
         if entry.get("command") != "node":
             errors.append(f"{rel}: expected command == 'node', got {entry.get('command')!r}")
@@ -214,11 +234,19 @@ def check_multi_cli_and_mirrors(root: Path, errors: list[str], summary: list[str
                 f"{rel}: script path {raw_arg!r} resolves to {resolved}, expected {expected_server}"
             )
 
-    # Stufe 2 darf absichtlich keine .mcp.json besitzen (Stage 2 Isolation).
-    if (root / "stufe-2-skills-guardrails" / ".mcp.json").exists():
-        errors.append(
-            "Stage 2 isolation breach: stufe-2-skills-guardrails/.mcp.json must NOT exist (leaks Stage 3 vault)"
-        )
+    # Stufe 2 darf absichtlich keinerlei MCP-Konfiguration besitzen (Stage 2 Isolation).
+    for forbidden_s2_rel in (
+        ".mcp.json",
+        ".cursor/mcp.json",
+        ".vscode/mcp.json",
+        ".gemini/settings.json",
+        ".codex/config.toml",
+        "opencode.json",
+    ):
+        if (root / "stufe-2-skills-guardrails" / forbidden_s2_rel).exists():
+            errors.append(
+                f"Stage 2 isolation breach: stufe-2-skills-guardrails/{forbidden_s2_rel} must NOT exist (leaks Stage 3 vault)"
+            )
 
     # OpenCode configs (root & Stage 3)
     for oc_path in (root / "opencode.json", root / "stufe-3-obsidian-vault" / "opencode.json"):
@@ -255,16 +283,58 @@ def check_multi_cli_and_mirrors(root: Path, errors: list[str], summary: list[str
     if not gi_path.is_file() or "sandbox/" not in gi_path.read_text(encoding="utf-8"):
         errors.append(".gitignore must ignore sandbox/")
 
-    # Root AGENTS.md must not spoil trap question (Schneeleopard)
-    root_agents = (root / "AGENTS.md").read_text(encoding="utf-8", errors="replace") if (root / "AGENTS.md").is_file() else ""
-    if "schneeleopard" in root_agents.lower():
-        errors.append("Spoiler leak in root AGENTS.md: contains 'Schneeleopard'")
+    # Root AGENTS.md & .github/copilot-instructions.md must stay spoiler-free & R5-clean
+    for root_instr_rel in ("AGENTS.md", ".github/copilot-instructions.md"):
+        root_instr_path = root / root_instr_rel
+        if not root_instr_path.is_file() or not root_instr_path.read_text(encoding="utf-8").strip():
+            errors.append(f"Missing or empty {root_instr_rel}")
+            continue
+        root_instr_txt = root_instr_path.read_text(encoding="utf-8", errors="replace")
+        root_instr_low = root_instr_txt.lower()
+        for spoiler in ("schneeleopard", "krypto-wallet"):
+            if spoiler in root_instr_low:
+                errors.append(f"Spoiler leak in {root_instr_rel}: contains {spoiler!r}")
+        for label, rx in R5_AVOIDED_TERM_PATTERNS:
+            if rx.search(root_instr_txt):
+                errors.append(f"R5 avoided term ({label}) found in {root_instr_rel}")
+        for token in FORBIDDEN_REMNANT_STRINGS:
+            if token in root_instr_txt:
+                errors.append(f"Forbidden remnant {token!r} found in {root_instr_rel}")
 
-    for folder_rel in (".", "stufe-1-chaos", "stufe-2-skills-guardrails", "stufe-3-obsidian-vault"):
+    for folder_rel in (
+        ".",
+        "stufe-1-chaos",
+        "stufe-2-skills-guardrails",
+        "stufe-3-obsidian-vault",
+        "modules/context-engineering-projekt",
+    ):
         folder = root / folder_rel if folder_rel != "." else root
         agents_path = folder / "AGENTS.md"
         if not agents_path.is_file() or not agents_path.read_text(encoding="utf-8").strip():
             errors.append(f"Missing or empty {folder_rel}/AGENTS.md")
+        elif folder_rel in (
+            "stufe-2-skills-guardrails",
+            "stufe-3-obsidian-vault",
+            "modules/context-engineering-projekt",
+        ):
+            if "Scope-Override" not in agents_path.read_text(encoding="utf-8"):
+                errors.append(f"{folder_rel}/AGENTS.md missing Scope-Override header")
+
+        if folder_rel in (
+            ".",
+            "stufe-2-skills-guardrails",
+            "stufe-3-obsidian-vault",
+            "modules/context-engineering-projekt",
+        ):
+            copilot_path = folder / ".github" / "copilot-instructions.md"
+            if not copilot_path.is_file() or not copilot_path.read_text(encoding="utf-8").strip():
+                errors.append(f"Missing or empty {folder_rel}/.github/copilot-instructions.md")
+            elif folder_rel != ".":
+                if "Scope-Override" not in copilot_path.read_text(encoding="utf-8"):
+                    errors.append(
+                        f"{folder_rel}/.github/copilot-instructions.md missing Scope-Override header"
+                    )
+
         for mirror_name in ("CLAUDE.md", "GEMINI.md"):
             mirror_path = folder / mirror_name
             if not mirror_path.is_file():
@@ -542,7 +612,7 @@ def check_docs_adr_ci(root: Path, errors: list[str], summary: list[str]) -> None
     if not adr_dir.is_dir():
         errors.append("Missing docs/adr directory")
     else:
-        for num in ("0001", "0002", "0003", "0004"):
+        for num in ("0001", "0002", "0003", "0004", "0005", "0006"):
             matches = list(adr_dir.glob(f"{num}-*.md"))
             if not matches:
                 errors.append(f"Missing ADR file docs/adr/{num}-*.md")
@@ -560,6 +630,13 @@ def check_docs_adr_ci(root: Path, errors: list[str], summary: list[str]) -> None
             if needle not in wf:
                 errors.append(f"deploy-pages.yml missing required token: {needle!r}")
 
+    ci_path = root / ".github" / "workflows" / "ci.yml"
+    if not ci_path.is_file():
+        errors.append("Missing .github/workflows/ci.yml")
+    rel_wf_path = root / ".github" / "workflows" / "release-offline.yml"
+    if not rel_wf_path.is_file():
+        errors.append("Missing .github/workflows/release-offline.yml")
+
     for rel_doc in R5_DOC_AND_LAUNCHER_FILES:
         doc_path = root / rel_doc
         if not doc_path.is_file():
@@ -574,7 +651,7 @@ def check_docs_adr_ci(root: Path, errors: list[str], summary: list[str]) -> None
         if rel_doc in R5_MAIN_BRANCH_DOCS and not re.search(r"\bmain\b", doc_txt):
             errors.append(f"Missing 'main' branch reference in {rel_doc}")
 
-    summary.append("CONTEXT.md, docs/adr/0001..0004, R5 docs/launchers, and .github/workflows/deploy-pages.yml verified")
+    summary.append("CONTEXT.md, docs/adr/0001..0006, R5 docs/launchers, and CI/Pages workflows verified")
 
 
 ROOT_ABS_JS_STR_RE = re.compile(r"""["']/(?!/)""")
@@ -888,6 +965,52 @@ def _check_pptx_shapes(
                         )
 
 
+PPTX_LEGACY_PHRASES = (
+    "track " + "a",
+    "track " + "b",
+    "track-" + "wahl",
+    "wahl-" + "mission",
+    "mission " + "a",
+    "mission " + "b",
+    "mission " + "c",
+    "mission " + "d",
+    "send_" + "to_beamer",
+    "submit-" + "question",
+    "live-" + "questions",
+    "/api/" + "submissions",
+    "/api/" + "events",
+    "beamer" + "_url",
+    "beamer" + "sendsheet",
+    "live-" + "wall",
+    "beamer-" + "feed",
+    "live-" + "beamer-gimmick",
+    "live-" + "gimmick",
+    "beamer-" + "live-server",
+    "beamer-" + "server",
+    "regie-" + "backend",
+    "issue-" + "watcher",
+    "dual-" + "modus",
+    "langdock-" + "demo-stil",
+)
+
+
+def _collect_pptx_texts(shapes: Any) -> list[str]:
+    _, MSO_SHAPE_TYPE, _, _, _ = _pptx_api()
+    texts: list[str] = []
+    for shape in shapes:
+        if shape.shape_type == MSO_SHAPE_TYPE.GROUP:
+            texts.extend(_collect_pptx_texts(shape.shapes))
+            continue
+        if shape.has_table:
+            for row in shape.table.rows:
+                for cell in row.cells:
+                    if cell.text_frame and cell.text_frame.text:
+                        texts.append(cell.text_frame.text)
+        if shape.has_text_frame and shape.text_frame.text:
+            texts.append(shape.text_frame.text)
+    return texts
+
+
 def check_pptx(root: Path, errors: list[str], summary: list[str]) -> None:
     pptx_path = root / "presentation" / "CCF_HandsOn_Prompt_Werkstatt.pptx"
     if not pptx_path.is_file():
@@ -901,11 +1024,25 @@ def check_pptx(root: Path, errors: list[str], summary: list[str]) -> None:
 
     for idx, slide in enumerate(prs.slides, start=1):
         notes_tf = slide.notes_slide.notes_text_frame if slide.has_notes_slide else None
-        if notes_tf is None or not notes_tf.text.strip():
+        notes_txt = notes_tf.text if notes_tf is not None else ""
+        if not notes_txt.strip():
             errors.append(f"Missing speaker notes on PPTX slide {idx}")
         _check_pptx_shapes(slide.shapes, idx, slide, prs, errors)
 
-    summary.append("PPTX (6 slides, speaker notes, >= 22pt typography) checked")
+        slide_texts = _collect_pptx_texts(slide.shapes)
+        combined = "\n".join([*slide_texts, notes_txt])
+        combined_low = combined.lower()
+        for token in FORBIDDEN_REMNANT_STRINGS:
+            if token in combined:
+                errors.append(f"PPTX slide {idx} contains forbidden remnant string {token!r}")
+        for label, rx in R5_AVOIDED_TERM_PATTERNS:
+            if rx.search(combined):
+                errors.append(f"PPTX slide {idx} contains R5 avoided term ({label})")
+        for phrase in PPTX_LEGACY_PHRASES:
+            if phrase in combined_low:
+                errors.append(f"PPTX slide {idx} contains legacy phrase {phrase!r}")
+
+    summary.append("PPTX (6 slides, speaker notes, >= 22pt typography, 0 legacy/forbidden terms) checked")
 
 
 def check_remnants(
@@ -926,15 +1063,22 @@ def check_remnants(
         root / "scripts" / "export_ui_data.py",
         root / "scripts" / "build_presentation.py",
         root / ".mcp.json",
+        root / ".cursor" / "mcp.json",
+        root / ".github" / "copilot-instructions.md",
         root / "opencode.json",
         root / ".gemini" / "settings.json",
         root / ".codex" / "config.toml",
         root / ".vscode" / "mcp.json",
+        root / "stufe-2-skills-guardrails" / ".github" / "copilot-instructions.md",
         root / "stufe-3-obsidian-vault" / ".mcp.json",
+        root / "stufe-3-obsidian-vault" / ".cursor" / "mcp.json",
+        root / "stufe-3-obsidian-vault" / ".github" / "copilot-instructions.md",
         root / "stufe-3-obsidian-vault" / "opencode.json",
         root / "stufe-3-obsidian-vault" / ".gemini" / "settings.json",
         root / "stufe-3-obsidian-vault" / ".codex" / "config.toml",
         root / "stufe-3-obsidian-vault" / ".vscode" / "mcp.json",
+        root / "modules" / "context-engineering-projekt" / ".cursor" / "mcp.json",
+        root / "modules" / "context-engineering-projekt" / ".github" / "copilot-instructions.md",
         root / "AGENTS.md",
         root / "README.md",
         root / "aufgaben.md",
@@ -1096,29 +1240,34 @@ def check_corpus_engine_and_ui_data(
     if not engine_path.is_file():
         errors.append("Missing shared/corpus-engine.mjs")
 
-    data_path = root / "workshop-ui" / "src" / "data" / "workshopData.json"
+    mod_pub_dir = root / "workshop-ui" / "public" / "modules" / "prompt-werkstatt-tierwelt"
+    data_path = mod_pub_dir / "data.json"
     if not data_path.is_file():
-        errors.append("Missing workshop-ui/src/data/workshopData.json")
+        errors.append("Missing workshop-ui/public/modules/prompt-werkstatt-tierwelt/data.json")
         return
+
+    dist_mod_data = root / "workshop-ui" / "dist" / "modules" / "prompt-werkstatt-tierwelt" / "data.json"
+    if not dist_mod_data.is_file():
+        errors.append("Missing built module bundle workshop-ui/dist/modules/prompt-werkstatt-tierwelt/data.json")
 
     try:
         data = json.loads(data_path.read_text(encoding="utf-8"))
     except Exception as exc:
-        errors.append(f"Invalid JSON in workshopData.json: {exc}")
+        errors.append(f"Invalid JSON in {data_path.relative_to(root)}: {exc}")
         return
 
     meta = data.get("meta", {})
     if meta.get("articleCount") != 68:
-        errors.append(f"workshopData.json meta.articleCount must be 68, got {meta.get('articleCount')!r}")
+        errors.append(f"L1 module data.json meta.articleCount must be 68, got {meta.get('articleCount')!r}")
 
-    search_index_path = root / "workshop-ui" / "src" / "data" / "searchIndex.json"
+    search_index_path = mod_pub_dir / "searchIndex.json"
     search_index: dict[str, str] = {}
     has_search_index_file = search_index_path.is_file()
     if has_search_index_file:
         try:
             loaded_idx = json.loads(search_index_path.read_text(encoding="utf-8"))
             if not isinstance(loaded_idx, dict):
-                errors.append("searchIndex.json must be a JSON object mapping slug -> body text")
+                errors.append("L1 module searchIndex.json must be a JSON object mapping slug -> body text")
             else:
                 search_index = {str(k): str(v) for k, v in loaded_idx.items()}
                 if slugs and set(search_index.keys()) != slugs:
@@ -1131,17 +1280,17 @@ def check_corpus_engine_and_ui_data(
     vault_articles = data.get("vaultArticles", [])
     if not isinstance(vault_articles, list) or len(vault_articles) != 68:
         errors.append(
-            f"workshopData.json vaultArticles must have 68 entries, got {len(vault_articles) if isinstance(vault_articles, list) else type(vault_articles).__name__}"
+            f"L1 module data.json vaultArticles must have 68 entries, got {len(vault_articles) if isinstance(vault_articles, list) else type(vault_articles).__name__}"
         )
     else:
         ui_slugs = {a.get("slug") for a in vault_articles if isinstance(a, dict)}
         if slugs and ui_slugs != slugs:
             errors.append(
-                f"workshopData.json vaultArticles slug mismatch: missing={sorted(slugs - ui_slugs)[:5]}"
+                f"L1 module data.json vaultArticles slug mismatch: missing={sorted(slugs - ui_slugs)[:5]}"
             )
         for spot in ("walross", "alpensteinbock", "eisbaer", "korallenbleiche"):
             if spot not in ui_slugs:
-                errors.append(f"workshopData.json vaultArticles missing spot-check slug {spot!r}")
+                errors.append(f"L1 module data.json vaultArticles missing spot-check slug {spot!r}")
 
         short_bodies: list[str] = []
         for art in vault_articles:
@@ -1155,7 +1304,7 @@ def check_corpus_engine_and_ui_data(
         if short_bodies:
             if not has_search_index_file:
                 errors.append(
-                    f"Missing workshop-ui/src/data/searchIndex.json and {len(short_bodies)} vaultArticles lack full body (>=500 chars): {short_bodies[:8]}"
+                    f"Missing L1 searchIndex.json and {len(short_bodies)} vaultArticles lack full body (>=500 chars): {short_bodies[:8]}"
                 )
             else:
                 errors.append(
@@ -1215,10 +1364,11 @@ const wikiArticles = wikiFiles.map((filePath) => {
   };
 });
 
+const modPubDir = path.join(root, "workshop-ui", "public", "modules", "prompt-werkstatt-tierwelt");
 const uiData = JSON.parse(
-  fs.readFileSync(path.join(root, "workshop-ui", "src", "data", "workshopData.json"), "utf8")
+  fs.readFileSync(path.join(modPubDir, "data.json"), "utf8")
 );
-const searchIndexPath = path.join(root, "workshop-ui", "src", "data", "searchIndex.json");
+const searchIndexPath = path.join(modPubDir, "searchIndex.json");
 const searchIndex = fs.existsSync(searchIndexPath)
   ? JSON.parse(fs.readFileSync(searchIndexPath, "utf8"))
   : {};
@@ -1263,10 +1413,24 @@ function runChecks(label, articles) {
   }
   const q1 = verifyClaim(
     articles,
-    "Der Eisbär hat unter seinem Fell schwarze Haut und produziert im Fettgewebe Squalen."
+    "Der Eisbär hat unter seinem Fell schwarze Haut und besitzt 42 Zähne."
   );
   if (q1?.status !== "belegt" || !(q1.evidence || []).some((e) => e.slug === "eisbaer")) {
     failures.push(`${label}: Q1 polar bear verifyClaim failed (${JSON.stringify(q1?.status)})`);
+  }
+  const contraSqualen = verifyClaim(
+    articles,
+    "Der Eisbär produziert im Fettgewebe Squalen."
+  );
+  if (contraSqualen?.status !== "widerspruch") {
+    failures.push(`${label}: Q1 Squalen contradiction expected widerspruch, got ${contraSqualen?.status}`);
+  }
+  const contraTeeth = verifyClaim(
+    articles,
+    "Der Eisbär hat 38 Zähne."
+  );
+  if (contraTeeth?.status !== "widerspruch") {
+    failures.push(`${label}: teeth contradiction expected widerspruch, got ${contraTeeth?.status}`);
   }
   const trap = verifyClaim(
     articles,

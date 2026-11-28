@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Compass,
   Download,
@@ -21,54 +21,66 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToolTranslationMatrix } from "@/components/guidance/ToolTranslationMatrix";
 import { GLOSSARY_ENTRIES } from "@/data/glossary";
 import {
   buildAllArticlesMarkdown,
   buildStarterBundleMarkdown,
   downloadMarkdownFile,
 } from "@/lib/exportCorpusMd";
-import type { CorpusSearchIndex, StarterArticle, VaultArticle } from "@/types/workshop";
+import type { CorpusSearchIndex, StarterArticle, ToolMode, VaultArticle } from "@/types/workshop";
 
 export const REPO_ZIP_URL =
   "https://github.com/EtroxTaran/CCF-ai-workshop/archive/refs/heads/main.zip";
 
 export const WEB_CHAT_LINKS = [
-  { name: "Claude.ai öffnen", url: "https://claude.ai/", note: "Free-Tier & Artifacts" },
   { name: "ChatGPT öffnen", url: "https://chatgpt.com/", note: "Free-Tier & Canvas" },
-  { name: "Gemini öffnen", url: "https://gemini.google.com/", note: "Google-Chat" },
+  { name: "Claude.ai öffnen", url: "https://claude.ai/", note: "Free-Tier & Artifacts" },
+  { name: "Langdock öffnen", url: "https://app.langdock.com/", note: "Enterprise-Hub · Chat & Assistants" },
+  { name: "Gemini öffnen", url: "https://gemini.google.com/", note: "Google-Chat & Canvas" },
   { name: "Copilot öffnen", url: "https://copilot.microsoft.com/", note: "Microsoft Web-Chat" },
 ];
 
-const FAQ_ITEMS = [
-  {
-    q: "Ich weiß nicht, welches Fenster ich jetzt öffnen soll!",
-    a: "Ganz einfach im Web-Chat: Lasse diese Workshop-App links/in Tab 1 offen und öffne in einem zweiten Browser-Tab ChatGPT (chatgpt.com) oder Claude (claude.ai). Danach springst du einfach mit Alt+Tab oder Klick zwischen beiden Tabs hin und her.",
-  },
-  {
-    q: "Was ist eigentlich eine .md-Datei — und muss ich die am PC öffnen?",
-    a: "„.md“ steht für Markdown: eine ganz normale Textdatei (wie .txt) mit einfachen #-Überschriften. Wenn Windows fragt „Womit öffnen?“, einfach ignorieren! Du öffnest die Datei gar nicht selbst, sondern lädst sie über „+“ oder die Büroklammer (📎) direkt in deinen KI-Chat hoch.",
-  },
-  {
-    q: "ChatGPT oder Copilot sagt „Nachricht zu lang“ oder schneidet Text ab!",
-    a: "Kein Problem: Unsere Buttons „Kompakt-Paket kopieren“ bleiben bewusst bei ca. 5.500 Zeichen (mit deiner Frage ganz oben), damit nichts abgeschnitten wird. Falls ein Tool doch meckert, lade stattdessen die .md-Datei über „+“ / 📎 hoch.",
-  },
-  {
-    q: "Wie öffne ich eine interaktive Webseite (Artifacts / Canvas) in Schritt 04?",
-    a: "Bei Claude schaltest du einmal in den Einstellungen „Artifacts“ ein (oder bittest im Prompt um ein HTML-Artifact). Bei ChatGPT klickst du neben dem Textfeld auf „+“ / Werkzeuge → „Canvas“ oder bittest einfach um eine „Vorschau im Canvas“.",
-  },
-  {
-    q: "Wie komme ich an die Workshop-Ordner für Claude Cowork ohne „Git“ zu kennen?",
-    a: "Klicke im Tab „Schnellstart & .md“ auf „Alle Ordner als ZIP laden“, entpacke die ZIP-Datei (Windows: Rechtsklick → „Alle extrahieren…“, Mac: Doppelklick) und wähle danach in Claude Cowork z. B. den Ordner „stufe-2-skills-guardrails“ aus.",
-  },
-  {
-    q: "Woran liegt der Unterschied zwischen Claude Cowork und ChatGPT Projects?",
-    a: "Claude Cowork (Desktop-App) kann direkt lokale Ordner auf deinem PC öffnen und AGENTS.md automatisch lesen. In ChatGPT Projects oder Claude.ai Web-Projekten lädst du stattdessen die Datei „alle-68-artikel-wissensbasis.md“ in den Projekt-Speicher hoch und fügst unsere Chat-Regeln in die Projekt-Anweisungen ein.",
-  },
-  {
-    q: "Ich habe gar kein eigenes KI-Abo — kann ich trotzdem alles testen?",
-    a: "Ja! Kostenlose Accounts bei ChatGPT, Claude.ai oder Gemini reichen im Browser völlig aus. Außerdem funktioniert der 68-Artikel-Faktenprüfer in Schritt 04 komplett ohne Konto — oder du nutzt im Terminal OpenCode mit OpenRouter.",
-  },
-];
+function buildFaqItems(articleCount: number, stage2Folder: string) {
+  return [
+    {
+      q: "Ich weiß nicht, welches Fenster ich jetzt öffnen soll!",
+      a: "Ganz einfach im Web-Chat: Lasse diese Workshop-App in Tab 1 offen und öffne in Tab 2 ChatGPT, Claude, Langdock, Gemini oder Copilot. Danach wechselst du einfach zwischen beiden Tabs hin und her.",
+    },
+    {
+      q: "Wie nutze ich Langdock im Workshop (Chat, Assistant, Knowledge Folder & MCP)?",
+      a: "Im Langdock Web-Chat startest du mit einem neuen Chat und unseren Kompakt-Paketen. Für dauerhafte Regeln legst du einen Langdock Assistant an, fügst deine Leitplanken in die Assistant Instructions ein und lädst die .md-Dateien in den Knowledge Folder. Wichtig: Cloud-Hubs wie Langdock, ChatGPT Web, Claude.ai Web und M365 Copilot können keinen lokalen stdio-MCP-Server starten — nutze dort Knowledge Folder, Remote MCP (Streamable HTTP/SSE) bzw. Integrations oder unseren Browser-Faktenprüfer.",
+    },
+    {
+      q: "Was ist eigentlich eine .md-Datei — und muss ich die am PC öffnen?",
+      a: "„.md“ steht für Markdown: eine ganz normale Textdatei (wie .txt) mit einfachen #-Überschriften. Wenn Windows fragt „Womit öffnen?“, einfach ignorieren! Du lädst sie über „+“ oder die Büroklammer (📎) direkt in deinen KI-Chat hoch.",
+    },
+    {
+      q: "ChatGPT, Langdock oder Copilot sagt „Nachricht zu lang“ oder schneidet Text ab!",
+      a: "Kein Problem: Alle unsere Kopier-Buttons bleiben ab sofort strikt bei <= 7.500 Zeichen (mit deinem Prompt ganz oben), damit nichts abgeschnitten wird. Für vollständige Originaltexte kannst du die .md-Dateien herunterladen und direkt hochladen.",
+    },
+    {
+      q: "Wie zeige ich eine Web-App oder Präsentations-Vorschau in meinem Chat?",
+      a: "In Claude aktivierst du einmal „Artifacts“; in ChatGPT klickst du auf „+“ → „Canvas“; in Gemini nutzt du „Canvas“. In Google Antigravity steht direkt eine Built-in Preview bereit. Nutzt du Microsoft Copilot oder Langdock ohne Canvas, speichere den erzeugten HTML-Code als app.html und öffne ihn per Doppelklick im Browser.",
+    },
+    {
+      q: "Wie komme ich an die Workshop-Ordner für Desktop / IDE ohne „Git“ zu kennen?",
+      a: `Klicke im Tab „Schnellstart & .md“ auf „Alle Workshop-Ordner als ZIP laden“, entpacke die ZIP-Datei (Windows: Rechtsklick → „Alle extrahieren…“, Mac: Doppelklick) und öffne danach z. B. „${stage2Folder}“ in Claude Cowork, Google Antigravity, Cursor, Windsurf oder VS Code.`,
+    },
+    {
+      q: "Woran liegt der Unterschied zwischen Claude Cowork / IDEs und Langdock Assistants / Projects?",
+      a: `Claude Cowork und Agentic IDEs (Antigravity, Cursor, Windsurf, VS Code) lesen lokale Ordner samt AGENTS.md und .agents/skills/ direkt. In Langdock Assistants, ChatGPT/Claude Projects oder Gemini Gems lädst du stattdessen „alle-${articleCount}-dokumente-wissensbasis.md“ in den Knowledge Folder hoch und fügst die Regeln in die Assistant-/Projekt-Anweisungen ein.`,
+    },
+    {
+      q: "Ich habe gar kein eigenes KI-Abo — kann ich trotzdem alles testen?",
+      a: `Ja! Kostenlose Accounts bei ChatGPT, Claude.ai, Gemini oder Copilot (sowie Langdock, falls im Unternehmen aktiv) genügen im Browser. Außerdem funktionieren der ${articleCount}-Dokumente-Faktenprüfer sowie der Output-Validator in Schritt 04 komplett lokal ohne Login.`,
+    },
+  ];
+}
+
+export type StageFoldersProp =
+  | string[]
+  | { stufe1?: string; stufe2?: string; stufe3?: string };
 
 export function HelpFaqSheet({
   open,
@@ -79,6 +91,9 @@ export function HelpFaqSheet({
   corpusIndex,
   onLoadCorpusIndex,
   moduleTitle = "Prompt-Werkstatt",
+  zipUrl = REPO_ZIP_URL,
+  stageFolders = ["stufe-1-chaos", "stufe-2-skills-guardrails", "stufe-3-obsidian-vault"],
+  toolMode = "web",
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -88,8 +103,49 @@ export function HelpFaqSheet({
   corpusIndex?: CorpusSearchIndex;
   onLoadCorpusIndex?: () => Promise<CorpusSearchIndex>;
   moduleTitle?: string;
+  zipUrl?: string;
+  stageFolders?: StageFoldersProp;
+  toolMode?: ToolMode;
 }) {
   const [query, setQuery] = useState("");
+  const launchingTourRef = useRef(false);
+  const tourTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (tourTimerRef.current !== null) {
+        window.clearTimeout(tourTimerRef.current);
+      }
+    };
+  }, []);
+
+  const folderList = useMemo(() => {
+    if (Array.isArray(stageFolders)) return stageFolders;
+    return [
+      stageFolders.stufe1 || "stufe-1-chaos",
+      stageFolders.stufe2 || "stufe-2-skills-guardrails",
+      stageFolders.stufe3 || "stufe-3-obsidian-vault",
+    ];
+  }, [stageFolders]);
+
+  const uniqueStageFolders = useMemo(
+    () => Array.from(new Set(folderList.filter(Boolean))),
+    [folderList]
+  );
+
+  const stageFoldersObj = useMemo(() => {
+    if (!Array.isArray(stageFolders)) return stageFolders;
+    return {
+      stufe1: stageFolders[0],
+      stufe2: stageFolders[1],
+      stufe3: stageFolders[2],
+    };
+  }, [stageFolders]);
+
+  const faqItems = useMemo(
+    () => buildFaqItems(vaultArticles.length, folderList[1] || folderList[0] || "stufe-2-skills-guardrails"),
+    [vaultArticles.length, folderList]
+  );
 
   const filteredGlossary = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -111,7 +167,7 @@ export function HelpFaqSheet({
           size="sm"
           variant="outline"
           data-tour="help-trigger"
-          className="h-8 gap-1 px-2 text-xs sm:h-9 sm:gap-1.5 sm:px-2.5"
+          className="min-h-[40px] gap-1 px-2.5 text-xs sm:h-9 sm:min-h-0 sm:gap-1.5 sm:px-2.5"
           aria-label="Hilfe, Glossar & FAQ öffnen"
           title="Hilfe, Glossar & FAQ öffnen"
         >
@@ -119,7 +175,16 @@ export function HelpFaqSheet({
           <span className="hidden sm:inline">Hilfe</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-full max-w-[560px] overflow-y-auto">
+      <SheetContent
+        side="right"
+        className="w-full max-w-[560px] overflow-y-auto"
+        onCloseAutoFocus={(e) => {
+          if (launchingTourRef.current) {
+            e.preventDefault();
+            launchingTourRef.current = false;
+          }
+        }}
+      >
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <HelpCircle className="h-5 w-5 text-brand-ink" />
@@ -143,8 +208,15 @@ export function HelpFaqSheet({
               type="button"
               size="sm"
               onClick={() => {
+                launchingTourRef.current = true;
                 onOpenChange(false);
-                window.setTimeout(() => onStartTour(), 180);
+                if (tourTimerRef.current !== null) {
+                  window.clearTimeout(tourTimerRef.current);
+                }
+                tourTimerRef.current = window.setTimeout(() => {
+                  tourTimerRef.current = null;
+                  onStartTour();
+                }, 220);
               }}
             >
               <Compass className="h-3.5 w-3.5" />
@@ -153,7 +225,7 @@ export function HelpFaqSheet({
           </div>
 
           <Tabs defaultValue="quickstart" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid h-auto w-full grid-cols-2 gap-1 p-1 sm:grid-cols-4">
               <TabsTrigger value="quickstart" className="text-xs">
                 Schnellstart &amp; .md
               </TabsTrigger>
@@ -161,11 +233,27 @@ export function HelpFaqSheet({
                 Glossar ({GLOSSARY_ENTRIES.length})
               </TabsTrigger>
               <TabsTrigger value="faq" className="text-xs">
-                FAQ ({FAQ_ITEMS.length})
+                FAQ ({faqItems.length})
+              </TabsTrigger>
+              <TabsTrigger value="matrix" className="text-xs">
+                Tool-Matrix
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="quickstart" className="space-y-4 text-xs leading-relaxed">
+              <div className="space-y-1.5 rounded-xl border border-brand-lime/50 bg-secondary/35 p-4">
+                <div className="font-display text-sm font-bold text-foreground">
+                  Kein KI-Abo? Kostenlos starten
+                </div>
+                <p className="text-muted-foreground">
+                  Du brauchst kein bezahltes Abo: Nutze kostenlose Browser-Konten bei{" "}
+                  <strong>ChatGPT Free</strong>, <strong>Claude Free</strong>,{" "}
+                  <strong>Gemini</strong> oder <strong>M365 Copilot</strong> (bzw.{" "}
+                  <strong>Langdock</strong> im Unternehmens-Workspace) — und teste unseren lokalen{" "}
+                  {vaultArticles.length}-Dokumente-Faktenprüfer sowie den Output-Validator in
+                  Schritt 04 komplett ohne Login.
+                </p>
+              </div>
               <div className="space-y-2 rounded-xl border bg-card p-4">
                 <div className="flex items-center gap-2 font-display text-sm font-bold text-foreground">
                   <FileText className="h-4 w-4 text-brand-ink" />
@@ -178,21 +266,23 @@ export function HelpFaqSheet({
                   direkt in deinen KI-Chat hoch, oder nutze unsere Kopierbuttons.
                 </p>
                 <div className="flex flex-wrap gap-2 pt-1">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() =>
-                      downloadMarkdownFile(
-                        `fokus-dokumente-${starterArticles.length}.md`,
-                        buildStarterBundleMarkdown(starterArticles, moduleTitle),
-                        `${starterArticles.length} Fokus-Dokumente heruntergeladen — einfach per + / 📎 im Chat anhängen!`
-                      )
-                    }
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    <span>{starterArticles.length} Fokus-Dokumente (.md)</span>
-                  </Button>
+                  {starterArticles.length < vaultArticles.length && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() =>
+                        downloadMarkdownFile(
+                          `fokus-dokumente-${starterArticles.length}.md`,
+                          buildStarterBundleMarkdown(starterArticles, moduleTitle),
+                          `${starterArticles.length} Fokus-Dokumente heruntergeladen — einfach per + / 📎 im Chat anhängen!`
+                        )
+                      }
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      <span>{starterArticles.length} Fokus-Dokumente (.md)</span>
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     size="sm"
@@ -248,13 +338,18 @@ export function HelpFaqSheet({
                     Entpacken (Windows: Rechtsklick → <em>„Alle extrahieren…“</em>, Mac: Doppelklick).
                   </li>
                   <li>
-                    In <strong>Claude Cowork</strong> nacheinander <code>stufe-1-chaos</code>,{" "}
-                    <code>stufe-2-skills-guardrails</code> oder <code>stufe-3-obsidian-vault</code>{" "}
-                    als Arbeitsordner öffnen.
+                    In <strong>Claude Cowork / VS Code / Cursor</strong> einen Ordner öffnen:{" "}
+                    {uniqueStageFolders.map((f, idx) => (
+                      <span key={f}>
+                        {idx > 0 && ", "}
+                        <code>{f}</code>
+                      </span>
+                    ))}
+                    .
                   </li>
                 </ol>
                 <a
-                  href={REPO_ZIP_URL}
+                  href={zipUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 rounded-lg border bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:opacity-90"
@@ -303,7 +398,7 @@ export function HelpFaqSheet({
 
             <TabsContent value="faq" className="space-y-2">
               <Accordion type="multiple" className="space-y-2">
-                {FAQ_ITEMS.map((item, idx) => (
+                {faqItems.map((item, idx) => (
                   <AccordionItem
                     key={idx}
                     value={`faq-${idx}`}
@@ -318,6 +413,14 @@ export function HelpFaqSheet({
                   </AccordionItem>
                 ))}
               </Accordion>
+            </TabsContent>
+
+            <TabsContent value="matrix" className="space-y-3">
+              <ToolTranslationMatrix
+                activeToolMode={toolMode}
+                compactCardsOnly
+                stageFolders={stageFoldersObj}
+              />
             </TabsContent>
           </Tabs>
         </div>

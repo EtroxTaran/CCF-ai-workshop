@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import {
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
   BookOpen,
   Check,
   CheckCircle2,
+  Circle,
+  Code2,
   Compass,
   Download,
   ExternalLink,
@@ -13,8 +16,6 @@ import {
   FileCode2,
   FileText,
   FolderArchive,
-  FolderOpen,
-  Globe,
   HelpCircle,
   Layers,
   LayoutGrid,
@@ -25,10 +26,10 @@ import {
   Sparkles,
   Terminal,
   Wrench,
+  X,
 } from "lucide-react";
 import { ArchitectureLayerStack } from "@/components/ArchitectureLayerStack";
 import { CopyButton } from "@/components/CopyButton";
-import { ObsidianKnowledgeGraph } from "@/components/ObsidianKnowledgeGraph";
 import { PromptMethodComparator } from "@/components/PromptMethodComparator";
 import { StageArtifactsSheet } from "@/components/StageArtifactsSheet";
 import { StageBackdrop } from "@/components/StageBackdrop";
@@ -36,6 +37,8 @@ import { StageMiniDiagram } from "@/components/StageMiniDiagram";
 import { Virtual7Logo } from "@/components/Virtual7Logo";
 import { AudioGuideChip } from "@/components/guidance/AudioGuideChip";
 import { ByouRuleBuilder } from "@/components/guidance/ByouRuleBuilder";
+import { GoalRubricCard } from "@/components/guidance/GoalRubricCard";
+import { GoalToolMatrixChooser } from "@/components/guidance/GoalToolMatrixChooser";
 import { GlossaryTip } from "@/components/guidance/GlossaryTip";
 import { GuardrailDebugChallenge } from "@/components/guidance/GuardrailDebugChallenge";
 import { GuardrailShieldAnimatic } from "@/components/guidance/GuardrailShieldAnimatic";
@@ -50,8 +53,13 @@ import {
   ONBOARDING_STORAGE_KEY,
   OnboardingTour,
 } from "@/components/guidance/OnboardingTour";
+import { OutputValidatorWidget } from "@/components/guidance/OutputValidatorWidget";
 import { ToolHotspotGuide } from "@/components/guidance/ToolHotspotGuide";
 import { Stage3AgentWalkPlayer } from "@/components/guidance/WalkthroughPlayers";
+import {
+  WorkshopSummaryExport,
+  type OutcomeGateStatus,
+} from "@/components/guidance/WorkshopSummaryExport";
 import {
   Accordion,
   AccordionContent,
@@ -60,7 +68,6 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
@@ -74,8 +81,16 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { buildGoalTracksForModule, GOAL_LABELS } from "@/data/goalTracks";
+import {
+  buildCompactIndex,
+  compactToCharLimit,
+  MAX_SAFE_CLIPBOARD_CHARS,
+  sliceExpressBySlugs,
+} from "@/lib/compactPacks";
 import {
   buildAllArticlesMarkdown,
+  buildStarterBundleMarkdown,
   downloadMarkdownFile,
 } from "@/lib/exportCorpusMd";
 import {
@@ -85,50 +100,114 @@ import {
   moduleStorageKeys,
 } from "@/lib/moduleLoader";
 import { offlineSearchVault, offlineVerifyClaim } from "@/lib/offlineSearch";
+import type { RulebookFormat } from "@/lib/outputValidator";
+import { scaleDurationsExact, scalePhasesExact } from "../lib/scalePhases";
 import type {
   CorpusSearchIndex,
   EvidenceMatch,
+  GoalId,
   ToolMode,
   VerifyClaimResult,
   WorkshopDataset,
   WorkshopStepId,
 } from "@/types/workshop";
 
+const ObsidianKnowledgeGraph = lazy(() =>
+  import("@/components/ObsidianKnowledgeGraph").then((m) => ({
+    default: m.ObsidianKnowledgeGraph,
+  }))
+);
+
 const VALID_STEPS = new Set<WorkshopStepId>(["start", "methods", "stages", "paths"]);
-const VALID_MODES = new Set<ToolMode>(["web", "desktop", "agent"]);
+const VALID_MODES = new Set<ToolMode>(["web", "desktop", "ide", "agent"]);
+const VALID_GOALS = new Set<GoalId>([
+  "prompting",
+  "app-building",
+  "presentations",
+  "everyday-ai",
+]);
 
 interface PersistedUiState {
   step: WorkshopStepId;
   toolMode: ToolMode;
+  goalId: GoalId;
+  durationPreset: "self" | number;
+  setupConfirmed: boolean;
+  methodsExplored: boolean;
+  debugSolved: boolean;
+  outputValidations: Partial<Record<GoalId, { passed: boolean; score: number }>>;
+  rubricChecked: Record<string, boolean>;
+  rulebookPassed: boolean;
   checked: Record<string, boolean>;
   reflections: Record<string, boolean>;
   showAllQuestions: boolean;
   activeStageIdx: number;
 }
 
+function parseHashGoal(): GoalId | null {
+  if (typeof window === "undefined") return null;
+  const rawHash = window.location.hash || "";
+  const qIdx = rawHash.indexOf("?");
+  if (qIdx < 0) return null;
+  const params = new URLSearchParams(rawHash.slice(qIdx + 1));
+  const goal = params.get("goal") as GoalId | null;
+  return goal && VALID_GOALS.has(goal) ? goal : null;
+}
+
 function parseHashStep(moduleId: string): WorkshopStepId | null {
   if (typeof window === "undefined") return null;
   const rawHash = window.location.hash;
   if (!rawHash || rawHash === "#" || rawHash === "#/") return null;
-  if (/^#\/(?:hub|beamer)(?:[/?#]|$)/.test(rawHash)) return null;
-  const modMatch = rawHash.match(/^#\/m\/([^/]+)(?:\/([^/?#]+))?/);
+  const hashPath = rawHash.split("?")[0];
+  if (!hashPath || hashPath === "#" || hashPath === "#/") return null;
+  if (/^#\/(?:hub|beamer)(?:[/?#]|$)/.test(hashPath)) return null;
+  const modMatch = hashPath.match(/^#\/m\/([^/]+)(?:\/([^/?#]+))?/);
   if (modMatch) {
     const sub = modMatch[2] as WorkshopStepId | undefined;
     if (modMatch[2] === "beamer") return null;
     return sub && VALID_STEPS.has(sub) ? sub : "start";
   }
   if (moduleId === DEFAULT_MODULE_ID) {
-    const normalized = rawHash.replace(/^#\/?/, "") as WorkshopStepId;
+    const normalized = hashPath.replace(/^#\/?/, "") as WorkshopStepId;
     return VALID_STEPS.has(normalized) ? normalized : null;
   }
   return null;
 }
 
-function readInitialUiState(moduleId: string, stagesCount: number): PersistedUiState {
+function pathIdForGoal(goal: GoalId, praxisPaths: WorkshopDataset["praxisPaths"]): string {
+  const desired =
+    goal === "presentations"
+      ? "pfad-praesentation"
+      : goal === "app-building"
+        ? "pfad-app"
+        : "pfad-recherche";
+  return praxisPaths.find((p) => p.id === desired)?.id || praxisPaths[0]?.id || desired;
+}
+
+const VERIFY_STATUS_LABELS: Record<VerifyClaimResult["status"], string> = {
+  belegt: "Belegt",
+  teilweise: "Teilweise belegt",
+  widerspruch: "Widerspruch",
+  nicht_belegt: "Nicht belegt",
+};
+
+function readInitialUiState(
+  moduleId: string,
+  stagesCount: number,
+  defaultDuration: "self" | number = 60
+): PersistedUiState {
   const { storageKey, sessionKey } = moduleStorageKeys(moduleId);
   const defaults: PersistedUiState = {
     step: "start",
     toolMode: "web",
+    goalId: "prompting",
+    durationPreset: defaultDuration,
+    setupConfirmed: false,
+    methodsExplored: false,
+    debugSolved: false,
+    outputValidations: {},
+    rubricChecked: {},
+    rulebookPassed: false,
     checked: {},
     reflections: {},
     showAllQuestions: false,
@@ -140,6 +219,20 @@ function readInitialUiState(moduleId: string, stagesCount: number): PersistedUiS
     if (saved) {
       const parsed = JSON.parse(saved);
       if (VALID_MODES.has(parsed.toolMode)) defaults.toolMode = parsed.toolMode;
+      if (VALID_GOALS.has(parsed.goalId)) defaults.goalId = parsed.goalId;
+      if (parsed.durationPreset === "self" || typeof parsed.durationPreset === "number") {
+        defaults.durationPreset = parsed.durationPreset;
+      }
+      if (typeof parsed.setupConfirmed === "boolean") defaults.setupConfirmed = parsed.setupConfirmed;
+      if (typeof parsed.methodsExplored === "boolean") defaults.methodsExplored = parsed.methodsExplored;
+      if (typeof parsed.debugSolved === "boolean") defaults.debugSolved = parsed.debugSolved;
+      if (parsed.outputValidations && typeof parsed.outputValidations === "object") {
+        defaults.outputValidations = parsed.outputValidations;
+      }
+      if (parsed.rubricChecked && typeof parsed.rubricChecked === "object") {
+        defaults.rubricChecked = parsed.rubricChecked;
+      }
+      if (typeof parsed.rulebookPassed === "boolean") defaults.rulebookPassed = parsed.rulebookPassed;
       if (parsed.checked && typeof parsed.checked === "object") defaults.checked = parsed.checked;
       if (parsed.reflections && typeof parsed.reflections === "object") {
         defaults.reflections = parsed.reflections;
@@ -172,20 +265,35 @@ function readInitialUiState(moduleId: string, stagesCount: number): PersistedUiS
   if (hashStep) {
     defaults.step = hashStep;
   }
+  const hashGoal = parseHashGoal();
+  if (hashGoal) {
+    defaults.goalId = hashGoal;
+  }
   return defaults;
 }
 
-function renderInlineCode(text: string) {
-  const parts = String(text || "").split(/(`[^`]+`)/g);
-  return parts.map((part, idx) =>
-    part.startsWith("`") && part.endsWith("`") && part.length > 2 ? (
-      <code key={idx} className="rounded bg-muted px-1 py-0.5 font-mono text-[0.9em]">
-        {part.slice(1, -1)}
-      </code>
-    ) : (
-      part
-    )
-  );
+function renderInlineRichText(text: string) {
+  const parts = String(text || "").split(/(`[^`]+`|\*\*[^*]+\*\*|\*[^*\n]+\*)/g);
+  return parts.map((part, idx) => {
+    if (part.startsWith("`") && part.endsWith("`") && part.length > 2) {
+      return (
+        <code key={idx} className="rounded bg-muted px-1 py-0.5 font-mono text-[0.9em]">
+          {part.slice(1, -1)}
+        </code>
+      );
+    }
+    if (part.startsWith("**") && part.endsWith("**") && part.length > 4) {
+      return (
+        <strong key={idx} className="font-semibold text-foreground">
+          {part.slice(2, -2)}
+        </strong>
+      );
+    }
+    if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+      return <em key={idx}>{part.slice(1, -1)}</em>;
+    }
+    return part;
+  });
 }
 
 function parseWikilink(raw: string, fallbackSlug: string, fallbackTitle?: string) {
@@ -200,22 +308,6 @@ const STEP_ICONS: Record<WorkshopStepId, typeof Compass> = {
   stages: BookOpen,
   paths: Sparkles,
 };
-
-const MODE_ICONS: Record<ToolMode, typeof Globe> = {
-  web: Globe,
-  desktop: FolderOpen,
-  agent: Terminal,
-};
-
-const CHECKLIST_ITEMS: { id: string; stepId: WorkshopStepId; label: string }[] = [
-  { id: "chk-setup", stepId: "start", label: "Werkzeug-Hilfe (Web-Chat, Desktop & Ordner oder Code-Agent) gewählt" },
-  { id: "chk-methods", stepId: "methods", label: "Prompt-Methoden (Zero-Shot vs. CO-STAR/Few-Shot/RISEN) verglichen" },
-  { id: "chk-rules", stepId: "methods", label: "Steuerungs-Ebenen & Kontext-Tank getestet" },
-  { id: "chk-stages", stepId: "stages", label: "3-Stufen-Experiment inkl. Fangfrage & Quellen-Treue getestet" },
-  { id: "chk-reflect", stepId: "stages", label: "Eigene Beobachtung per Reflexions-Pill festgehalten" },
-  { id: "chk-path", stepId: "paths", label: "Praxis-Pfad oder Wissensbasis-Faktenprüfer ausprobiert" },
-  { id: "chk-transfer", stepId: "paths", label: "Transfer-Brücke für die eigene Rolle angesehen" },
-];
 
 const REFLECTION_PILLS: { id: string; label: string; hint: string }[] = [
   {
@@ -320,20 +412,38 @@ function ParticipantAppInner({
 }) {
   const prefersReduced = useReducedMotion();
   const { storageKey, sessionKey } = useMemo(() => moduleStorageKeys(moduleId), [moduleId]);
-  const checklistItems = useMemo(
-    () => data.checklistItems || CHECKLIST_ITEMS,
-    [data.checklistItems]
-  );
   const reflectionPills = useMemo(
     () => data.reflectionPills || REFLECTION_PILLS,
     [data.reflectionPills]
   );
+  const goalTracks = useMemo(() => buildGoalTracksForModule(data), [data]);
+  const baseTotalDuration = useMemo(
+    () => data.phases.reduce((sum, p) => sum + p.durationMin, 0) || 60,
+    [data.phases]
+  );
 
   const [initialState] = useState<PersistedUiState>(() =>
-    readInitialUiState(moduleId, data.stages.length)
+    readInitialUiState(moduleId, data.stages.length, data.durationPresets?.[1] ?? baseTotalDuration)
   );
   const [step, setStep] = useState<WorkshopStepId>(initialState.step);
   const [toolMode, setToolMode] = useState<ToolMode>(initialState.toolMode);
+  const [goalId, setGoalId] = useState<GoalId>(initialState.goalId);
+  const [durationPreset, setDurationPreset] = useState<"self" | number>(initialState.durationPreset);
+  const [setupConfirmed, setSetupConfirmed] = useState<boolean>(initialState.setupConfirmed);
+  const [methodsExplored, setMethodsExplored] = useState<boolean>(initialState.methodsExplored);
+  const [debugSolved, setDebugSolved] = useState<boolean>(initialState.debugSolved);
+  const [outputValidations, setOutputValidations] = useState<
+    Partial<Record<GoalId, { passed: boolean; score: number }>>
+  >(initialState.outputValidations);
+  const [rubricChecked, setRubricChecked] = useState<Record<string, boolean>>(
+    initialState.rubricChecked
+  );
+  const [rulebookPassed, setRulebookPassed] = useState<boolean>(initialState.rulebookPassed);
+  const [rulebookSnapshot, setRulebookSnapshot] = useState<{
+    agentsMd: string;
+    trapQuestion: string;
+    format: RulebookFormat;
+  }>({ agentsMd: "", trapQuestion: "", format: "agents-md" });
   const [checked, setChecked] = useState<Record<string, boolean>>(initialState.checked);
   const [reflections, setReflections] = useState<Record<string, boolean>>(initialState.reflections);
   const [showAllQuestions, setShowAllQuestions] = useState<boolean>(
@@ -342,16 +452,25 @@ function ParticipantAppInner({
   const [activeStageIdx, setActiveStageIdx] = useState<number>(initialState.activeStageIdx);
 
   const [checklistOpen, setChecklistOpen] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(false);
+  const [onboardingDone, setOnboardingDone] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      return localStorage.getItem(ONBOARDING_STORAGE_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const [tourBannerDismissed, setTourBannerDismissed] = useState(false);
   const [showGraphEarly, setShowGraphEarly] = useState(false);
   const [graphSelectedSlug, setGraphSelectedSlug] = useState<string | undefined>(undefined);
   const [q4SimulatedMutated, setQ4SimulatedMutated] = useState(true);
   const [revealQ4Answer, setRevealQ4Answer] = useState(false);
-  const [durationPreset, setDurationPreset] = useState<"self" | number>(
-    () => data.durationPresets?.[0] ?? 45
+  const [activePathId, setActivePathId] = useState<string>(() =>
+    pathIdForGoal(initialState.goalId, data.praxisPaths)
   );
-  const [activePathId, setActivePathId] = useState<string>(data.praxisPaths[0]?.id || "pfad-recherche");
 
   // Step 04 In-Browser Corpus Search & Claim Verifier state
   const [labTab, setLabTab] = useState<"search" | "verify">("search");
@@ -361,25 +480,137 @@ function ParticipantAppInner({
       "Anemonenfische Seeanemonen Symbiose"
   );
   const [mcpResults, setMcpResults] = useState<EvidenceMatch[] | null>(null);
+  const [lastSearchedQuery, setLastSearchedQuery] = useState<string>("");
+  const [searchEmptyHint, setSearchEmptyHint] = useState(false);
+  const [expandedSearchSlugs, setExpandedSearchSlugs] = useState<Record<string, boolean>>({});
   const [verifyClaim, setVerifyClaim] = useState(
     data.labPresets?.verifyDefaultClaim ||
       "Eisbärentalg enthält kein Squalen und verhindert dadurch das Gefrieren des Fells."
   );
   const [verifyOutput, setVerifyOutput] = useState<VerifyClaimResult | null>(null);
+  const [verifyEmptyHint, setVerifyEmptyHint] = useState(false);
+  const [expandedVerifySlugs, setExpandedVerifySlugs] = useState<Record<string, boolean>>({});
   const [mcpActiveHop, setMcpActiveHop] = useState<number>(0);
+
+  const activeGoalTrack = useMemo(
+    () => goalTracks.find((g) => g.id === goalId) || goalTracks[0],
+    [goalTracks, goalId]
+  );
+
+  const outcomeGates = useMemo<OutcomeGateStatus[]>(() => {
+    const reqRubric = activeGoalTrack.rubric.filter((r) => r.required);
+    const reqRubricDone =
+      reqRubric.length > 0 && reqRubric.every((r) => Boolean(rubricChecked[r.id]));
+    const valRes = outputValidations[goalId];
+    return [
+      {
+        id: "gate-setup",
+        label: "1. Ziel & Werkzeug gewählt",
+        passed: setupConfirmed,
+        detail: `${GOAL_LABELS[goalId]} · ${data.toolModes.find((m) => m.id === toolMode)?.label || toolMode}`,
+      },
+      {
+        id: "gate-methods",
+        label: "2. Methoden & Ebenen geprüft",
+        passed: methodsExplored || Boolean(checked["chk-methods"]) || Boolean(checked["chk-rules"]),
+        detail: "Zero-Shot vs. CO-STAR / Few-Shot / RISEN verglichen",
+      },
+      {
+        id: "gate-debug",
+        label: "3. Guardrail-Debug gelöst",
+        passed: debugSolved,
+        detail: debugSolved
+          ? "Fehlende Quellen- & Lücken-Leitplanken identifiziert"
+          : "In Schritt 03 fehlende 2 Regeln im Mini-Debug auswählen",
+      },
+      {
+        id: "gate-validator",
+        label: "4. KI-Ergebnis im Validator geprüft",
+        passed: Boolean(valRes?.passed),
+        detail: valRes?.passed
+          ? `Bestanden (${valRes.score}/4 Kriterien für ${GOAL_LABELS[goalId]})`
+          : "In Schritt 04 KI-Ergebnis einfügen & prüfen lassen",
+      },
+      {
+        id: "gate-rubric",
+        label: "5. Ziel-Rubrik (DoD) erfüllt",
+        passed: reqRubricDone,
+        detail: reqRubricDone
+          ? "Alle Pflicht-Abnahmekriterien abgehakt"
+          : "Pflichtkriterien in Schritt 04 prüfen & abhaken",
+      },
+      {
+        id: "gate-rulebook",
+        label: "6. Eigene Hausregel validiert",
+        passed: rulebookPassed,
+        detail: rulebookPassed
+          ? "4/4 Leitplanken + Negativtest bereit für Montag"
+          : "In Schritt 04 eigene Regel & Fangfrage prüfen",
+      },
+    ];
+  }, [
+    activeGoalTrack.rubric,
+    checked,
+    data.toolModes,
+    debugSolved,
+    goalId,
+    methodsExplored,
+    outputValidations,
+    rubricChecked,
+    rulebookPassed,
+    setupConfirmed,
+    toolMode,
+  ]);
+
+  const gatesMap = useMemo(
+    () => Object.fromEntries(outcomeGates.map((g) => [g.id, g.passed])),
+    [outcomeGates]
+  );
 
   // Persist state in localStorage + sessionStorage
   useEffect(() => {
     try {
       localStorage.setItem(
         storageKey,
-        JSON.stringify({ toolMode, checked, reflections, showAllQuestions })
+        JSON.stringify({
+          toolMode,
+          goalId,
+          durationPreset,
+          setupConfirmed,
+          methodsExplored,
+          debugSolved,
+          outputValidations,
+          rubricChecked,
+          rulebookPassed,
+          gates: gatesMap,
+          checked,
+          reflections,
+          showAllQuestions,
+        })
       );
       sessionStorage.setItem(sessionKey, JSON.stringify({ step, activeStageIdx }));
     } catch {
       // ignore storage errors
     }
-  }, [storageKey, sessionKey, toolMode, checked, reflections, showAllQuestions, step, activeStageIdx]);
+  }, [
+    storageKey,
+    sessionKey,
+    toolMode,
+    goalId,
+    durationPreset,
+    setupConfirmed,
+    methodsExplored,
+    debugSolved,
+    outputValidations,
+    rubricChecked,
+    rulebookPassed,
+    gatesMap,
+    checked,
+    reflections,
+    showAllQuestions,
+    step,
+    activeStageIdx,
+  ]);
 
   // First-visit OnboardingTour auto-open
   useEffect(() => {
@@ -394,12 +625,27 @@ function ParticipantAppInner({
     return () => window.clearTimeout(t);
   }, [step]);
 
+  const selectGoal = useCallback(
+    (nextGoal: GoalId, confirmSetup = true) => {
+      setGoalId(nextGoal);
+      setActivePathId(pathIdForGoal(nextGoal, data.praxisPaths));
+      if (confirmSetup) setSetupConfirmed(true);
+    },
+    [data.praxisPaths]
+  );
+
   // Hash synchronization
   useEffect(() => {
     function onHashChange() {
       const rawHash = window.location.hash;
-      if (/^#\/(?:hub|(?:m\/[^/]+\/)?beamer)(?:[/?#]|$)/.test(rawHash)) return;
-      if (moduleId === DEFAULT_MODULE_ID && (!rawHash || rawHash === "#" || rawHash === "#/")) {
+      const hashPath = rawHash.split("?")[0];
+      if (/^#\/(?:hub|(?:m\/[^/]+\/)?beamer)(?:[/?#]|$)/.test(hashPath)) return;
+      const hashGoal = parseHashGoal();
+      if (hashGoal) {
+        setGoalId(hashGoal);
+        setActivePathId(pathIdForGoal(hashGoal, data.praxisPaths));
+      }
+      if (moduleId === DEFAULT_MODULE_ID && (!hashPath || hashPath === "#" || hashPath === "#/")) {
         setStep("start");
         return;
       }
@@ -408,7 +654,7 @@ function ParticipantAppInner({
     }
     window.addEventListener("hashchange", onHashChange);
     return () => window.removeEventListener("hashchange", onHashChange);
-  }, [moduleId]);
+  }, [data.praxisPaths, moduleId]);
 
   const methodsExpressPack = useMemo(
     () =>
@@ -454,18 +700,75 @@ function ParticipantAppInner({
     };
   }, [data.stagePackSpecs?.packs, data.starterArticles]);
 
+  const compactStagePacks = useMemo(() => {
+    const arcticSlugs =
+      data.stagePackSpecs?.packs?.[0]?.slugs || [
+        "arktis",
+        "eisbaer",
+        "ringelrobbe",
+        "klimawandel",
+      ];
+    const reefSlugs =
+      data.stagePackSpecs?.packs?.[1]?.slugs || [
+        "anemonenfische",
+        "seeanemonen",
+        "symbiose",
+        "steinkorallen",
+        "korallenbleiche",
+        "korallenriff",
+      ];
+    const compactArctic =
+      stagePacks.arctic.length <= 6000
+        ? stagePacks.arctic
+        : sliceExpressBySlugs(stagesExpressPack.content, arcticSlugs, 6000) ||
+          compactToCharLimit(stagePacks.arctic, 6000);
+    const compactReef =
+      stagePacks.reef.length <= 6000
+        ? stagePacks.reef
+        : sliceExpressBySlugs(stagesExpressPack.content, reefSlugs, 6000) ||
+          compactToCharLimit(stagePacks.reef, 6000);
+    const isDefaultReefPack =
+      !data.stagePackSpecs?.packs?.[1]?.id ||
+      data.stagePackSpecs.packs[1].id === "reef";
+    const q2Pack = isDefaultReefPack
+      ? compactReef
+      : stagesExpressPack.content.length <= 6000
+        ? stagesExpressPack.content
+        : compactToCharLimit(
+            sliceExpressBySlugs(
+              stagesExpressPack.content,
+              Array.from(new Set([...arcticSlugs, ...reefSlugs])),
+              6000
+            ) || compactReef,
+            MAX_SAFE_CLIPBOARD_CHARS
+          );
+    return {
+      arctic: compactToCharLimit(compactArctic, MAX_SAFE_CLIPBOARD_CHARS),
+      reef: compactToCharLimit(compactReef, MAX_SAFE_CLIPBOARD_CHARS),
+      q2: compactToCharLimit(q2Pack, MAX_SAFE_CLIPBOARD_CHARS),
+    };
+  }, [data.stagePackSpecs?.packs, stagePacks.arctic, stagePacks.reef, stagesExpressPack.content]);
+
   const completedCount = useMemo(
-    () => checklistItems.filter((item) => checked[item.id]).length,
-    [checklistItems, checked]
+    () => outcomeGates.filter((g) => g.passed).length,
+    [outcomeGates]
   );
-  const progressPct = Math.round((completedCount / checklistItems.length) * 100);
+  const progressPct = Math.round((completedCount / Math.max(outcomeGates.length, 1)) * 100);
+
+  const handleRulebookChange = useCallback(
+    (st: { agentsMd: string; trapQuestion: string; passed: boolean; format?: RulebookFormat }) => {
+      setRulebookSnapshot({
+        agentsMd: st.agentsMd,
+        trapQuestion: st.trapQuestion,
+        format: st.format || "agents-md",
+      });
+      setRulebookPassed((prev) => prev || Boolean(st.passed));
+    },
+    []
+  );
 
   function markChecked(id: string) {
     setChecked((prev) => (prev[id] ? prev : { ...prev, [id]: true }));
-  }
-
-  function toggleCheck(id: string) {
-    setChecked((prev) => ({ ...prev, [id]: !prev[id] }));
   }
 
   function toggleReflection(id: string) {
@@ -494,7 +797,9 @@ function ParticipantAppInner({
           : next === "start"
             ? `#/m/${moduleId}`
             : `#/m/${moduleId}/${next}`;
-      window.history.replaceState(null, "", targetHash);
+      if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+      }
     }
     window.scrollTo({ top: 0, behavior: prefersReduced ? "auto" : "smooth" });
   }
@@ -506,7 +811,16 @@ function ParticipantAppInner({
     } catch {
       // ignore
     }
+    setConfirmReset(false);
     setToolMode("web");
+    setGoalId("prompting");
+    setActivePathId(pathIdForGoal("prompting", data.praxisPaths));
+    setSetupConfirmed(false);
+    setMethodsExplored(false);
+    setDebugSolved(false);
+    setOutputValidations({});
+    setRubricChecked({});
+    setRulebookPassed(false);
     setChecked({});
     setReflections({});
     setShowAllQuestions(false);
@@ -517,11 +831,7 @@ function ParticipantAppInner({
       typeof window !== "undefined" &&
       !window.location.pathname.startsWith("/beamer")
     ) {
-      window.history.replaceState(
-        null,
-        "",
-        moduleId === DEFAULT_MODULE_ID ? "#/" : `#/m/${moduleId}`
-      );
+      window.location.hash = moduleId === DEFAULT_MODULE_ID ? "#/" : `#/m/${moduleId}`;
     }
     window.scrollTo({ top: 0, behavior: prefersReduced ? "auto" : "smooth" });
   }
@@ -542,6 +852,13 @@ function ParticipantAppInner({
     const q = (customQuery ?? mcpQuery).trim();
     if (customQuery !== undefined) setMcpQuery(customQuery);
     setLabTab("search");
+    if (!q) {
+      setSearchEmptyHint(true);
+      setMcpResults(null);
+      return;
+    }
+    setSearchEmptyHint(false);
+    setLastSearchedQuery(q);
     markChecked("chk-path");
     animatePipelinePulse();
     const idx = await ensureCorpusIndex();
@@ -552,6 +869,12 @@ function ParticipantAppInner({
     const c = (customClaim ?? verifyClaim).trim();
     if (customClaim !== undefined) setVerifyClaim(customClaim);
     setLabTab("verify");
+    if (!c) {
+      setVerifyEmptyHint(true);
+      setVerifyOutput(null);
+      return;
+    }
+    setVerifyEmptyHint(false);
     markChecked("chk-path");
     animatePipelinePulse();
     const idx = await ensureCorpusIndex();
@@ -559,7 +882,7 @@ function ParticipantAppInner({
   }
 
   const currentStage = data.stages[activeStageIdx] || data.stages[0];
-  const currentModeNote = currentStage.modeNotes[toolMode];
+  const currentModeNote = currentStage.modeNotes[toolMode] || currentStage.modeNotes.agent;
   const currentToolModeSpec =
     data.toolModes.find((m) => m.id === toolMode) || data.toolModes[0];
   const stepIndex = data.steps.findIndex((s) => s.id === step);
@@ -579,40 +902,171 @@ function ParticipantAppInner({
     const raw = data.stages[2]?.indexMd || "";
     if (!raw) return "";
     const focusSlugs = data.starterArticles.map((a) => a.slug.toLowerCase());
-    const keepLines = raw.split("\n").filter((line) => {
-      const low = line.toLowerCase();
-      return (
-        line.startsWith("#") ||
-        focusSlugs.some((slug) => low.includes(slug)) ||
-        low.includes("arktis") ||
-        low.includes("korallen")
-      );
-    });
-    return (keepLines.length > 0 ? keepLines.join("\n") : raw).slice(0, 2200);
+    return buildCompactIndex(raw, focusSlugs, 900);
   }, [data.stages, data.starterArticles]);
 
   const isSelfPaced = durationPreset === "self";
   const durationLabel = isSelfPaced ? "Selbstlernen" : `${durationPreset} Min.`;
 
+  const scaledPhases = useMemo(
+    () => scalePhasesExact(data.phases, isSelfPaced ? baseTotalDuration : durationPreset),
+    [data.phases, durationPreset, isSelfPaced, baseTotalDuration]
+  );
+
+  const ahaMinutesTotal = useMemo(
+    () =>
+      scaledPhases
+        .filter((p) => p.phaseGroup === "aha-kern")
+        .reduce((s, p) => s + p.durationMin, 0),
+    [scaledPhases]
+  );
+  const praxisMinutesTotal = useMemo(
+    () =>
+      scaledPhases
+        .filter((p) => p.phaseGroup === "praxis-pfad")
+        .reduce((s, p) => s + p.durationMin, 0),
+    [scaledPhases]
+  );
+
+  const scaledGoalStepDurations = useMemo(
+    () =>
+      scaleDurationsExact(
+        activeGoalTrack.steps.map((s) => s.durationMin),
+        praxisMinutesTotal,
+        3
+      ),
+    [activeGoalTrack.steps, praxisMinutesTotal]
+  );
+
+  const stageFolders = useMemo(
+    () => ({
+      stufe1: data.stages[0]?.folder || "stufe-1-chaos",
+      stufe2: data.stages[1]?.folder || "stufe-2-skills-guardrails",
+      stufe3: data.stages[2]?.folder || "stufe-3-obsidian-vault",
+    }),
+    [data.stages]
+  );
+
+  const isSyntheticData = data.level === "L2" || data.level === "L3";
+  const unitPlural = isSyntheticData ? "Dokumente" : "Artikel";
+  const unitSlug = isSyntheticData ? "dokumente" : "artikel";
+  const unitUpper = isSyntheticData ? "DOKUMENTE" : "ARTIKEL";
+  const dataBadgeLabel = isSyntheticData
+    ? "100 % synthetische Projektdaten"
+    : "100 % öffentliche Daten";
+  const dataKpiLabel = isSyntheticData ? "Projekt-Dokumente" : "Öffentliche Artikel";
+
+  const q4Spec = data.testQuestions.find((q) => q.id === "q4") || data.testQuestions[3];
+  const validationContext = useMemo(() => {
+    const trapForbidden = !isSyntheticData
+      ? [
+          "25 euro",
+          "25 eur",
+          "18 €",
+          "18 euro",
+          "45 schneeleoparden",
+          "45 snow leopards",
+        ]
+      : [
+          "25.000",
+          "50.000",
+          "25,000",
+          "50,000",
+          "2 % pro woche",
+          "2% per week",
+          "2 percent per week",
+          "hosted on aws",
+          "aws lambda",
+        ];
+    if (!isSyntheticData) {
+      return {
+        moduleId,
+        validSlugs: data.vaultArticles.map((a) => a.slug),
+        trapForbiddenTerms: trapForbidden,
+        expectedFactToken: "42 Zähne",
+        acceptedFactTokens: [
+          "42 zähne",
+          "42 teeth",
+          "2030",
+          "20–29 °c",
+          "20-29 °c",
+          "20–29",
+          "20-29",
+          "38 zähne",
+          "38 teeth",
+        ],
+        expectedFactDisplayLabel: "42 Zähne / 2030 / 20–29 °C",
+        samplePrimarySlug: "eisbaer",
+        sampleSecondarySlug: "arktis",
+      };
+    }
+    return {
+      moduleId,
+      validSlugs: data.vaultArticles.map((a) => a.slug),
+      trapForbiddenTerms: trapForbidden,
+      expectedFactToken: "4 Stunden",
+      acceptedFactTokens: [
+        "4 stunden",
+        "4 std",
+        "4h",
+        "4 h",
+        "15 minuten",
+        "15 min",
+        "22:00 uhr",
+        "1,8 mio",
+        "2 stunden",
+        "2 std",
+      ],
+      expectedFactDisplayLabel: "4 Stunden RTO / 15 Min. RPO",
+      samplePrimarySlug: "sla-betriebsmodell",
+      sampleSecondarySlug: "architektur-entscheidung-01",
+    };
+  }, [data.vaultArticles, isSyntheticData, moduleId]);
+
+  const expressPackCount = stagesExpressPack.sources.length || data.starterArticles.length;
+
+  const searchPresets = useMemo(
+    () =>
+      data.labPresets?.searchPresets || [
+        "Anemonenfische Symbiose",
+        "Eisbär Talg Squalen",
+        "Korallenbleiche Temperatur",
+        "Alpenmurmeltier Winterschlaf",
+        "Schneeleopard Nationalpark",
+      ],
+    [data.labPresets?.searchPresets]
+  );
+
+  const isNegativeSearchQuery = useCallback(
+    (queryText: string) => {
+      const norm = queryText.trim().toLowerCase();
+      if (!norm) return false;
+      if (norm.includes("nationalpark") || norm.includes("krypto-wallet")) return true;
+      const last = searchPresets[searchPresets.length - 1];
+      return Boolean(last && last.trim().toLowerCase() === norm);
+    },
+    [searchPresets]
+  );
+
   const stageWebCopyPayload = useMemo(() => {
-    if (currentStage.id === "stufe-1") {
-      return `HINTERGRUNDTEXTE EINLESEN:\nLies die folgenden ${data.starterArticles.length} Fokus-Artikel still ein und antworte vorerst NUR mit: „Texte bereit — stelle deine erste Frage.“\n\n---\n\n${stagesExpressPack.content}`;
-    }
-    if (currentStage.id === "stufe-2") {
-      return `REGELN & TEXTE EINLESEN:\nMerke dir zuerst diese verbindlichen Hausregeln und lies danach die Artikel still ein. Antworte vorerst NUR mit: „Regeln aktiv & Texte bereit — stelle deine erste Frage.“\n\n${data.chatRulesTemplate}\n\n---\n\n${stagesExpressPack.content}`;
-    }
-    return `WISSENSNETZ-REGELN, KOMPAKT-INDEX & TEXTE:\nMerke dir die Regeln und die Verknüpfungen im Kompakt-Index und lies die Artikel still ein. Antworte vorerst NUR mit: „Wissensnetz aktiv — stelle deine erste Frage.“\n\n${data.chatRulesTemplate}\n\n---\n\n${compactStage3Index}\n\n---\n\n${stagesExpressPack.content}`;
+    const raw =
+      currentStage.id === "stufe-1"
+        ? `HINTERGRUNDTEXTE EINLESEN:\nLies die folgenden ${expressPackCount} Fokus-${unitPlural} still ein und antworte vorerst NUR mit: „Texte bereit — stelle deine erste Frage.“\n\n---\n\n${stagesExpressPack.content}`
+        : currentStage.id === "stufe-2"
+          ? `REGELN & TEXTE EINLESEN:\nMerke dir zuerst diese verbindlichen Hausregeln und lies danach die ${unitPlural} still ein. Antworte vorerst NUR mit: „Regeln aktiv & Texte bereit — stelle deine erste Frage.“\n\n${data.chatRulesTemplate}\n\n---\n\n${stagesExpressPack.content}`
+          : `WISSENSNETZ-REGELN, KOMPAKT-INDEX & TEXTE:\nMerke dir die Regeln und die Verknüpfungen im Kompakt-Index und lies die ${unitPlural} still ein. Antworte vorerst NUR mit: „Wissensnetz aktiv — stelle deine erste Frage.“\n\n${data.chatRulesTemplate}\n\n---\n\n${compactStage3Index}\n\n---\n\n${stagesExpressPack.content}`;
+    return compactToCharLimit(raw, MAX_SAFE_CLIPBOARD_CHARS);
   }, [
     currentStage,
     data.chatRulesTemplate,
-    data.starterArticles.length,
+    expressPackCount,
+    unitPlural,
     stagesExpressPack,
     compactStage3Index,
   ]);
 
   const activePraxisPath =
     data.praxisPaths.find((p) => p.id === activePathId) || data.praxisPaths[0];
-  const q4Spec = data.testQuestions.find((q) => q.id === "q4") || data.testQuestions[3];
 
   const ahaSteps = data.steps.filter((s) => s.phaseGroup === "aha-kern");
   const praxisSteps = data.steps.filter((s) => s.phaseGroup === "praxis-pfad");
@@ -633,7 +1087,7 @@ function ParticipantAppInner({
           </div>
 
           <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-            {/* 3-way Werkzeug-Hilfe Switch */}
+            {/* 4-way Werkzeug-Hilfe Switch */}
             <div
               data-tour="tool-mode"
               role="group"
@@ -643,7 +1097,21 @@ function ParticipantAppInner({
               {data.toolModes.map((mode) => {
                 const isActive = toolMode === mode.id;
                 const shortTiny =
-                  mode.id === "web" ? "Web" : mode.id === "desktop" ? "Ordner" : "Agent";
+                  mode.id === "web"
+                    ? "Web"
+                    : mode.id === "desktop"
+                      ? "Ordner"
+                      : mode.id === "ide"
+                        ? "IDE"
+                        : "CLI";
+                const desktopShort =
+                  mode.id === "web"
+                    ? "Web-Chat"
+                    : mode.id === "desktop"
+                      ? "Desktop"
+                      : mode.id === "ide"
+                        ? "IDE"
+                        : "CLI-Agent";
                 return (
                   <button
                     key={mode.id}
@@ -651,17 +1119,17 @@ function ParticipantAppInner({
                     aria-pressed={isActive}
                     onClick={() => {
                       setToolMode(mode.id);
-                      markChecked("chk-setup");
+                      setSetupConfirmed(true);
                     }}
                     title={`${mode.label} (${mode.badge})`}
-                    className={`min-h-[34px] rounded-md px-1.5 py-1 font-medium transition-colors sm:min-h-[36px] sm:px-2.5 ${
+                    className={`min-h-[40px] rounded-md px-1.5 py-1 text-[11px] font-medium transition-colors sm:min-h-[36px] sm:px-2.5 sm:text-xs ${
                       isActive
                         ? "bg-card text-foreground shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >
                     <span className="md:hidden">{shortTiny}</span>
-                    <span className="hidden md:inline">{mode.shortLabel}</span>
+                    <span className="hidden md:inline">{desktopShort}</span>
                   </button>
                 );
               })}
@@ -670,7 +1138,7 @@ function ParticipantAppInner({
             {/* Hub Switcher */}
             <a
               href="#/hub"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground sm:h-9 sm:w-auto sm:gap-1.5 sm:px-2.5"
+              className="inline-flex h-10 w-9 shrink-0 items-center justify-center rounded-lg border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground sm:h-9 sm:w-auto sm:gap-1.5 sm:px-2.5"
               title="Alle Workshop-Module (Hub)"
               aria-label="Alle Workshop-Module (Hub)"
             >
@@ -691,88 +1159,153 @@ function ParticipantAppInner({
               corpusIndex={corpusIndex ?? undefined}
               onLoadCorpusIndex={ensureCorpusIndex}
               moduleTitle={data.meta.title}
+              zipUrl={data.meta.zipUrl || REPO_ZIP_URL}
+              stageFolders={Array.from(
+                new Set([stageFolders.stufe1, stageFolders.stufe2, stageFolders.stufe3])
+              )}
+              toolMode={toolMode}
             />
 
-            {/* Checklist Drawer Trigger */}
-            <Sheet open={checklistOpen} onOpenChange={setChecklistOpen}>
+            {/* Verified Outcome Gates Drawer Trigger */}
+            <Sheet
+              open={checklistOpen}
+              onOpenChange={(open) => {
+                setChecklistOpen(open);
+                if (!open) setConfirmReset(false);
+              }}
+            >
               <SheetTrigger asChild>
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
                   data-tour="checklist-trigger"
-                  className="num-tabular h-8 gap-1 px-1.5 text-xs sm:h-9 sm:gap-1.5 sm:px-2.5"
-                  aria-label={`Fortschritt & Checkliste öffnen (${completedCount} von ${checklistItems.length})`}
-                  title="Fortschritt & Checkliste öffnen"
+                  className="num-tabular h-10 gap-1 px-1.5 text-xs sm:h-9 sm:gap-1.5 sm:px-2.5"
+                  aria-label={`Nachweise ${completedCount}/${outcomeGates.length} öffnen`}
+                  title="Ergebnis-Nachweise & Fortschritt öffnen"
                 >
                   <CheckCircle2 className="h-3.5 w-3.5 text-brand-ink" />
                   <span>
-                    <span className="hidden sm:inline">To-do </span>
-                    {completedCount}/{checklistItems.length}
+                    <span className="hidden sm:inline">Nachweise </span>
+                    {completedCount}/{outcomeGates.length}
                   </span>
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="overflow-y-auto">
                 <SheetHeader>
-                  <SheetTitle>Dein Fortschritt ({progressPct}%)</SheetTitle>
+                  <SheetTitle>Ergebnis-Nachweise ({progressPct}%)</SheetTitle>
                   <SheetDescription>
-                    Hake Erkenntnisse direkt ab oder springe per Klick zum passenden Schritt.
+                    Echte Qualitäts-Nachweise statt bloßer Klicks — Ziel: {GOAL_LABELS[goalId]}.
                   </SheetDescription>
                 </SheetHeader>
                 <div className="mt-5 space-y-5">
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs font-medium">
-                      <span>Abschlussgrad</span>
+                      <span>Validierungs-Fortschritt</span>
                       <span className="num-tabular font-mono text-brand-ink">{progressPct} %</span>
                     </div>
                     <Progress value={progressPct} />
                   </div>
 
                   <div className="space-y-2">
-                    {checklistItems.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-start justify-between gap-2 rounded-xl border p-3 text-sm hover:bg-muted/40"
-                      >
-                        <label className="flex flex-1 cursor-pointer items-start gap-3">
-                          <Checkbox
-                            checked={!!checked[item.id]}
-                            onCheckedChange={() => toggleCheck(item.id)}
-                            className="mt-0.5"
-                          />
-                          <span
-                            className={
-                              checked[item.id] ? "line-through text-muted-foreground" : ""
-                            }
-                          >
-                            {item.label}
-                          </span>
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            goToStep(item.stepId);
-                            setChecklistOpen(false);
-                          }}
-                          className="shrink-0 rounded-md border bg-card px-2 py-1 font-mono text-[11px] font-semibold text-brand-ink hover:bg-secondary"
+                    {outcomeGates.map((gate, gIdx) => {
+                      const targetStep: WorkshopStepId =
+                        gIdx === 0
+                          ? "start"
+                          : gIdx === 1
+                            ? "methods"
+                            : gIdx === 2
+                              ? "stages"
+                              : "paths";
+                      return (
+                        <div
+                          key={gate.id}
+                          className={`flex items-start justify-between gap-2 rounded-xl border p-3 text-sm ${
+                            gate.passed ? "border-emerald-500/40 bg-emerald-500/5" : ""
+                          }`}
                         >
-                          Öffnen →
-                        </button>
-                      </div>
-                    ))}
+                          <div className="flex flex-1 items-start gap-2.5">
+                            {gate.passed ? (
+                              <CheckCircle2
+                                className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600"
+                                aria-hidden="true"
+                              />
+                            ) : (
+                              <Circle
+                                className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground"
+                                aria-hidden="true"
+                              />
+                            )}
+                            <div className="min-w-0 space-y-1">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="font-semibold text-foreground">{gate.label}</span>
+                                <Badge
+                                  variant={gate.passed ? "success" : "outline"}
+                                  className="text-[10px]"
+                                >
+                                  {gate.passed ? "Nachgewiesen" : "Offen · Auto"}
+                                </Badge>
+                              </div>
+                              <div className="text-xs text-muted-foreground">{gate.detail}</div>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              goToStep(targetStep);
+                              setChecklistOpen(false);
+                            }}
+                            className="shrink-0 rounded-md border bg-card px-2 py-1 font-mono text-[11px] font-semibold text-brand-ink hover:bg-secondary"
+                          >
+                            Öffnen →
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   <Separator />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="w-full gap-2 text-muted-foreground"
-                    onClick={resetProgress}
-                  >
-                    <RotateCcw className="h-3.5 w-3.5" />
-                    <span>Fortschritt zurücksetzen</span>
-                  </Button>
+                  {!confirmReset ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="w-full gap-2 text-muted-foreground"
+                      onClick={() => setConfirmReset(true)}
+                    >
+                      <RotateCcw className="h-3.5 w-3.5" />
+                      <span>Fortschritt zurücksetzen</span>
+                    </Button>
+                  ) : (
+                    <div className="space-y-2 rounded-xl border border-destructive/40 bg-destructive/5 p-3">
+                      <p className="text-xs font-medium text-foreground">
+                        Wirklich alles zurücksetzen?
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => {
+                            setConfirmReset(false);
+                            resetProgress();
+                          }}
+                        >
+                          Ja, zurücksetzen
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => setConfirmReset(false)}
+                        >
+                          Abbrechen
+                        </Button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </SheetContent>
             </Sheet>
@@ -781,11 +1314,12 @@ function ParticipantAppInner({
             <a
               href={moduleId === DEFAULT_MODULE_ID ? "#/beamer" : `#/m/${moduleId}/beamer`}
               data-tour="beamer-link"
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground sm:h-9 sm:w-9"
+              className="inline-flex h-10 w-9 shrink-0 items-center justify-center rounded-lg border text-xs font-medium text-muted-foreground hover:bg-muted hover:text-foreground sm:h-9 sm:w-9 lg:w-auto lg:gap-1.5 lg:px-2.5"
               title="Zur Trainer-Bühne (#/beamer)"
               aria-label="Zur Trainer-Bühne wechseln"
             >
-              <Monitor className="h-4 w-4" />
+              <Monitor className="h-4 w-4 shrink-0" />
+              <span className="hidden lg:inline">Bühne</span>
             </a>
           </div>
         </div>
@@ -801,7 +1335,7 @@ function ParticipantAppInner({
           >
             <div className="space-y-1.5">
               <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                15 Min. gemeinsamer Aha-Kern
+                {isSelfPaced ? "Aha-Kern (eigenes Tempo)" : `${ahaMinutesTotal} Min. gemeinsamer Aha-Kern`}
               </div>
               {ahaSteps.map((s) => {
                 const Icon = STEP_ICONS[s.id];
@@ -826,7 +1360,7 @@ function ParticipantAppInner({
 
             <div className="space-y-1.5">
               <div className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                30 Min. freier Praxis-Pfad
+                {isSelfPaced ? "Ziel-Labor (eigenes Tempo)" : `${praxisMinutesTotal} Min. Ziel-Labor`}
               </div>
               {praxisSteps.map((s) => {
                 const Icon = STEP_ICONS[s.id];
@@ -852,14 +1386,17 @@ function ParticipantAppInner({
 
           <div className="space-y-2 rounded-xl border bg-card p-3.5 text-xs">
             <div className="flex items-center justify-between gap-2">
-              <span className="font-semibold text-foreground">Werkzeug-Hilfe</span>
+              <span className="font-semibold text-foreground">Ziel × Werkzeug</span>
               <Badge variant="secondary" className="text-[10px]">
                 {currentToolModeSpec.shortLabel}
               </Badge>
             </div>
+            <div className="text-[11px] font-medium text-brand-ink">{GOAL_LABELS[goalId]}</div>
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
-              <span>{data.vaultArticles.length} öffentliche Artikel</span>
+              <span>
+                {data.vaultArticles.length} {dataKpiLabel}
+              </span>
             </div>
           </div>
         </aside>
@@ -867,6 +1404,43 @@ function ParticipantAppInner({
         {/* Focused Editorial Content Canvas */}
         <main className="min-w-0 flex-1 px-4 pb-28 pt-6 sm:px-8 lg:px-12 lg:py-10">
           <div className="mx-auto max-w-[940px]">
+            {/* Persistent Mobile Context Pill (Module + Goal + Tool) */}
+            <div
+              data-testid="mobile-context-pill"
+              className="mb-4 flex flex-wrap items-center gap-1.5 rounded-xl border bg-card/90 px-3 py-2 text-[11px] lg:hidden"
+            >
+              <span className="truncate font-semibold text-foreground">{data.meta.title}</span>
+              <span className="text-muted-foreground" aria-hidden="true">
+                ·
+              </span>
+              <span className="font-medium text-brand-ink">{GOAL_LABELS[goalId]}</span>
+              <Badge variant="secondary" className="ml-auto text-[10px]">
+                {currentToolModeSpec.shortLabel}
+              </Badge>
+            </div>
+
+            {/* Tour Entry Banner when landing directly on non-start step before onboarding */}
+            {step !== "start" && !onboardingDone && !tourBannerDismissed && (
+              <div className="mb-5 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-lime/50 bg-secondary/35 px-3.5 py-2.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setTourOpen(true)}
+                  className="inline-flex items-center gap-2 font-semibold text-foreground hover:text-brand-ink"
+                >
+                  <Compass className="h-4 w-4 shrink-0 text-brand-ink" />
+                  <span>Neu hier? 30-Sekunden-Orientierung starten</span>
+                </button>
+                <button
+                  type="button"
+                  aria-label="Orientierungs-Hinweis ausblenden"
+                  onClick={() => setTourBannerDismissed(true)}
+                  className="rounded-md p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
                 key={step}
@@ -888,7 +1462,7 @@ function ParticipantAppInner({
                             <ShieldCheck className="h-3.5 w-3.5 shrink-0" />
                             <span>
                               {data.meta.level || "L1"} · {durationLabel} ·{" "}
-                              <span className="whitespace-nowrap">100&nbsp;% öffentliche Daten</span>
+                              <span className="whitespace-nowrap">{dataBadgeLabel}</span>
                             </span>
                           </div>
 
@@ -910,11 +1484,11 @@ function ParticipantAppInner({
                               },
                               {
                                 val: `${data.starterArticles.length}`,
-                                lbl: "Fokus-Artikel",
+                                lbl: `Fokus-${unitPlural}`,
                               },
                               {
                                 val: `${data.vaultArticles.length}`,
-                                lbl: "Öffentliche Artikel",
+                                lbl: dataKpiLabel,
                               },
                               { val: "0", lbl: "Vertrauliche Daten" },
                             ].map((kpi) => (
@@ -942,91 +1516,33 @@ function ParticipantAppInner({
                       </div>
                     </section>
 
-                    <AudioGuideChip clipId="step-01" audioGuides={data.audioGuides} />
+                    <AudioGuideChip
+                      clipId="step-01"
+                      moduleId={moduleId}
+                      audioGuides={data.audioGuides}
+                    />
 
-                    {/* 3-Way Werkzeug-Hilfe Selector */}
-                    <section className="space-y-3">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                          <span>
-                            1 · Werkzeug-Hilfe wählen (passt Klick-, Ordner- &amp; Prompt-Hinweise
-                            an)
-                          </span>
-                          <GlossaryTip id="prompt" label="Prompt?" />
-                          {toolMode !== "agent" && <GlossaryTip id="markdown" label=".md-Datei?" />}
-                        </div>
-                        <Button
-                          type="button"
-                          size="sm"
-                          onClick={() => {
-                            markChecked("chk-setup");
-                            goToStep("methods");
-                          }}
-                        >
-                          <span>Weiter zu Schritt 02: Prompt-Methoden</span>
-                          <ArrowRight className="h-4 w-4" />
-                        </Button>
-                      </div>
+                    {/* Dual-Axis Goal x Tool Kickoff Matrix */}
+                    <GoalToolMatrixChooser
+                      goalTracks={goalTracks}
+                      selectedGoalId={goalId}
+                      onSelectGoal={(id) => {
+                        selectGoal(id, true);
+                      }}
+                      toolModes={data.toolModes}
+                      selectedToolMode={toolMode}
+                      onSelectToolMode={(m) => {
+                        setToolMode(m);
+                        setSetupConfirmed(true);
+                      }}
+                      onContinue={() => {
+                        setSetupConfirmed(true);
+                        goToStep("methods");
+                      }}
+                      moduleTitle={data.meta.title}
+                    />
 
-                      <div className="grid gap-4 md:grid-cols-3">
-                        {data.toolModes.map((mode) => {
-                          const Icon = MODE_ICONS[mode.id];
-                          const isActive = toolMode === mode.id;
-                          return (
-                            <button
-                              key={mode.id}
-                              type="button"
-                              onClick={() => {
-                                setToolMode(mode.id);
-                                markChecked("chk-setup");
-                              }}
-                              className={`flex flex-col justify-between gap-3 rounded-2xl border p-5 text-left transition-all ${
-                                isActive
-                                  ? "border-primary bg-secondary/45 ring-1 ring-primary"
-                                  : "bg-card hover:bg-muted/40"
-                              }`}
-                            >
-                              <div className="space-y-2.5">
-                                <div className="flex items-start justify-between gap-2">
-                                  <span className="flex items-center gap-2 font-display text-base font-bold">
-                                    <Icon className="h-4 w-4 shrink-0 text-brand-ink" />
-                                    <span>{mode.label}</span>
-                                  </span>
-                                  {isActive ? (
-                                    <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                                      <Check className="h-3.5 w-3.5" />
-                                    </span>
-                                  ) : (
-                                    <Badge variant="outline" className="shrink-0 text-[10px]">
-                                      {mode.badge}
-                                    </Badge>
-                                  )}
-                                </div>
-                                <p className="text-xs leading-relaxed text-muted-foreground">
-                                  {mode.summary}
-                                </p>
-                              </div>
-
-                              <div className="space-y-2 border-t pt-2.5 text-[11px]">
-                                <div className="flex flex-wrap gap-1">
-                                  {mode.examples.map((ex) => (
-                                    <span
-                                      key={ex}
-                                      className="rounded-md bg-muted px-2 py-0.5 font-medium text-foreground"
-                                    >
-                                      {ex}
-                                    </span>
-                                  ))}
-                                </div>
-                                <div className="text-muted-foreground">{mode.workflowHint}</div>
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </section>
-
-                    {/* Mode-Specific Quick Start (2nd Tab Links / ZIP Download / CLI Quickstart) */}
+                    {/* Mode-Specific Quick Start (2nd Tab Links / ZIP Download / IDE / CLI Quickstart) */}
                     {toolMode === "web" && (
                       <section className="rounded-2xl border border-brand-lime/40 bg-secondary/25 p-4 sm:p-5 space-y-3">
                         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -1040,7 +1556,7 @@ function ParticipantAppInner({
                             </p>
                           </div>
                         </div>
-                        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
                           {WEB_CHAT_LINKS.map((chat) => (
                             <a
                               key={chat.name}
@@ -1065,24 +1581,25 @@ function ParticipantAppInner({
                         <div className="flex flex-wrap items-start justify-between gap-3">
                           <div className="min-w-0 space-y-1">
                             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
-                              <span>Ohne Code starten · Workshop-Ordner als ZIP</span>
+                              <span>Ohne Terminal starten · Ordner, Projects &amp; Gems</span>
                               <GlossaryTip id="git-zip" label="Git vs. ZIP?" />
                             </div>
                             <p className="text-xs leading-relaxed text-muted-foreground">
                               <strong className="text-foreground">Claude Cowork:</strong> ZIP
                               herunterladen, entpacken (Windows: Rechtsklick → „Alle extrahieren…“)
-                              und danach z. B. <code>stufe-2-skills-guardrails/</code> als Ordner
+                              und danach z. B. <code>{stageFolders.stufe2}/</code> als Ordner
                               öffnen.{" "}
                               <strong className="text-foreground">
-                                ChatGPT / Claude.ai Projects:
+                                Langdock Assistants / ChatGPT &amp; Claude Projects / Gemini Gems:
                               </strong>{" "}
-                              Lade die Komplettdatei (<code>.md</code>) ins Projekt hoch und kopiere
-                              die Chat-Regeln in die Projekt-Anweisungen.
+                              Lade „Alle {data.vaultArticles.length} {unitPlural} (.md)“ in den
+                              Knowledge Folder hoch — die passenden Regeln zum Kopieren folgen in
+                              Schritt 02 und 03.
                             </p>
                           </div>
                           <div className="flex flex-wrap items-center gap-2">
                             <a
-                              href={REPO_ZIP_URL}
+                              href={data.meta.zipUrl || REPO_ZIP_URL}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex h-8 items-center gap-1.5 rounded-lg bg-primary px-3 text-xs font-semibold text-primary-foreground shadow-sm hover:opacity-90"
@@ -1097,21 +1614,114 @@ function ParticipantAppInner({
                               onClick={async () => {
                                 const idx = await ensureCorpusIndex();
                                 downloadMarkdownFile(
-                                  `alle-${data.vaultArticles.length}-artikel-wissensbasis.md`,
+                                  `alle-${data.vaultArticles.length}-${unitSlug}-wissensbasis.md`,
                                   buildAllArticlesMarkdown(data.vaultArticles, idx, data.meta.title),
-                                  `Alle ${data.vaultArticles.length} Artikel (.md) heruntergeladen`
+                                  `Alle ${data.vaultArticles.length} ${unitPlural} (.md) heruntergeladen`
                                 );
                               }}
                             >
                               <Download className="h-3.5 w-3.5" />
-                              <span>Alle {data.vaultArticles.length} Artikel (.md)</span>
+                              <span>
+                                Alle {data.vaultArticles.length} {unitPlural} (.md)
+                              </span>
                             </Button>
                           </div>
                         </div>
                       </section>
                     )}
 
-                    {toolMode !== "agent" && (
+                    {toolMode === "ide" && (
+                      <section className="rounded-2xl border border-brand-lime/40 bg-secondary/25 p-4 sm:p-5 space-y-3">
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+                            <Code2 className="h-3.5 w-3.5" />
+                            <span>
+                              IDE &amp; Editor · Google Antigravity / Cursor / Windsurf / VS Code Copilot
+                            </span>
+                          </div>
+                          <p className="text-xs leading-relaxed text-muted-foreground">
+                            {stageFolders.stufe2 === stageFolders.stufe3 ? (
+                              <>
+                                Öffne direkt den Modul-Ordner{" "}
+                                <code>{stageFolders.stufe2}/</code> als eigenes Workspace-Fenster,
+                              </>
+                            ) : (
+                              <>
+                                Öffne immer einen einzelnen Stufen-Ordner (z. B.{" "}
+                                <code>{stageFolders.stufe2}/</code> oder{" "}
+                                <code>{stageFolders.stufe3}/</code>) direkt als Workspace-Fenster,
+                              </>
+                            )}{" "}
+                            damit lokale <code>AGENTS.md</code>, <code>.agents/skills/</code> und
+                            lokale MCP-Konfigs sauber isoliert greifen. Im Chat referenzierst du
+                            Dateien gezielt (<code>@</code> in Antigravity/Cursor/Windsurf,{" "}
+                            <code>#file:</code> in VS Code Copilot).
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card/80 px-3 py-2">
+                          <div className="min-w-0 space-y-0.5 text-xs">
+                            <div>
+                              <code className="font-mono font-semibold text-foreground">
+                                code {stageFolders.stufe3}
+                              </code>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground">
+                              Voraussetzung: Repository geklont oder als ZIP entpackt (über „Alle
+                              Ordner (.zip)“ bzw. Hilfe → Schnellstart).
+                            </p>
+                          </div>
+                          <CopyButton
+                            text={`code ${stageFolders.stufe3}`}
+                            label="code-Befehl kopieren"
+                            variant="outline"
+                          />
+                        </div>
+                      </section>
+                    )}
+
+                    {toolMode === "agent" && (
+                      <section className="rounded-2xl border border-brand-lime/40 bg-secondary/25 p-4 sm:p-5 space-y-3">
+                        <div className="min-w-0 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
+                            <Terminal className="h-3.5 w-3.5" />
+                            <span>
+                              Code-Agent · Claude Code / Codex CLI / Gemini CLI / OpenCode
+                            </span>
+                          </div>
+                          <p className="text-xs leading-relaxed text-muted-foreground">
+                            Klone das Repository, wechsle direkt in{" "}
+                            <code>{stageFolders.stufe3}/</code>
+                            {stageFolders.stufe2 !== stageFolders.stufe3 && (
+                              <>
+                                {" "}
+                                (bzw. für Stufe 2 in <code>{stageFolders.stufe2}/</code>)
+                              </>
+                            )}{" "}
+                            und prüfe bei Bedarf die lokalen MCP-Tools (<code>search_vault</code>,{" "}
+                            <code>verify_claim</code>).
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-card/80 px-3 py-2">
+                          <code className="wrap-safe font-mono text-xs text-foreground">
+                            {`git clone ${data.meta.repoUrl} && cd CCF-ai-workshop/${stageFolders.stufe3}`}
+                          </code>
+                          <CopyButton
+                            text={`git clone ${data.meta.repoUrl} && cd CCF-ai-workshop/${stageFolders.stufe3}`}
+                            label="Befehl kopieren"
+                            variant="outline"
+                          />
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          MCP-Tipp: Im Root oder in <code>{stageFolders.stufe3}/</code> sind{" "}
+                          <code>.mcp.json</code>, <code>opencode.json</code>,{" "}
+                          <code>.gemini/settings.json</code> und <code>.codex/config.toml</code>{" "}
+                          bereits vorkonfiguriert (global via{" "}
+                          <code>{data.mcpConfigs.setupCommand}</code>).
+                        </p>
+                      </section>
+                    )}
+
+                    {toolMode !== "agent" && toolMode !== "ide" && (
                       <section className="rounded-2xl border bg-card p-4 sm:p-5 space-y-3">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                           <div className="min-w-0 space-y-1">
@@ -1123,42 +1733,73 @@ function ParticipantAppInner({
                               <code>.md</code> steht für <strong className="text-foreground">Markdown</strong>{" "}
                               — ganz normaler Text mit <code>#</code>-Überschriften. Du musst die
                               Datei auf deinem PC <strong className="text-foreground">nicht öffnen</strong>:
-                              Klicke in ChatGPT oder Claude auf <strong>„+“</strong> / Büroklammer (📎)
-                              und lade sie direkt hoch — oder nutze einfach unsere{" "}
+                              Klicke in ChatGPT, Claude, Gemini oder Copilot auf <strong>„+“</strong> /
+                              Büroklammer (📎) und lade sie direkt hoch — oder nutze einfach unsere{" "}
                               <strong className="text-foreground">„Kompakt-Paket kopieren“</strong>
                               -Buttons.
                             </p>
                           </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="outline"
-                            onClick={() => setHelpOpen(true)}
-                          >
-                            <HelpCircle className="h-3.5 w-3.5" />
-                            <span>Alle Begriffe &amp; FAQ öffnen</span>
-                          </Button>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="default"
+                              onClick={() =>
+                                downloadMarkdownFile(
+                                  `fokus-korpus-${data.starterArticles.length}-${unitSlug}.md`,
+                                  buildStarterBundleMarkdown(data.starterArticles, data.meta.title),
+                                  `${data.starterArticles.length} Fokus-${unitPlural} (.md) heruntergeladen — einfach per + / 📎 im Chat hochladen!`
+                                )
+                              }
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              <span>
+                                {data.starterArticles.length} Fokus-{unitPlural} (.md)
+                              </span>
+                            </Button>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setHelpOpen(true)}
+                            >
+                              <HelpCircle className="h-3.5 w-3.5" />
+                              <span>Alle Begriffe &amp; FAQ öffnen</span>
+                            </Button>
+                          </div>
                         </div>
-                        <AudioGuideChip clipId="what-is-markdown" audioGuides={data.audioGuides} />
+                        <AudioGuideChip
+                          clipId="what-is-markdown"
+                          moduleId={moduleId}
+                          audioGuides={data.audioGuides}
+                        />
                       </section>
                     )}
 
-                    {/* Collapsible OpenCode + Multi-CLI Setup (Code-Agent Mode only) */}
-                    {toolMode === "agent" && (
+                    {/* Collapsible Free-Start + OpenCode Help (Web-Chat & Code-Agent Mode) */}
+                    {(toolMode === "agent" || toolMode === "web") && (
                       <Accordion
                         type="single"
                         collapsible
+                        data-testid="free-help-accordion"
                         className="rounded-2xl border bg-card px-5"
                       >
                         <AccordionItem value="opencode" className="border-none">
                           <AccordionTrigger className="font-display text-sm font-semibold">
-                            {data.openCodeHelp.title}
+                            <span className="flex flex-wrap items-center gap-2 text-left">
+                              <span>{data.openCodeHelp.title}</span>
+                              {toolMode === "web" && (
+                                <Badge variant="lime" className="text-[10px]">
+                                  Kostenlos starten
+                                </Badge>
+                              )}
+                            </span>
                           </AccordionTrigger>
                           <AccordionContent className="space-y-3 pb-4 text-xs leading-relaxed">
                             <p className="text-muted-foreground">{data.openCodeHelp.summary}</p>
                             <ol className="list-decimal space-y-1.5 pl-4 text-foreground">
                               {data.openCodeHelp.steps.map((st, i) => (
-                                <li key={i}>{renderInlineCode(st)}</li>
+                                <li key={i}>{renderInlineRichText(st)}</li>
                               ))}
                             </ol>
                             <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border bg-muted/40 p-3">
@@ -1192,16 +1833,17 @@ function ParticipantAppInner({
                       toolMode={toolMode}
                       spec={data.animatics?.toolHotspots}
                       articleCount={data.vaultArticles.length}
+                      stageFolders={stageFolders}
                     />
 
-                    {/* Duration Preset Switcher + 4-Phase Schedule Accordion */}
+                    {/* Duration Preset Switcher + Scaled 4-Phase Schedule Accordion */}
                     <Accordion type="single" collapsible className="rounded-2xl border bg-card px-5">
                       <AccordionItem value="schedule" className="border-none">
                         <AccordionTrigger className="font-display text-sm font-semibold">
-                          Ablaufplan ansehen ({data.phases.length} Phasen ·{" "}
+                          Ablaufplan ansehen ({scaledPhases.length} Phasen ·{" "}
                           {isSelfPaced
-                            ? "Eigenes Tempo (ohne Uhrzeit)"
-                            : `${durationLabel} (${data.meta.timeSlot})`}
+                            ? "Eigenes Tempo"
+                            : `${durationLabel} · ${ahaMinutesTotal} Min. Aha-Kern + ${praxisMinutesTotal} Min. Ziel-Labor`}
                           )
                         </AccordionTrigger>
                         <AccordionContent className="space-y-3 pb-3">
@@ -1209,7 +1851,7 @@ function ParticipantAppInner({
                             <span className="mr-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                               Zeit-Format:
                             </span>
-                            {(["self", ...(data.durationPresets || [45, 60, 90])] as const).map(
+                            {(["self", ...(data.durationPresets || [30, 60, 90])] as const).map(
                               (preset) => {
                                 const active = preset === durationPreset;
                                 const label =
@@ -1218,6 +1860,7 @@ function ParticipantAppInner({
                                   <button
                                     key={String(preset)}
                                     type="button"
+                                    aria-pressed={active}
                                     onClick={() => setDurationPreset(preset)}
                                     className={`rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors ${
                                       active
@@ -1233,7 +1876,7 @@ function ParticipantAppInner({
                           </div>
 
                           <div className="divide-y">
-                            {data.phases.map((p) => (
+                            {scaledPhases.map((p) => (
                               <div
                                 key={p.id}
                                 className="flex flex-col gap-1 py-3 sm:flex-row sm:items-center sm:justify-between"
@@ -1250,7 +1893,7 @@ function ParticipantAppInner({
                                     </span>
                                   </div>
                                   <div className="text-xs text-muted-foreground">
-                                    {p.modeCues[toolMode]}
+                                    {p.modeCues[toolMode] || p.modeCues.agent}
                                   </div>
                                 </div>
                                 <Badge variant="outline" className="w-fit shrink-0 text-[11px]">
@@ -1270,7 +1913,7 @@ function ParticipantAppInner({
                   <div className="space-y-12">
                     <div className="space-y-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
-                        <span>Schritt 02 · Aha-Kern 1 (ca. 7 Min.)</span>
+                        <span>Schritt 02 · Aha-Kern 1</span>
                         <GlossaryTip id="costar" label="CO-STAR?" />
                         <GlossaryTip id="guardrails" label="Guardrails?" />
                       </div>
@@ -1282,7 +1925,11 @@ function ParticipantAppInner({
                         Few-Shot, RISEN + CoT) völlig unterschiedliche Ergebnisse erzwingt — und
                         warum System-Regeln im Kontext-Fenster überleben.
                       </p>
-                      <AudioGuideChip clipId="step-02" audioGuides={data.audioGuides} />
+                      <AudioGuideChip
+                        clipId="step-02"
+                        moduleId={moduleId}
+                        audioGuides={data.audioGuides}
+                      />
                     </div>
 
                     <PromptMethodComparator
@@ -1290,7 +1937,8 @@ function ParticipantAppInner({
                       methods={data.promptMethods}
                       toolMode={toolMode}
                       expressPackage={methodsExpressPack}
-                      onCopyPrompt={() => markChecked("chk-methods")}
+                      stage1Folder={stageFolders.stufe1}
+                      onCopyPrompt={() => setMethodsExplored(true)}
                     />
 
                     <Separator />
@@ -1300,8 +1948,10 @@ function ParticipantAppInner({
                       chatRulesTemplate={data.chatRulesTemplate}
                       toolMode={toolMode}
                       agentsMdTemplate={data.stages[1]?.agentsMd}
+                      stage2Folder={stageFolders.stufe2}
+                      stageFolders={stageFolders}
                       contextWindowSpec={data.animatics?.contextWindow}
-                      onCopyTemplate={() => markChecked("chk-rules")}
+                      onCopyTemplate={() => setMethodsExplored(true)}
                     />
                   </div>
                 )}
@@ -1311,7 +1961,7 @@ function ParticipantAppInner({
                   <div className="space-y-9">
                     <div className="space-y-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
-                        <span>Schritt 03 · Aha-Kern 2 (ca. 8 Min.)</span>
+                        <span>Schritt 03 · Aha-Kern 2</span>
                         <GlossaryTip id="guardrails" label="Guardrails?" />
                         <GlossaryTip id="wissensbasis" label="Wissensbasis?" />
                         <GlossaryTip id="rag" label="Markdown-RAG?" />
@@ -1323,7 +1973,11 @@ function ParticipantAppInner({
                         Erlebe an denselben Testfragen den Sprung von ungefiltertem Raten (Stufe 1)
                         über verbindliche Regeln (Stufe 2) hin zum verknüpften Wissensnetz (Stufe 3).
                       </p>
-                      <AudioGuideChip clipId="step-03" audioGuides={data.audioGuides} />
+                      <AudioGuideChip
+                        clipId="step-03"
+                        moduleId={moduleId}
+                        audioGuides={data.audioGuides}
+                      />
                     </div>
 
                     {/* 3-Stage Selector Cards */}
@@ -1340,6 +1994,7 @@ function ParticipantAppInner({
                           <button
                             key={st.id}
                             type="button"
+                            aria-pressed={isActive}
                             onClick={() => setActiveStageIdx(idx)}
                             className={`card-elevated flex flex-col gap-2 rounded-2xl border p-4 text-left transition-all ${
                               isActive
@@ -1353,7 +2008,9 @@ function ParticipantAppInner({
                                 {st.title.split(" · ")[0]}
                               </span>
                               <Badge variant="outline" className="text-[11px]">
-                                {toolMode !== "agent" ? st.beginnerBadge : st.badge}
+                                {toolMode !== "agent" && toolMode !== "ide"
+                                  ? st.beginnerBadge
+                                  : st.badge}
                               </Badge>
                             </div>
                             <StageMiniDiagram
@@ -1363,7 +2020,9 @@ function ParticipantAppInner({
                               {st.title.split(" · ")[1]}
                             </div>
                             <p className="text-xs text-muted-foreground">
-                              {toolMode !== "agent" ? st.beginnerSummary : st.summary}
+                              {toolMode !== "agent" && toolMode !== "ide"
+                                ? st.beginnerSummary
+                                : st.summary}
                             </p>
                           </button>
                         );
@@ -1384,7 +2043,7 @@ function ParticipantAppInner({
 
                         <ol className="list-decimal space-y-1 pl-4 text-xs leading-relaxed text-muted-foreground sm:text-sm">
                           {currentModeNote.steps.map((s, i) => (
-                            <li key={i}>{renderInlineCode(s)}</li>
+                            <li key={i}>{renderInlineRichText(s)}</li>
                           ))}
                         </ol>
 
@@ -1405,18 +2064,23 @@ function ParticipantAppInner({
                       <div className="flex flex-wrap items-center gap-2 border-t pt-3">
                         {toolMode === "web" ? (
                           <>
-                            <CopyButton
-                              text={stageWebCopyPayload}
-                              label={
-                                currentStage.id === "stufe-1"
-                                  ? "Kompakt-Texte kopieren (~5.900 Z.)"
-                                  : currentStage.id === "stufe-2"
-                                    ? "Regeln + Texte kopieren (~6.700 Z.)"
-                                    : "Regeln + Kompakt-Index + Texte (~8.000 Z.)"
-                              }
-                              variant="default"
-                              onCopy={() => markChecked("chk-stages")}
-                            />
+                            {(() => {
+                              const stageApproxLabel = `~${Math.max(100, Math.round(stageWebCopyPayload.length / 100) * 100).toLocaleString("de-DE")} Z.`;
+                              return (
+                                <CopyButton
+                                  text={stageWebCopyPayload}
+                                  label={
+                                    currentStage.id === "stufe-1"
+                                      ? `Kompakt-Texte kopieren (${stageApproxLabel})`
+                                      : currentStage.id === "stufe-2"
+                                        ? `Regeln + Texte kopieren (${stageApproxLabel})`
+                                        : `Regeln + Kompakt-Index + Texte (${stageApproxLabel})`
+                                  }
+                                  variant="default"
+                                  onCopy={() => markChecked("chk-stages")}
+                                />
+                              );
+                            })()}
                             {currentStage.id === "stufe-2" && (
                               <CopyButton
                                 text={data.chatRulesTemplate}
@@ -1428,14 +2092,20 @@ function ParticipantAppInner({
                             {currentStage.id === "stufe-3" && currentStage.indexMd && (
                               <>
                                 <CopyButton
-                                  text={`${data.chatRulesTemplate}\n\n---\n\n${compactStage3Index}\n\n---\n\nAUFGABE (Turn 1 · nur Index):\nWelche 1-2 Dateien aus _index.md sollten wir zuerst lesen für folgende Frage? Nenne NUR die Dateinamen:\n${data.testQuestions[1]?.question || ""}`}
+                                  text={compactToCharLimit(
+                                    `${data.chatRulesTemplate}\n\n---\n\n${compactStage3Index}\n\n---\n\nAUFGABE (Turn 1 · nur Index):\nWelche 1-2 Dateien aus _index.md sollten wir zuerst lesen für folgende Frage? Nenne NUR die Dateinamen:\n${data.testQuestions[1]?.question || ""}`,
+                                    MAX_SAFE_CLIPBOARD_CHARS
+                                  )}
                                   label="Turn 1: Nur _index.md + Frage 2"
                                   variant="secondary"
                                   onCopy={() => markChecked("chk-stages")}
                                 />
                                 <CopyButton
-                                  text={`HIER SIND DIE ANGEFORDERTEN ARTIKEL:\n\n${stagePacks.reef || stagePacks.all12}`}
-                                  label="Turn 2: Fokus-Artikel"
+                                  text={compactToCharLimit(
+                                    `HIER SIND DIE ANGEFORDERTEN ${unitUpper}:\n\n${compactStagePacks.q2 || stagesExpressPack.content}`,
+                                    MAX_SAFE_CLIPBOARD_CHARS
+                                  )}
+                                  label={`Turn 2: Fokus-${unitPlural}`}
                                   variant="secondary"
                                   onCopy={() => markChecked("chk-stages")}
                                 />
@@ -1447,25 +2117,29 @@ function ParticipantAppInner({
                               variant="outline"
                               onClick={() => {
                                 downloadMarkdownFile(
-                                  `fokus-korpus-${data.starterArticles.length}-artikel.md`,
+                                  `fokus-korpus-${data.starterArticles.length}-${unitSlug}.md`,
                                   stagePacks.all12,
-                                  `${data.starterArticles.length} Fokus-Artikel (.md) heruntergeladen`
+                                  `${data.starterArticles.length} Fokus-${unitPlural} (.md) heruntergeladen`
                                 );
                                 markChecked("chk-stages");
                               }}
                             >
                               <Download className="h-3.5 w-3.5" />
-                              <span>{data.starterArticles.length} Fokus-Artikel (.md)</span>
+                              <span>
+                                {data.starterArticles.length} Fokus-{unitPlural} (.md)
+                              </span>
                             </Button>
                           </>
                         ) : toolMode === "desktop" ? (
                           <>
-                            <span className="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-2.5 py-1.5 font-mono text-xs font-semibold text-foreground">
-                              <FolderOpen className="h-3.5 w-3.5 text-brand-ink" />
-                              <span>Ordner öffnen: {currentStage.folder}/</span>
-                            </span>
+                            <CopyButton
+                              text={`${currentStage.folder}/`}
+                              label={`Ordner-Pfad: ${currentStage.folder}/`}
+                              toastMessage={`Ordner-Pfad ${currentStage.folder}/ kopiert`}
+                              variant="outline"
+                            />
                             <a
-                              href={REPO_ZIP_URL}
+                              href={data.meta.zipUrl || REPO_ZIP_URL}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex h-8 items-center gap-1.5 rounded-lg border bg-card px-2.5 text-xs font-medium hover:bg-muted"
@@ -1486,9 +2160,9 @@ function ParticipantAppInner({
                               onClick={async () => {
                                 const idx = await ensureCorpusIndex();
                                 downloadMarkdownFile(
-                                  `alle-${data.vaultArticles.length}-artikel-wissensbasis.md`,
+                                  `alle-${data.vaultArticles.length}-${unitSlug}-wissensbasis.md`,
                                   buildAllArticlesMarkdown(data.vaultArticles, idx, data.meta.title),
-                                  `Alle ${data.vaultArticles.length} Artikel (.md) heruntergeladen`
+                                  `Alle ${data.vaultArticles.length} ${unitPlural} (.md) heruntergeladen`
                                 );
                                 markChecked("chk-stages");
                               }}
@@ -1518,6 +2192,7 @@ function ParticipantAppInner({
                           onLoadCorpusIndex={ensureCorpusIndex}
                           moduleTitle={data.meta.title}
                           toolMode={toolMode}
+                          unitLabel={unitPlural}
                         />
                       </div>
                     </div>
@@ -1533,7 +2208,11 @@ function ParticipantAppInner({
                     {data.guardrailDebugChallenge && (
                       <GuardrailDebugChallenge
                         challenge={data.guardrailDebugChallenge}
-                        onSolved={() => markChecked("chk-stages")}
+                        initialSolved={debugSolved}
+                        onSolved={() => {
+                          setDebugSolved(true);
+                          markChecked("chk-stages");
+                        }}
                       />
                     )}
 
@@ -1629,7 +2308,7 @@ function ParticipantAppInner({
                               {revealQ4Answer ? (
                                 <>
                                   <p className="text-foreground">
-                                    „Laut dem vorliegenden Dokument ({mc.targetFile}) gilt der Wert{" "}
+                                    „Laut dem vorliegenden Dokument gilt der Wert{" "}
                                     <strong>{activeVal}</strong>{" "}
                                     <code>{mc.expectedCitation}</code>.“
                                   </p>
@@ -1690,24 +2369,42 @@ function ParticipantAppInner({
                       <div className="grid gap-4 md:grid-cols-2">
                         {visibleQuestions.map((q) => {
                           const useWebText = toolMode === "web" && Boolean(q.webChatPrompt);
-                          const displayQuestion = useWebText ? q.webChatPrompt! : q.question;
-                          const displayWatch =
+                          const rawQuestion = useWebText ? q.webChatPrompt! : q.question;
+                          const rawWatch =
                             toolMode === "web" && q.webChatWatch ? q.webChatWatch : q.whatToWatch;
-                          const displaySolution =
+                          const rawSolution =
                             toolMode === "web" && q.webChatSolution
                               ? q.webChatSolution
                               : q.solutionSummary;
 
+                          const syncQ4Text = (txt: string) => {
+                            if (q.id !== "q4" || !q.manipulationCheck || q4SimulatedMutated) {
+                              return txt;
+                            }
+                            const { mutatedValue, originalValue } = q.manipulationCheck;
+                            if (!mutatedValue || !originalValue) return txt;
+                            const escaped = mutatedValue.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                            return txt.replace(new RegExp(escaped, "gi"), originalValue);
+                          };
+
+                          const displayQuestion = syncQ4Text(rawQuestion);
+                          const displayWatch = syncQ4Text(rawWatch);
+                          const displaySolution = syncQ4Text(rawSolution);
+
                           const relevantTexts =
                             q.number === 1
-                              ? stagePacks.arctic
+                              ? compactStagePacks.arctic
                               : q.number === 2
-                                ? stagePacks.reef
+                                ? compactStagePacks.q2
                                 : stagesExpressPack.content;
-                          const standaloneBundle =
+                          const rawStandaloneBundle =
                             activeStageIdx >= 1
-                              ? `${data.chatRulesTemplate}\n\n---\n\nAUFGABE / TESTFRAGE:\n${displayQuestion}\n\n---\nPASSENDE ARTIKEL:\n\n${relevantTexts}`
-                              : `AUFGABE / TESTFRAGE:\n${displayQuestion}\n\n---\nPASSENDE ARTIKEL:\n\n${relevantTexts}`;
+                              ? `${data.chatRulesTemplate}\n\n---\n\nAUFGABE / TESTFRAGE:\n${displayQuestion}\n\n---\nPASSENDE ${unitUpper}:\n\n${relevantTexts}`
+                              : `AUFGABE / TESTFRAGE:\n${displayQuestion}\n\n---\nPASSENDE ${unitUpper}:\n\n${relevantTexts}`;
+                          const standaloneBundle = compactToCharLimit(
+                            rawStandaloneBundle,
+                            MAX_SAFE_CLIPBOARD_CHARS
+                          );
 
                           return (
                             <div
@@ -1742,7 +2439,7 @@ function ParticipantAppInner({
                                       label={
                                         toolMode === "web"
                                           ? useWebText
-                                            ? "Frage + 38-Zähne-Text"
+                                            ? "Frage + Test-Ausschnitt"
                                             : "Nur Frage"
                                           : "Kopieren"
                                       }
@@ -1756,12 +2453,12 @@ function ParticipantAppInner({
                                 </div>
 
                                 <p className="text-[15px] font-medium leading-snug text-foreground">
-                                  {renderInlineCode(displayQuestion)}
+                                  {renderInlineRichText(displayQuestion)}
                                 </p>
 
                                 <p className="rounded-xl bg-muted/60 p-3 text-xs leading-relaxed text-muted-foreground">
                                   <strong className="text-foreground">Worauf achten: </strong>
-                                  {renderInlineCode(displayWatch)}
+                                  {renderInlineRichText(displayWatch)}
                                 </p>
                               </div>
 
@@ -1772,7 +2469,7 @@ function ParticipantAppInner({
                                       Verifizierte Lösung (nach dem Testen öffnen)
                                     </AccordionTrigger>
                                     <AccordionContent className="rounded-xl bg-secondary/40 p-3 text-xs leading-relaxed text-foreground">
-                                      {renderInlineCode(displaySolution)}
+                                      {renderInlineRichText(displaySolution)}
                                     </AccordionContent>
                                   </AccordionItem>
                                 </Accordion>
@@ -1791,7 +2488,10 @@ function ParticipantAppInner({
                             Kurze Selbst-Reflexion (1 Klick)
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            Was hast du gerade bei deinem KI-Test beobachtet?
+                            Was hast du gerade bei deinem KI-Test beobachtet?{" "}
+                            <span className="italic">
+                              (Optionaler Selbst-Check — zählt nicht zu den 6 Nachweisen)
+                            </span>
                           </p>
                         </div>
                         <Badge variant="outline" className="text-[11px]">
@@ -1836,8 +2536,8 @@ function ParticipantAppInner({
                               Warum Stufe 3 gewinnt: Inhaltsverzeichnis &amp; Wissens-Graph
                             </h2>
                             <p className="editorial-measure text-sm text-muted-foreground">
-                              Statt alle {data.vaultArticles.length} Artikel in den Chat zu laden,
-                              folgt das System dem <code>_index.md</code> und seinen{" "}
+                              Statt alle {data.vaultArticles.length} {unitPlural} in den Chat zu
+                              laden, folgt das System dem <code>_index.md</code> und seinen{" "}
                               <code>[[Wikilinks]]</code> gezielt zum Ziel.
                             </p>
                           </div>
@@ -1859,12 +2559,21 @@ function ParticipantAppInner({
                           articleCount={data.vaultArticles.length}
                           onSelectSlug={(slug) => setGraphSelectedSlug(slug)}
                         />
-                        <ObsidianKnowledgeGraph
-                          articles={data.vaultArticles}
-                          vaultIndexMarkdown={data.stages[2]?.indexMd}
-                          taxonomy={data.taxonomy}
-                          externalSelectedSlug={graphSelectedSlug}
-                        />
+                        <Suspense
+                          fallback={
+                            <div className="flex h-[320px] items-center justify-center rounded-2xl border bg-muted/25 text-xs text-muted-foreground">
+                              Interaktiver Wissens-Graph wird geladen…
+                            </div>
+                          }
+                        >
+                          <ObsidianKnowledgeGraph
+                            articles={data.vaultArticles}
+                            vaultIndexMarkdown={data.stages[2]?.indexMd}
+                            taxonomy={data.taxonomy}
+                            externalSelectedSlug={graphSelectedSlug}
+                            unitLabel={unitPlural}
+                          />
+                        </Suspense>
                       </section>
                     ) : (
                       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-dashed bg-muted/25 p-4">
@@ -1872,8 +2581,8 @@ function ParticipantAppInner({
                           <div className="flex items-center gap-2 text-sm font-bold text-foreground">
                             <Network className="h-4 w-4 text-brand-ink" />
                             <span>
-                              Vorschau auf Stufe 3: Interaktiver {data.vaultArticles.length}
-                              -Artikel-Wissens-Graph
+                              Vorschau auf Stufe 3: Interaktiver {data.vaultArticles.length}-
+                              {unitPlural}-Wissens-Graph
                             </span>
                           </div>
                           <p className="text-xs text-muted-foreground">
@@ -1893,173 +2602,313 @@ function ParticipantAppInner({
                   </div>
                 )}
 
-                {/* STEP 04: PRAXIS-PFADE & CCF-TRANSFER-BRÜCKE */}
+                {/* STEP 04: ZIEL-LABOR, ERGEBNIS-VALIDIERUNG & TRANSFER */}
                 {step === "paths" && (
                   <div className="space-y-10">
                     <div className="space-y-3">
                       <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.08em] text-brand-ink">
-                        <span>Schritt 04 · 30 Min. freier Praxis-Pfad &amp; Transfer-Brücke</span>
+                        <span>
+                          Schritt 04 · {isSelfPaced ? "Ziel-Labor" : `${praxisMinutesTotal} Min. Ziel-Labor`} &amp; Ergebnis-Check
+                        </span>
                         <GlossaryTip id="wikilinks" label="[[Wikilinks]]?" />
-                        {toolMode === "agent" && <GlossaryTip id="mcp" label="MCP?" />}
+                        {(toolMode === "agent" || toolMode === "ide") && (
+                          <GlossaryTip id="mcp" label="MCP?" />
+                        )}
                       </div>
                       <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-3xl">
-                        Wähle deinen Praxis-Pfad
+                        {activeGoalTrack.title}
                       </h1>
                       <p className="editorial-measure text-sm leading-relaxed text-muted-foreground">
-                        Wähle frei eines von drei Praxis-Zielen — die Prompts passen sich automatisch
-                        an deine Werkzeug-Hilfe (<strong>{currentToolModeSpec.label}</strong>) an.
+                        {activeGoalTrack.outcomeSummary} (Werkzeug:{" "}
+                        <strong className="text-foreground">{currentToolModeSpec.label}</strong>)
                       </p>
-                      <AudioGuideChip clipId="step-04" audioGuides={data.audioGuides} />
+                      <AudioGuideChip
+                        clipId="step-04"
+                        moduleId={moduleId}
+                        audioGuides={data.audioGuides}
+                      />
                     </div>
 
-                    {/* 3 Praxis-Pfad Selector Cards */}
-                    <div className="grid gap-3 md:grid-cols-3">
-                      {data.praxisPaths.map((p) => {
-                        const isActive = p.id === activePraxisPath.id;
+                    {/* 4-Goal Quick Switcher */}
+                    <div
+                      role="group"
+                      aria-label="Workshop-Ziel wählen"
+                      className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4"
+                    >
+                      {goalTracks.map((track) => {
+                        const isActive = track.id === goalId;
+                        const isValidated = Boolean(outputValidations[track.id]?.passed);
                         return (
                           <button
-                            key={p.id}
+                            key={track.id}
                             type="button"
-                            onClick={() => {
-                              setActivePathId(p.id);
-                              markChecked("chk-path");
-                            }}
-                            className={`card-elevated flex flex-col justify-between gap-2 rounded-2xl border p-4 text-left transition-all ${
+                            aria-pressed={isActive}
+                            onClick={() => selectGoal(track.id, true)}
+                            className={`flex flex-col justify-between gap-1 rounded-xl border p-3.5 text-left transition-all ${
                               isActive
-                                ? "border-primary bg-secondary/45 ring-1 ring-primary"
+                                ? "border-primary bg-secondary/50 ring-1 ring-primary"
                                 : "bg-card hover:bg-muted/40"
                             }`}
                           >
-                            <div className="space-y-1.5">
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="font-mono text-xs font-bold text-brand-ink">
-                                  Pfad 0{p.number} · {p.durationMin} Min.
-                                </span>
-                                {isActive && (
-                                  <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                                    <Check className="h-3 w-3" />
-                                  </span>
-                                )}
-                              </div>
-                              <div className="font-display text-sm font-bold text-foreground">
-                                {p.title.replace(/^Praxis-Pfad \d+ · /, "")}
-                              </div>
-                              <p className="text-xs leading-relaxed text-muted-foreground">
-                                {p.description}
-                              </p>
+                            <div className="flex items-center justify-between gap-1.5">
+                              <span className="font-display text-xs font-bold text-foreground">
+                                {track.shortLabel}
+                              </span>
+                              {isValidated ? (
+                                <Badge variant="success" className="text-[10px]">
+                                  Geprüft
+                                </Badge>
+                              ) : (
+                                isActive && (
+                                  <Check className="h-3.5 w-3.5 shrink-0 text-brand-ink" />
+                                )
+                              )}
                             </div>
-                            <div className="text-[11px] font-medium text-brand-ink">{p.tag}</div>
+                            <span className="text-[11px] text-muted-foreground">{track.badge}</span>
                           </button>
                         );
                       })}
                     </div>
 
-                    {/* Active Praxis-Pfad Detail Card */}
-                    {(() => {
-                      const modePrompt = activePraxisPath.promptsByMode[toolMode];
-                      const webBundledPrompt = `${modePrompt.prompt}\n\n---\nALLE ${data.starterArticles.length} FOKUS-ARTIKEL (.md):\n\n${stagePacks.all12}`;
-                      return (
-                        <div className="rounded-2xl border bg-card p-5 space-y-4">
-                          <div className="flex flex-wrap items-start justify-between gap-3">
-                            <div className="min-w-0 space-y-1">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <Badge variant="lime">{activePraxisPath.tag}</Badge>
-                                <span className="text-xs text-muted-foreground">
-                                  Empfohlen für: {activePraxisPath.bestForRoles.join(", ")}
-                                </span>
-                              </div>
-                              <h2 className="font-display text-xl font-bold text-foreground">
-                                {activePraxisPath.title}
-                              </h2>
-                              <p className="text-sm text-muted-foreground">
-                                {activePraxisPath.description}
-                              </p>
-                            </div>
-
-                            <div className="flex flex-wrap items-center gap-2">
-                              {toolMode === "web" ? (
-                                <>
-                                  <CopyButton
-                                    text={webBundledPrompt}
-                                    label={`Prompt + ${data.starterArticles.length} Artikel kopieren`}
-                                    toastMessage={`${activePraxisPath.title}: Prompt (oben) + ${data.starterArticles.length} Artikel kopiert`}
-                                    variant="default"
-                                    onCopy={() => markChecked("chk-path")}
-                                  />
-                                  <CopyButton
-                                    text={modePrompt.prompt}
-                                    label="Nur Prompt"
-                                    variant="outline"
-                                    onCopy={() => markChecked("chk-path")}
-                                  />
-                                </>
-                              ) : (
-                                <CopyButton
-                                  text={modePrompt.prompt}
-                                  label={modePrompt.label}
-                                  variant="default"
-                                  onCopy={() => markChecked("chk-path")}
-                                />
-                              )}
-                              {toolMode !== "agent" && (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="secondary"
-                                  onClick={() => {
-                                    downloadMarkdownFile(
-                                      `fokus-korpus-${data.starterArticles.length}-artikel.md`,
-                                      stagePacks.all12,
-                                      `${data.starterArticles.length} Fokus-Artikel (.md) heruntergeladen`
-                                    );
-                                    markChecked("chk-path");
-                                  }}
-                                >
-                                  <Download className="h-3.5 w-3.5" />
-                                  <span>{data.starterArticles.length} Artikel (.md)</span>
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-
-                          <pre className="whitespace-pre-wrap break-words rounded-xl border bg-muted/40 p-4 font-mono text-xs leading-relaxed text-foreground">
-                            {modePrompt.prompt}
-                          </pre>
-
-                          {toolMode === "web" && activePraxisPath.id !== "pfad-recherche" && (
-                            <div className="rounded-xl border border-brand-lime/50 bg-secondary/25 px-3.5 py-2.5 text-xs leading-relaxed text-muted-foreground">
-                              <div className="flex flex-wrap items-center gap-2 font-semibold text-foreground">
-                                <span>Wo erscheint die fertige Vorschau / Mini-App?</span>
-                                <GlossaryTip id="artifacts-canvas" label="Was ist Artifacts / Canvas?" />
-                              </div>
-                              <p className="mt-1">
-                                <strong>Claude.ai:</strong> Erscheint automatisch rechts als eigenes
-                                „Artifacts“-Fenster (ggf. in den Einstellungen aktivieren).{" "}
-                                <strong>ChatGPT:</strong> Klicke unter dem Eingabefeld auf{" "}
-                                <strong>„+“ / Canvas</strong> — dann kannst du direkt klicken und
-                                anpassen.
-                              </p>
-                            </div>
-                          )}
-
-                          <div className="rounded-xl border border-brand-lime/40 bg-secondary/35 px-3.5 py-2.5 text-xs">
-                            <strong className="text-foreground">Ziel-Ergebnis: </strong>
-                            <span className="text-muted-foreground">
-                              {modePrompt.deliverableHint}
+                    {/* Active 3-Step Deep Goal Lab */}
+                    <section data-testid="goal-lab-steps" className="space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <h2 className="font-display text-lg font-bold text-foreground">
+                          Dein 3-Schritte-Fahrplan ({currentToolModeSpec.label})
+                        </h2>
+                        {toolMode !== "agent" && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              downloadMarkdownFile(
+                                `fokus-korpus-${data.starterArticles.length}-${unitSlug}.md`,
+                                stagePacks.all12,
+                                `${data.starterArticles.length} Fokus-${unitPlural} (.md) heruntergeladen`
+                              )
+                            }
+                          >
+                            <Download className="h-3.5 w-3.5" />
+                            <span>
+                              {data.starterArticles.length} Fokus-{unitPlural} (.md)
                             </span>
-                          </div>
-                        </div>
-                      );
-                    })()}
+                          </Button>
+                        )}
+                      </div>
 
-                    {/* Path 1 Special: Built-in Corpus Search & Claim Verifier + McpPacketAnimatic + Multi-CLI */}
-                    {activePraxisPath.includesInBrowserLab && (
-                      <div className="space-y-6">
+                      <div className="space-y-4">
+                        {activeGoalTrack.steps.map((gStep, gStepIdx) => {
+                          const modePrompt = gStep.promptsByMode[toolMode] || gStep.promptsByMode.web;
+                          const stepMinutes = scaledGoalStepDurations[gStepIdx] ?? gStep.durationMin;
+                          const includeCompactBundle =
+                            toolMode === "web" && !gStep.isActionStep && gStep.num !== "03";
+                          const rawBundledWeb = includeCompactBundle
+                            ? `${modePrompt}\n\n---\nFOKUS-${unitUpper} (${expressPackCount} · Kompakt):\n\n${stagesExpressPack.content}`
+                            : modePrompt;
+                          const bundledWeb = compactToCharLimit(
+                            rawBundledWeb,
+                            MAX_SAFE_CLIPBOARD_CHARS
+                          );
+                          const bundledApproxLabel = `~${Math.max(100, Math.round(bundledWeb.length / 100) * 100).toLocaleString("de-DE")} Z.`;
+                          return (
+                            <div
+                              key={gStep.id}
+                              className="rounded-2xl border bg-card p-5 space-y-3"
+                            >
+                              <div className="flex flex-wrap items-start justify-between gap-2">
+                                <div className="space-y-1">
+                                  <div className="flex items-center gap-2">
+                                    <Badge variant="lime" className="font-mono text-[11px]">
+                                      Schritt {gStep.num} · {stepMinutes} Min.
+                                    </Badge>
+                                    <h3 className="font-display text-base font-bold text-foreground">
+                                      {gStep.title}
+                                    </h3>
+                                  </div>
+                                  <p className="text-xs leading-relaxed text-muted-foreground">
+                                    {gStep.instruction}
+                                  </p>
+                                </div>
+
+                                <div className="flex flex-wrap items-center gap-1.5">
+                                  {includeCompactBundle && (
+                                    <CopyButton
+                                      text={bundledWeb}
+                                      label={`Prompt + ${expressPackCount} Kompakt-Texte (${bundledApproxLabel})`}
+                                      variant="default"
+                                    />
+                                  )}
+                                  {gStep.isActionStep ? (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="default"
+                                      onClick={() => {
+                                        const targetId =
+                                          gStep.actionTargetId || "output-validator-section";
+                                        const targetEl = document.getElementById(targetId);
+                                        targetEl?.scrollIntoView({
+                                          behavior: prefersReduced ? "auto" : "smooth",
+                                          block: "start",
+                                        });
+                                      }}
+                                    >
+                                      <ArrowDown className="h-3.5 w-3.5" />
+                                      <span>Zum Output-Validator springen</span>
+                                    </Button>
+                                  ) : (
+                                    <CopyButton
+                                      text={modePrompt}
+                                      label="Prompt kopieren"
+                                      variant={includeCompactBundle ? "outline" : "default"}
+                                    />
+                                  )}
+                                </div>
+                              </div>
+
+                              <pre className="whitespace-pre-wrap break-words rounded-xl border bg-muted/40 p-3.5 font-mono text-xs leading-relaxed text-foreground">
+                                {modePrompt}
+                              </pre>
+
+                              <div className="grid gap-2 text-xs sm:grid-cols-2">
+                                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
+                                  <div className="font-semibold text-emerald-800 dark:text-emerald-300">
+                                    Woran du ein starkes Ergebnis erkennst:
+                                  </div>
+                                  <ul className="mt-1 list-disc space-y-0.5 pl-4 text-[11px] text-muted-foreground">
+                                    {gStep.expectedGoodSignals.map((sig) => (
+                                      <li key={sig}>{sig}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                                <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3">
+                                  <div className="font-semibold text-amber-800 dark:text-amber-300">
+                                    Werkzeug-Tipp &amp; typische Falle:
+                                  </div>
+                                  <p className="mt-1 text-[11px] text-muted-foreground">
+                                    {gStep.toolTips[toolMode]}
+                                  </p>
+                                  {gStep.commonPitfalls[0] && (
+                                    <p className="mt-1 text-[11px] text-muted-foreground">
+                                      <strong>Falle:</strong> {gStep.commonPitfalls[0]}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </section>
+
+                    {/* OBJECTIVE OUTPUT VALIDATOR + GOAL RUBRIC */}
+                    <div id="output-validator-section" className="scroll-mt-20">
+                      <OutputValidatorWidget
+                        key={`${moduleId}-${goalId}`}
+                        goalId={goalId}
+                        goalTitle={activeGoalTrack.shortLabel}
+                        ctx={validationContext}
+                        savedPassed={Boolean(outputValidations[goalId]?.passed)}
+                        savedScore={outputValidations[goalId]?.score}
+                        onValidated={(res) => {
+                          setOutputValidations((prev) => ({
+                            ...prev,
+                            [goalId]: {
+                              passed: Boolean(prev[goalId]?.passed || res.passed),
+                              score: Math.max(prev[goalId]?.score ?? 0, res.score),
+                            },
+                          }));
+                          if (res.passed) markChecked("chk-path");
+                        }}
+                      />
+                    </div>
+
+                    <GoalRubricCard
+                      goalTitle={activeGoalTrack.shortLabel}
+                      rubric={activeGoalTrack.rubric}
+                      checkedIds={rubricChecked}
+                      onToggleItem={(itemId) =>
+                        setRubricChecked((prev) => ({ ...prev, [itemId]: !prev[itemId] }))
+                      }
+                    />
+
+                    {/* Bonus: Classic Praxis-Pfad Selector + In-Browser Search & Claim Verifier */}
+                    <Accordion
+                      type="single"
+                      collapsible
+                      defaultValue={
+                        goalId === "prompting" || goalId === "everyday-ai"
+                          ? "in-browser-lab"
+                          : undefined
+                      }
+                      className="rounded-2xl border bg-card px-5"
+                    >
+                      <AccordionItem value="in-browser-lab" className="border-none">
+                        <AccordionTrigger className="font-display text-sm font-semibold">
+                          Live-Suche &amp; Faktenprüfer ({data.vaultArticles.length} {unitPlural}) +
+                          Praxis-Vorlagen
+                        </AccordionTrigger>
+                        <AccordionContent className="space-y-6 pb-5 pt-2">
+                          <div className="grid gap-3 md:grid-cols-3">
+                            {data.praxisPaths.map((p) => {
+                              const isActive = p.id === activePraxisPath.id;
+                              return (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  aria-pressed={isActive}
+                                  onClick={() => setActivePathId(p.id)}
+                                  className={`flex flex-col justify-between gap-2 rounded-xl border p-3.5 text-left transition-all ${
+                                    isActive
+                                      ? "border-primary bg-secondary/45 ring-1 ring-primary"
+                                      : "bg-muted/20 hover:bg-muted/40"
+                                  }`}
+                                >
+                                  <div className="font-display text-xs font-bold text-foreground">
+                                    {p.title}
+                                  </div>
+                                  <p className="text-[11px] text-muted-foreground">
+                                    {p.description}
+                                  </p>
+                                </button>
+                              );
+                            })}
+                          </div>
+
+                          {(() => {
+                            const modePrompt =
+                              activePraxisPath.promptsByMode[toolMode] ||
+                              activePraxisPath.promptsByMode.web;
+                            return (
+                              <div className="rounded-xl border bg-muted/25 p-4 space-y-2.5 text-xs">
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <span className="font-semibold text-foreground">
+                                    {modePrompt.label}
+                                  </span>
+                                  <CopyButton text={modePrompt.prompt} label="Kopieren" />
+                                </div>
+                                <pre className="whitespace-pre-wrap break-words font-mono text-[11px] text-foreground">
+                                  {modePrompt.prompt}
+                                </pre>
+                              </div>
+                            );
+                          })()}
                         <McpPacketAnimatic
                           activeHop={mcpActiveHop}
                           mode={labTab}
                           toolMode={toolMode}
-                          spec={data.animatics?.mcpPacket}
+                          spec={{
+                            sampleWikilinks:
+                              data.animatics?.mcpPacket?.sampleWikilinks ||
+                              data.starterArticles.slice(0, 2).map((a) => `[[${a.slug}]]`),
+                            ...data.animatics?.mcpPacket,
+                            sampleQuery:
+                              mcpQuery.trim() ||
+                              data.animatics?.mcpPacket?.sampleQuery ||
+                              data.labPresets?.defaultQuery ||
+                              "Anemonenfische Symbiose",
+                          }}
                           articleCount={data.vaultArticles.length}
                         />
 
@@ -2069,7 +2918,7 @@ function ParticipantAppInner({
                             <div>
                               <h3 className="font-display text-base font-bold text-foreground">
                                 Live-Suche &amp; Faktenprüfer über alle {data.vaultArticles.length}{" "}
-                                Artikel
+                                {unitPlural}
                               </h3>
                               <p className="text-xs text-muted-foreground">
                                 Läuft komplett hier im Browser — auch ohne eigenes KI-Konto oder
@@ -2083,14 +2932,16 @@ function ParticipantAppInner({
                               onClick={async () => {
                                 const idx = await ensureCorpusIndex();
                                 downloadMarkdownFile(
-                                  `alle-${data.vaultArticles.length}-artikel-wissensbasis.md`,
+                                  `alle-${data.vaultArticles.length}-${unitSlug}-wissensbasis.md`,
                                   buildAllArticlesMarkdown(data.vaultArticles, idx, data.meta.title),
-                                  `Alle ${data.vaultArticles.length} Artikel (.md) heruntergeladen`
+                                  `Alle ${data.vaultArticles.length} ${unitPlural} (.md) heruntergeladen`
                                 );
                               }}
                             >
                               <Download className="h-3.5 w-3.5" />
-                              <span>Alle {data.vaultArticles.length} Artikel (.md)</span>
+                              <span>
+                                Alle {data.vaultArticles.length} {unitPlural} (.md)
+                              </span>
                             </Button>
                           </div>
 
@@ -2106,12 +2957,11 @@ function ParticipantAppInner({
                               >
                                 <Wrench className="h-3.5 w-3.5 shrink-0" />
                                 <span>
-                                  Wissensbasis durchsuchen ({data.vaultArticles.length} Artikel)
+                                  Wissensbasis durchsuchen ({data.vaultArticles.length} {unitPlural})
                                 </span>
                                 {toolMode === "agent" && (
                                   <code className="hidden text-[11px] opacity-70 sm:inline">
-                                    {data.animatics?.mcpPacket?.searchToolName ||
-                                      "search_wildlife_vault"}
+                                    {data.animatics?.mcpPacket?.searchToolName || "search_vault"}
                                   </code>
                                 )}
                               </TabsTrigger>
@@ -2123,8 +2973,7 @@ function ParticipantAppInner({
                                 <span>Fakten prüfen</span>
                                 {toolMode === "agent" && (
                                   <code className="hidden text-[11px] opacity-70 sm:inline">
-                                    {data.animatics?.mcpPacket?.verifyToolName ||
-                                      "verify_claim_against_corpus"}
+                                    {data.animatics?.mcpPacket?.verifyToolName || "verify_claim"}
                                   </code>
                                 )}
                               </TabsTrigger>
@@ -2134,7 +2983,16 @@ function ParticipantAppInner({
                               <div className="flex flex-col gap-2 sm:flex-row">
                                 <Input
                                   value={mcpQuery}
-                                  onChange={(e) => setMcpQuery(e.target.value)}
+                                  onChange={(e) => {
+                                    setMcpQuery(e.target.value);
+                                    if (searchEmptyHint) setSearchEmptyHint(false);
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      runOfflineSearch();
+                                    }
+                                  }}
                                   placeholder="Suchbegriff eingeben…"
                                 />
                                 <Button
@@ -2142,62 +3000,111 @@ function ParticipantAppInner({
                                   onClick={() => runOfflineSearch()}
                                   className="shrink-0"
                                 >
-                                  {toolMode === "agent"
-                                    ? "Tool ausführen"
-                                    : "Wissensbasis durchsuchen"}
+                                  Wissensbasis durchsuchen
                                 </Button>
                               </div>
 
+                              {searchEmptyHint && (
+                                <div
+                                  role="alert"
+                                  className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-2.5 text-xs text-amber-900 dark:text-amber-200"
+                                >
+                                  Bitte gib zuerst einen Suchbegriff ein oder klicke auf eines der
+                                  Beispiele unten.
+                                </div>
+                              )}
+
                               <div className="flex flex-wrap gap-1.5">
-                                {(
-                                  data.labPresets?.searchPresets || [
-                                    "Anemonenfische Symbiose",
-                                    "Eisbär Talg Squalen",
-                                    "Korallenbleiche Temperatur",
-                                    "Alpenmurmeltier Winterschlaf",
-                                    "Schneeleopard Nationalpark",
-                                  ]
-                                ).map((preset) => (
-                                  <button
-                                    key={preset}
-                                    type="button"
-                                    onClick={() => runOfflineSearch(preset)}
-                                    className="rounded-full border bg-muted/50 px-2.5 py-1 text-xs hover:bg-secondary"
-                                  >
-                                    {preset}
-                                  </button>
-                                ))}
+                                {searchPresets.map((preset, idx) => {
+                                  const isNeg =
+                                    /nationalpark|krypto-wallet/i.test(preset) ||
+                                    idx === searchPresets.length - 1;
+                                  return (
+                                    <button
+                                      key={preset}
+                                      type="button"
+                                      onClick={() => runOfflineSearch(preset)}
+                                      className="inline-flex items-center gap-1.5 rounded-full border bg-muted/50 px-2.5 py-1 text-xs hover:bg-secondary"
+                                    >
+                                      <span>{preset}</span>
+                                      {isNeg && (
+                                        <Badge
+                                          variant="outline"
+                                          className="px-1.5 py-0 text-[10px] font-medium text-amber-700 dark:text-amber-300"
+                                        >
+                                          Negativtest
+                                        </Badge>
+                                      )}
+                                    </button>
+                                  );
+                                })}
                               </div>
 
                               {mcpResults && (
                                 <div className="divide-y rounded-xl border bg-muted/20">
-                                  {mcpResults.length === 0 && (
-                                    <div className="p-4 text-xs text-muted-foreground">
-                                      0 Treffer in den {data.vaultArticles.length} Artikeln
-                                      gefunden.
-                                    </div>
-                                  )}
+                                  {mcpResults.length === 0 &&
+                                    (isNegativeSearchQuery(lastSearchedQuery) ? (
+                                      <div className="space-y-1 p-4 text-xs">
+                                        <div className="font-semibold text-amber-800 dark:text-amber-300">
+                                          Erwartetes Ergebnis (Negativtest): Zu diesem Begriff gibt
+                                          es absichtlich keinen Eintrag in der Wissensbasis.
+                                        </div>
+                                        <p className="text-muted-foreground">
+                                          0 Treffer in den {data.vaultArticles.length} {unitPlural}{" "}
+                                          — genau so erkennt man, wann die KI sauber „[Nicht in
+                                          Quelle]“ melden muss.
+                                        </p>
+                                      </div>
+                                    ) : (
+                                      <div className="p-4 text-xs text-muted-foreground">
+                                        0 Treffer in den {data.vaultArticles.length} {unitPlural}{" "}
+                                        gefunden.
+                                      </div>
+                                    ))}
                                   {mcpResults.map((m) => {
                                     const parsed = parseWikilink(m.wikilink, m.slug, m.title);
+                                    const isExpanded = Boolean(expandedSearchSlugs[m.slug]);
+                                    const articleContent =
+                                      corpusIndex?.[m.slug] ||
+                                      data.vaultArticles.find((a) => a.slug === m.slug)?.summary;
+                                    const togglePreview = async () => {
+                                      await ensureCorpusIndex();
+                                      setExpandedSearchSlugs((prev) => ({
+                                        ...prev,
+                                        [m.slug]: !prev[m.slug],
+                                      }));
+                                    };
                                     return (
                                       <div key={m.slug} className="space-y-1.5 p-3.5 text-xs">
                                         <div className="flex flex-wrap items-center justify-between gap-2">
                                           <div className="flex flex-wrap items-center gap-2">
-                                            <span className="font-display text-sm font-bold text-foreground">
+                                            <button
+                                              type="button"
+                                              aria-expanded={isExpanded}
+                                              onClick={togglePreview}
+                                              className="text-left font-display text-sm font-bold text-foreground underline-offset-2 hover:text-brand-ink hover:underline"
+                                            >
                                               {parsed.title}
-                                            </span>
-                                            <Badge
-                                              variant="outline"
-                                              className="font-mono text-[11px] text-brand-ink"
+                                            </button>
+                                            <button
+                                              type="button"
+                                              aria-expanded={isExpanded}
+                                              onClick={togglePreview}
+                                              className="rounded-md border px-2 py-0.5 font-mono text-[11px] font-semibold text-brand-ink transition-colors hover:bg-secondary/60"
                                             >
                                               ({m.slug}.md)
-                                            </Badge>
+                                            </button>
                                           </div>
                                           <Badge variant="outline">Relevanz {m.score}</Badge>
                                         </div>
                                         <p className="leading-relaxed text-foreground/90">
                                           {m.snippet}
                                         </p>
+                                        {isExpanded && articleContent && (
+                                          <div className="mt-2 max-h-60 overflow-y-auto whitespace-pre-wrap rounded-lg border bg-card p-3 font-mono text-[11px] leading-relaxed text-foreground">
+                                            {articleContent}
+                                          </div>
+                                        )}
                                       </div>
                                     );
                                   })}
@@ -2208,8 +3115,11 @@ function ParticipantAppInner({
                             <TabsContent value="verify" className="space-y-4">
                               <Textarea
                                 value={verifyClaim}
-                                onChange={(e) => setVerifyClaim(e.target.value)}
-                                placeholder={`Behauptung zum Prüfen gegen alle ${data.vaultArticles.length} Artikel eingeben…`}
+                                onChange={(e) => {
+                                  setVerifyClaim(e.target.value);
+                                  if (verifyEmptyHint) setVerifyEmptyHint(false);
+                                }}
+                                placeholder={`Behauptung zum Prüfen gegen alle ${data.vaultArticles.length} ${unitPlural} eingeben…`}
                                 aria-label="Behauptung gegen Wissensbasis prüfen"
                                 rows={2}
                               />
@@ -2232,6 +3142,16 @@ function ParticipantAppInner({
                                 </Button>
                               </div>
 
+                              {verifyEmptyHint && (
+                                <div
+                                  role="alert"
+                                  className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-2.5 text-xs text-amber-900 dark:text-amber-200"
+                                >
+                                  Bitte gib zuerst eine Behauptung zum Prüfen ein oder teste die
+                                  Beispiel-Fangfrage.
+                                </div>
+                              )}
+
                               {verifyOutput && (
                                 <div className="space-y-3 rounded-xl border bg-muted/25 p-4 text-xs">
                                   <div className="flex flex-wrap items-center gap-2">
@@ -2244,38 +3164,68 @@ function ParticipantAppInner({
                                             : "danger"
                                       }
                                     >
-                                      {verifyOutput.status.toUpperCase()}
+                                      {VERIFY_STATUS_LABELS[verifyOutput.status] ||
+                                        verifyOutput.status}
                                     </Badge>
                                     <span className="font-medium">{verifyOutput.label}</span>
                                   </div>
+                                  {verifyOutput.mismatchReasons &&
+                                    verifyOutput.mismatchReasons.length > 0 && (
+                                      <div className="rounded-lg border border-rose-500/40 bg-rose-500/10 p-2.5 text-xs text-rose-800 dark:text-rose-200">
+                                        {verifyOutput.mismatchReasons.join(" ")}
+                                      </div>
+                                    )}
                                   {verifyOutput.evidence.length === 0 && (
                                     <div className="rounded-lg border border-dashed bg-card p-3 text-muted-foreground">
                                       0 verlässliche Belege in den {data.vaultArticles.length}{" "}
-                                      Artikeln – korrekte System-Reaktion: Behauptung nicht
+                                      {unitPlural} – korrekte System-Reaktion: Behauptung nicht
                                       bestätigen.
                                     </div>
                                   )}
                                   {verifyOutput.evidence.map((ev) => {
                                     const parsed = parseWikilink(ev.wikilink, ev.slug, ev.title);
+                                    const isExpanded = Boolean(expandedVerifySlugs[ev.slug]);
+                                    const articleContent =
+                                      corpusIndex?.[ev.slug] ||
+                                      data.vaultArticles.find((a) => a.slug === ev.slug)?.summary;
+                                    const togglePreview = async () => {
+                                      await ensureCorpusIndex();
+                                      setExpandedVerifySlugs((prev) => ({
+                                        ...prev,
+                                        [ev.slug]: !prev[ev.slug],
+                                      }));
+                                    };
                                     return (
                                       <div
                                         key={ev.slug}
                                         className="space-y-1 rounded-lg border bg-card p-3"
                                       >
                                         <div className="flex flex-wrap items-center gap-2">
-                                          <span className="font-display text-sm font-bold text-foreground">
+                                          <button
+                                            type="button"
+                                            aria-expanded={isExpanded}
+                                            onClick={togglePreview}
+                                            className="text-left font-display text-sm font-bold text-foreground underline-offset-2 hover:text-brand-ink hover:underline"
+                                          >
                                             {parsed.title}
-                                          </span>
-                                          <Badge
-                                            variant="outline"
-                                            className="font-mono text-[11px] text-brand-ink"
+                                          </button>
+                                          <button
+                                            type="button"
+                                            aria-expanded={isExpanded}
+                                            onClick={togglePreview}
+                                            className="rounded-md border px-2 py-0.5 font-mono text-[11px] font-semibold text-brand-ink transition-colors hover:bg-secondary/60"
                                           >
                                             ({ev.slug}.md)
-                                          </Badge>
+                                          </button>
                                         </div>
                                         <p className="leading-relaxed text-muted-foreground">
                                           {ev.snippet}
                                         </p>
+                                        {isExpanded && articleContent && (
+                                          <div className="mt-2 max-h-60 overflow-y-auto whitespace-pre-wrap rounded-lg border bg-muted/25 p-3 font-mono text-[11px] leading-relaxed text-foreground">
+                                            {articleContent}
+                                          </div>
+                                        )}
                                       </div>
                                     );
                                   })}
@@ -2289,7 +3239,9 @@ function ParticipantAppInner({
                         <Accordion
                           type="single"
                           collapsible
-                          defaultValue={toolMode === "agent" ? "mcp-cfg" : undefined}
+                          defaultValue={
+                            toolMode === "agent" || toolMode === "ide" ? "mcp-cfg" : undefined
+                          }
                           className="rounded-2xl border bg-card px-5"
                         >
                           <AccordionItem value="mcp-cfg" className="border-none">
@@ -2297,30 +3249,51 @@ function ParticipantAppInner({
                               <span className="flex flex-wrap items-center gap-2 text-left">
                                 <FileCode2 className="h-4 w-4 shrink-0 text-brand-ink" />
                                 <span>
-                                  Optional · nur Code-Agent: Lokaler MCP-Server für 6 Clients
+                                  Optional · IDE, Desktop &amp; CLI: Lokaler MCP-Server für 9 Clients
                                 </span>
-                                {toolMode !== "agent" && (
+                                {toolMode !== "agent" && toolMode !== "ide" && (
                                   <Badge variant="outline" className="text-[10px]">
-                                    Für Web-Chat nicht nötig
+                                    Für Cloud-/Web-Chats nicht nötig
                                   </Badge>
                                 )}
                               </span>
                             </AccordionTrigger>
                             <AccordionContent className="min-w-0 space-y-3 pb-4">
+                              <div className="space-y-1 rounded-xl border border-brand-lime/40 bg-secondary/25 p-3 text-xs text-muted-foreground">
+                                <div className="font-semibold text-foreground">
+                                  Hinweis zu Cloud-Hubs vs. lokalem stdio-MCP
+                                </div>
+                                <p>
+                                  Cloud-Hubs wie <strong>Langdock</strong>,{" "}
+                                  <strong>ChatGPT Web</strong>, <strong>Claude.ai Web</strong> und{" "}
+                                  <strong>M365 Copilot</strong> können keinen lokalen{" "}
+                                  <code>stdio</code>-MCP-Server auf deinem Rechner starten — nutze
+                                  dort Assistant Instructions + Knowledge Folder
+                                  {isSyntheticData ? "" : " (Stufe 2/3)"}, Remote MCP (Streamable
+                                  HTTP/SSE) bzw. Integrations oder unseren Browser-Faktenprüfer
+                                  oben.
+                                </p>
+                              </div>
                               <p className="text-xs text-muted-foreground">
-                                Für Web-Chat &amp; Desktop genügt die Such-Box oben im Browser. Wenn
-                                du lokal mit Terminal/IDE arbeitest, wähle deinen CLI-Client:
+                                Für Desktop, Agentic IDEs &amp; CLI-Agents wähle einen der 9
+                                vorkonfigurierten Clients:
                               </p>
                               <Tabs defaultValue="claude" className="min-w-0">
                                 <TabsList className="h-auto w-full flex-wrap justify-start gap-1 overflow-visible bg-muted p-1.5">
                                   <TabsTrigger value="claude" className="px-2.5 py-1 text-xs">
                                     Claude Code
                                   </TabsTrigger>
+                                  <TabsTrigger value="claudeDesktop" className="px-2.5 py-1 text-xs">
+                                    Claude Desktop
+                                  </TabsTrigger>
                                   <TabsTrigger value="opencode" className="px-2.5 py-1 text-xs">
                                     OpenCode
                                   </TabsTrigger>
                                   <TabsTrigger value="gemini" className="px-2.5 py-1 text-xs">
                                     Gemini CLI
+                                  </TabsTrigger>
+                                  <TabsTrigger value="antigravity" className="px-2.5 py-1 text-xs">
+                                    Antigravity
                                   </TabsTrigger>
                                   <TabsTrigger value="codex" className="px-2.5 py-1 text-xs">
                                     Codex
@@ -2331,6 +3304,9 @@ function ParticipantAppInner({
                                   <TabsTrigger value="cursor" className="px-2.5 py-1 text-xs">
                                     Cursor
                                   </TabsTrigger>
+                                  <TabsTrigger value="windsurf" className="px-2.5 py-1 text-xs">
+                                    Windsurf
+                                  </TabsTrigger>
                                   <TabsTrigger value="setup" className="px-2.5 py-1 text-xs">
                                     Setup-CLI
                                   </TabsTrigger>
@@ -2338,38 +3314,63 @@ function ParticipantAppInner({
                                 {[
                                   {
                                     id: "claude",
-                                    path: ".mcp.json (im Root & Stufe 3 vorkonfiguriert)",
+                                    kind: "repo" as const,
+                                    path: `.mcp.json (im Root & ${stageFolders.stufe3})`,
                                     code: data.mcpConfigs.claudeCode,
                                   },
                                   {
+                                    id: "claudeDesktop",
+                                    kind: "user-placeholder" as const,
+                                    path: "%APPDATA%\\Claude\\claude_desktop_config.json (Win) · ~/Library/Application Support/Claude/claude_desktop_config.json (macOS) · ~/.config/Claude/claude_desktop_config.json (Linux)",
+                                    code: data.mcpConfigs.claudeDesktop || data.mcpConfigs.claudeCode,
+                                  },
+                                  {
                                     id: "opencode",
-                                    path: "opencode.json (Projekt oder ~/.config/opencode/opencode.json)",
+                                    kind: "repo" as const,
+                                    path: `opencode.json (Root, ${stageFolders.stufe3} oder ~/.config/opencode/opencode.json)`,
                                     code: data.mcpConfigs.openCode,
                                   },
                                   {
                                     id: "gemini",
-                                    path: ".gemini/settings.json (oder ~/.gemini/settings.json)",
+                                    kind: "repo" as const,
+                                    path: `.gemini/settings.json (Root, ${stageFolders.stufe3} oder ~/.gemini/settings.json)`,
                                     code: data.mcpConfigs.geminiCli,
                                   },
                                   {
+                                    id: "antigravity",
+                                    kind: "user-placeholder" as const,
+                                    path: "~/.gemini/config/mcp_config.json (UI: Additional Options (...) > MCP Servers)",
+                                    code: data.mcpConfigs.antigravity || data.mcpConfigs.claudeCode,
+                                  },
+                                  {
                                     id: "codex",
-                                    path: ".codex/config.toml (oder ~/.codex/config.toml)",
+                                    kind: "repo" as const,
+                                    path: `.codex/config.toml (Root, ${stageFolders.stufe3} oder ~/.codex/config.toml)`,
                                     code: data.mcpConfigs.codex,
                                   },
                                   {
                                     id: "vscode",
-                                    path: ".vscode/mcp.json",
+                                    kind: "repo" as const,
+                                    path: `.vscode/mcp.json (im Root & ${stageFolders.stufe3})`,
                                     code: data.mcpConfigs.vscode,
                                   },
                                   {
                                     id: "cursor",
-                                    path: ".cursor/mcp.json (oder ~/.cursor/mcp.json)",
+                                    kind: "repo" as const,
+                                    path: `.cursor/mcp.json (Root, ${stageFolders.stufe3} oder ~/.cursor/mcp.json)`,
                                     code: data.mcpConfigs.cursor,
                                   },
                                   {
+                                    id: "windsurf",
+                                    kind: "user-placeholder" as const,
+                                    path: "~/.codeium/windsurf/mcp_config.json",
+                                    code: data.mcpConfigs.windsurf || data.mcpConfigs.claudeCode,
+                                  },
+                                  {
                                     id: "setup",
-                                    path: "Terminal (schreibt absolute Pfade sicher in User-Config)",
-                                    code: data.mcpConfigs.setupCommand,
+                                    kind: "setup" as const,
+                                    path: "Terminal (schreibt absolute Pfade sicher in User-Config für alle 9 Clients)",
+                                    code: `${data.mcpConfigs.setupCommand}\n# Produktiv schreiben:\n${data.mcpConfigs.applyUserCommand}`,
                                   },
                                 ].map((cfg) => (
                                   <TabsContent
@@ -2379,10 +3380,34 @@ function ParticipantAppInner({
                                   >
                                     <div className="flex flex-wrap items-center justify-between gap-2">
                                       <code className="break-all text-[11px] text-muted-foreground">
-                                        Zieldatei: {cfg.path}
+                                        {cfg.kind === "setup" ? "Befehl:" : "Zieldatei:"} {cfg.path}
                                       </code>
-                                      <CopyButton text={cfg.code} label="Konfig kopieren" />
+                                      <CopyButton
+                                        text={cfg.code}
+                                        label={
+                                          cfg.kind === "setup"
+                                            ? "Befehl kopieren"
+                                            : "Konfig kopieren"
+                                        }
+                                      />
                                     </div>
+                                    {cfg.kind === "user-placeholder" && (
+                                      <p className="rounded-lg border border-amber-500/35 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-900 dark:text-amber-200">
+                                        Hinweis: <code>/ABSOLUTE/PATH/TO/...</code> ist ein
+                                        Platzhalter. Am schnellsten erzeugt der Tab{" "}
+                                        <strong>Setup-CLI</strong> diese User-Konfig mit deinem
+                                        echten lokalen Pfad automatisch.
+                                      </p>
+                                    )}
+                                    {cfg.kind === "repo" && (
+                                      <p className="rounded-lg border bg-muted/30 px-3 py-2 text-[11px] text-muted-foreground">
+                                        Pfad-Hinweis: Im Repository-Root zeigt die Vorkonfig auf{" "}
+                                        <code>./mcp-server/server.mjs</code>; beim Öffnen eines
+                                        Unterordners (<code>{stageFolders.stufe3}/</code>) auf den
+                                        relativen Pfad zum Root (<code>../</code> bzw.{" "}
+                                        <code>../../mcp-server/server.mjs</code>).
+                                      </p>
+                                    )}
                                     <pre className="overflow-x-auto whitespace-pre-wrap break-words rounded-xl border bg-muted/40 p-3.5 font-mono text-xs">
                                       {cfg.code}
                                     </pre>
@@ -2392,15 +3417,19 @@ function ParticipantAppInner({
                             </AccordionContent>
                           </AccordionItem>
                         </Accordion>
-                      </div>
-                    )}
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
 
                     <Separator />
 
                     {/* BYOU Mini-Builder + Transfer-Brücke */}
                     <ByouRuleBuilder
+                      key={moduleId}
                       rolePresets={data.transferBridge}
+                      toolMode={toolMode}
                       onCopyOutput={() => markChecked("chk-transfer")}
+                      onRulebookChange={handleRulebookChange}
                     />
 
                     <section className="space-y-4">
@@ -2460,66 +3489,52 @@ function ParticipantAppInner({
                       </div>
                     </section>
 
-                    {/* Completion Summary Card */}
-                    <section className="rounded-2xl border border-brand-lime/45 bg-secondary/35 p-5 sm:p-6">
-                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="space-y-2">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Badge variant={completedCount >= 5 ? "success" : "outline"}>
-                              {completedCount >= 5
-                                ? "Stark — alle Kernmuster erlebt!"
-                                : `Dein Stand: ${completedCount}/${checklistItems.length} Häkchen`}
-                            </Badge>
-                            <span className="num-tabular text-xs font-semibold text-brand-ink">
-                              {progressPct}% abgeschlossen
-                            </span>
-                          </div>
-                          <h2 className="font-display text-lg font-bold text-foreground">
-                            Was du aus allen 4 Schritten mitnimmst
-                          </h2>
-                          <p className="editorial-measure text-sm text-muted-foreground">
-                            Klare Prompt-Struktur, verbindliche Regeln gegen Raten und ein
-                            vernetzter Index schlagen blindes Kopieren — in Web-Chats genauso wie in
-                            Desktop-Ordnern und Code-Agenten.
-                          </p>
-                          <div className="max-w-md pt-1">
-                            <Progress value={progressPct} />
-                          </div>
-                        </div>
-
-                        <Button type="button" variant="outline" onClick={() => goToStep("start")}>
-                          Zurück zum Einstieg
-                        </Button>
-                      </div>
-                    </section>
+                    {/* Verified Workshop Outcome Summary & Takeaway Export */}
+                    <WorkshopSummaryExport
+                      moduleId={moduleId}
+                      moduleTitle={data.meta.title}
+                      goalId={goalId}
+                      goalTitle={activeGoalTrack.shortLabel}
+                      toolMode={toolMode}
+                      toolLabel={currentToolModeSpec.label}
+                      gates={outcomeGates}
+                      generatedAgentsMd={rulebookSnapshot.agentsMd}
+                      generatedTrapQuestion={rulebookSnapshot.trapQuestion}
+                      generatedRuleFormat={rulebookSnapshot.format}
+                      onResetToStart={() => goToStep("start")}
+                    />
                   </div>
                 )}
               </motion.div>
             </AnimatePresence>
 
-            {/* Step Footer Navigation */}
-            {step !== "start" && (
-              <footer className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t pt-6">
-                {prevStep ? (
-                  <Button type="button" variant="outline" onClick={() => goToStep(prevStep.id)}>
-                    <ArrowLeft className="h-4 w-4" />
-                    <span>Zurück: {prevStep.short}</span>
-                  </Button>
-                ) : (
-                  <div />
-                )}
-                {nextStep ? (
-                  <Button type="button" onClick={() => goToStep(nextStep.id)}>
-                    <span>Weiter: {nextStep.short}</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                ) : (
-                  <Button type="button" variant="outline" onClick={() => goToStep("start")}>
-                    Zurück zum Einstieg
-                  </Button>
-                )}
-              </footer>
-            )}
+            {/* Step Footer Navigation (all steps incl. Step 01) */}
+            <footer className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t pt-6">
+              {prevStep ? (
+                <Button type="button" variant="outline" onClick={() => goToStep(prevStep.id)}>
+                  <ArrowLeft className="h-4 w-4" />
+                  <span>Zurück: {prevStep.short}</span>
+                </Button>
+              ) : (
+                <div />
+              )}
+              {nextStep ? (
+                <Button
+                  type="button"
+                  onClick={() => {
+                    if (step === "start") setSetupConfirmed(true);
+                    goToStep(nextStep.id);
+                  }}
+                >
+                  <span>Weiter: {nextStep.short}</span>
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button type="button" variant="outline" onClick={() => goToStep("start")}>
+                  Zurück zum Einstieg
+                </Button>
+              )}
+            </footer>
           </div>
         </main>
       </div>
@@ -2538,7 +3553,7 @@ function ParticipantAppInner({
               key={s.id}
               type="button"
               onClick={() => goToStep(s.id)}
-              className={`relative flex min-h-[56px] flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[11px] font-medium transition-colors ${
+              className={`relative flex min-h-[56px] flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[10px] font-medium transition-colors ${
                 isActive ? "text-brand-ink" : "text-muted-foreground"
               }`}
             >
@@ -2546,14 +3561,29 @@ function ParticipantAppInner({
                 <span className="absolute inset-x-3 top-0 h-0.5 rounded-full bg-brand-lime" />
               )}
               <Icon className="h-4 w-4" />
-              <span className="max-w-full truncate">{s.short}</span>
+              <span className="max-w-full truncate">
+                {s.num} · {s.short}
+              </span>
             </button>
           );
         })}
       </nav>
 
       {/* Lightweight 15-Second Onboarding Spotlight Tour */}
-      <OnboardingTour open={tourOpen} onOpenChange={setTourOpen} onSelectStep={goToStep} />
+      <OnboardingTour
+        open={tourOpen}
+        onOpenChange={(open) => {
+          setTourOpen(open);
+          if (!open) {
+            try {
+              setOnboardingDone(localStorage.getItem(ONBOARDING_STORAGE_KEY) === "1");
+            } catch {
+              // ignore
+            }
+          }
+        }}
+        onSelectStep={goToStep}
+      />
     </div>
   );
 }

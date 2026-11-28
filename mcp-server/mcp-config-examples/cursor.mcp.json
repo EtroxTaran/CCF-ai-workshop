@@ -2,7 +2,7 @@
   "mcpServers": {
     "workshop-wildlife": {
       "command": "node",
-      "args": ["./mcp-server/server.mjs"]
+      "args": ["${workspaceFolder}/mcp-server/server.mjs"]
     }
   }
 }

@@ -25,7 +25,7 @@ const STEPS = [
     fillPct: 42,
     ruleStatus: "aktiv",
     displaced: false,
-    note: "Nachricht 2: Erste lange Artikel-Texte kommen dazu. Die Regeln sind noch gut sichtbar.",
+    note: "Nachricht 2: Erste lange Quelltexte kommen dazu. Die Regeln sind noch gut sichtbar.",
   },
   {
     msgCount: 3,
@@ -224,7 +224,7 @@ export function ContextWindowAnimatic({ className, spec, onResetChat }: ContextW
               </div>
               <p className="mt-1 text-[11px] text-muted-foreground">
                 <code>AGENTS.md</code> bleibt dauerhaft oben gepinnt; <code>_index.md</code> lädt
-                nur die 2–3 passenden Artikel nach.
+                nur die 2–3 passenden Dokumente nach.
               </p>
             </div>
           </div>

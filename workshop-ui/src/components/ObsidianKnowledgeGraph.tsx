@@ -69,6 +69,7 @@ export interface ObsidianKnowledgeGraphProps {
   articles: VaultArticle[];
   vaultIndexMarkdown?: string;
   taxonomy?: ModuleTaxonomy;
+  unitLabel?: string;
   projectorMode?: boolean;
   externalSelectedSlug?: string;
   onSelectArticle?: (article: VaultArticle) => void;
@@ -143,6 +144,7 @@ export function ObsidianKnowledgeGraph({
   articles,
   vaultIndexMarkdown,
   taxonomy,
+  unitLabel = "Artikel",
   projectorMode = false,
   externalSelectedSlug,
   onSelectArticle,
@@ -762,9 +764,22 @@ export function ObsidianKnowledgeGraph({
                   return (
                     <g
                       key={node.slug}
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`${node.title} (${node.category})`}
                       transform={`translate(${nx}, ${ny})`}
                       onMouseEnter={() => setHoveredSlug(node.slug)}
                       onMouseLeave={() => setHoveredSlug(null)}
+                      onFocus={() => setHoveredSlug(node.slug)}
+                      onBlur={() => setHoveredSlug(null)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setRagWalkPlaying(false);
+                          setRagWalkIdx(null);
+                          selectNode(node.slug);
+                        }
+                      }}
                       onPointerDown={(e) => {
                         e.stopPropagation();
                         draggingSlugRef.current = node.slug;
@@ -855,7 +870,7 @@ export function ObsidianKnowledgeGraph({
               <div className="flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-[#232B20] p-6 text-center">
                 <div className="font-display text-sm font-bold text-[#F2F4EE]">0 Treffer gefunden</div>
                 <p className="max-w-sm text-xs text-[#9FA998]">
-                  Kein Artikel im {articles.length}-Dateien-Vault passt zu „{query || category}“.
+                  Keine Datei im {articles.length}-{unitLabel}-Vault passt zu „{query || category}“.
                 </p>
                 <button
                   type="button"
@@ -992,7 +1007,7 @@ export function ObsidianKnowledgeGraph({
                 projectorMode ? "text-sm" : "text-xs"
               }`}
             >
-              {selected.summary}
+              {String(selected.summary || "").replace(/\*\*/g, "")}
             </p>
           </div>
 
@@ -1000,7 +1015,7 @@ export function ObsidianKnowledgeGraph({
           <div className="space-y-2 border-t border-[#232B20] pt-3">
             <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-[#9FA998]">
               <Link2 className="h-3.5 w-3.5 text-[#A9C23F]" />
-              Verknüpfte Artikel (Querverweise)
+              Verknüpfte {unitLabel} (Querverweise)
             </div>
             <div className="flex flex-wrap gap-1.5">
               {selected.related.map((relSlug) => {

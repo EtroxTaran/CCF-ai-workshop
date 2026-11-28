@@ -4,6 +4,14 @@ import { Eye, Layers } from "lucide-react";
 import { CopyButton } from "@/components/CopyButton";
 import { ContextWindowAnimatic } from "@/components/guidance/ContextWindowAnimatic";
 import { GlossaryTip } from "@/components/guidance/GlossaryTip";
+import { ToolTranslationMatrix } from "@/components/guidance/ToolTranslationMatrix";
+import { TOOL_TRANSLATION_MATRIX } from "@/data/toolTranslationMatrix";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,8 +29,26 @@ interface ArchitectureLayerStackProps {
   chatRulesTemplate: string;
   toolMode: ToolMode;
   agentsMdTemplate?: string;
+  stage2Folder?: string;
+  stageFolders?: { stufe1?: string; stufe2?: string; stufe3?: string };
   onCopyTemplate?: () => void;
   contextWindowSpec?: AnimaticSpecs["contextWindow"];
+}
+
+function renderInlineCode(text: string) {
+  const parts = String(text || "").split(/(`[^`]+`)/g);
+  return parts.map((part, idx) =>
+    part.startsWith("`") && part.endsWith("`") && part.length >= 2 ? (
+      <code
+        key={idx}
+        className="rounded bg-muted px-1 py-0.5 font-mono text-[12px] text-foreground"
+      >
+        {part.slice(1, -1)}
+      </code>
+    ) : (
+      part
+    )
+  );
 }
 
 export function ArchitectureLayerStack({
@@ -30,6 +56,8 @@ export function ArchitectureLayerStack({
   chatRulesTemplate,
   toolMode,
   agentsMdTemplate,
+  stage2Folder = "stufe-2-skills-guardrails",
+  stageFolders,
   onCopyTemplate,
   contextWindowSpec,
 }: ArchitectureLayerStackProps) {
@@ -38,6 +66,7 @@ export function ArchitectureLayerStack({
   const active = layers[activeIdx] || layers[0];
   const usesRepoAgents = toolMode !== "web" && Boolean(agentsMdTemplate);
   const activeTemplate = usesRepoAgents ? agentsMdTemplate! : chatRulesTemplate;
+  const resolvedStage2Folder = stageFolders?.stufe2 || stage2Folder;
 
   return (
     <div className="space-y-5">
@@ -56,8 +85,10 @@ export function ArchitectureLayerStack({
             {toolMode === "web"
               ? "In Web-Chats gelten Regeln nur für das aktuelle Fenster — dauerhafte System-Regeln halten Quellenpflicht und Format auch in langen Verläufen stabil."
               : toolMode === "desktop"
-                ? "In Claude Cowork lädt AGENTS.md automatisch aus dem entpackten Ordner; in ChatGPT / Claude.ai Projects fügst du die Regeln einmal in die Projekt-Anweisungen ein."
-                : "Code-Agent kombiniert AGENTS.md, Skills und MCP-Werkzeuge zu einem verlässlichen Projekt-System."}
+                ? "In Claude Cowork lädt AGENTS.md automatisch aus dem entpackten Ordner; in ChatGPT / Claude.ai Projects oder Gemini Gems fügst du die Regeln einmal in die Projekt-Anweisungen ein."
+                : toolMode === "ide"
+                  ? "In Google Antigravity, Cursor, Windsurf & VS Code steuern AGENTS.md (oder .github/copilot-instructions.md) und gezielte Datei-Referenzen (@ bzw. #file: in VS Code Copilot) jedes Chat- und Code-Ergebnis."
+                  : "CLI Code-Agent kombiniert AGENTS.md, Skills und MCP-Werkzeuge zu einem verlässlichen Projekt-System."}
           </p>
         </div>
 
@@ -92,13 +123,13 @@ export function ArchitectureLayerStack({
                     toolMode === "desktop" ? (
                       <>
                         In Claude Cowork greift diese Regel automatisch aus{" "}
-                        <code>stufe-2-skills-guardrails/</code>. In ChatGPT oder Claude.ai Projects
-                        kopierst du den Text einmal in die Projekt-Anweisungen.
+                        <code>{resolvedStage2Folder}/</code>. In ChatGPT / Claude.ai Projects oder Gemini
+                        Gems kopierst du den Text einmal in die Projekt-Anweisungen.
                       </>
                     ) : (
                       <>
                         Diese Datei steuert dein Werkzeug automatisch im Ordner{" "}
-                        <code>stufe-2-skills-guardrails/</code>.
+                        <code>{resolvedStage2Folder}/</code>.
                       </>
                     )
                   ) : (
@@ -204,7 +235,9 @@ export function ArchitectureLayerStack({
                 <div className="mb-1 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
                   Konkret im Workshop
                 </div>
-                <p className="wrap-safe text-sm leading-relaxed text-foreground">{active.example}</p>
+                <p className="wrap-safe text-sm leading-relaxed text-foreground">
+                  {renderInlineCode(active.example)}
+                </p>
               </div>
             </motion.div>
           </AnimatePresence>
@@ -213,6 +246,18 @@ export function ArchitectureLayerStack({
 
       {/* Embedded Context Window Animatic */}
       <ContextWindowAnimatic spec={contextWindowSpec} onResetChat={onCopyTemplate} />
+
+      {/* Collapsible Tool Translation Matrix */}
+      <Accordion type="single" collapsible className="rounded-2xl border bg-card px-5">
+        <AccordionItem value="tool-matrix" className="border-none">
+          <AccordionTrigger className="font-display text-sm font-semibold">
+            Übersetzungsmatrix „Konzept → Dein Tool“ (alle {TOOL_TRANSLATION_MATRIX.length} Ziel-Tools entlang der 5 Ebenen)
+          </AccordionTrigger>
+          <AccordionContent className="pb-4">
+            <ToolTranslationMatrix activeToolMode={toolMode} stageFolders={stageFolders} />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }

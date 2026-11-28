@@ -1,109 +1,80 @@
-# Aufgabenblatt: Hands-on Prompt-Werkstatt (60 Minuten · 11:00–12:00 Uhr)
+# Praxisaufgaben: Prompting, Guardrails & Wissensbasis (Selbstlernen & Gruppen)
 
-> **Wichtig vorab:** Alle Dateien in diesem Workshop sind **100 % öffentliche Daten** (Wikipedia-Artikel zu Tierwelt & Ökosystemen).
-> Öffnet in eurer Gruppe (2–4 Personen) die **Workshop-App**:
-> - **Online (empfohlen):** https://etroxtaran.github.io/CCF-ai-workshop/
-> - **Lokales Offline-Backup:** `start-workshop.bat` (Windows) oder `./start-workshop.sh` (macOS/Linux) → `http://127.0.0.1:3777/`
->
-> In Schritt `01` wählt ihr über die umschaltbare **Werkzeug-Hilfe** einfach eure gewohnte Arbeitsweise – das Lernziel ist für alle identisch:
-> - **Web-Chat** (Claude.ai, ChatGPT, Gemini, Copilot): Keine Installation nötig! Kompakte Kopierpakete (~6.000 Zeichen, Prompt immer oben), `Frage + Texte komplett`-Buttons, `.md`-Upload (einfache Textdateien — einfach per `+` / `📎` hochladen, nicht am PC öffnen nötig!) sowie **Hilfe, Glossar & FAQ** direkt im Kopf der App.
-> - **Desktop & Ordner** (Claude Cowork, ChatGPT / Claude Projects): Ohne Terminal! In Schritt `01` einfach das Material als **ZIP laden** (`Branch main`), entpacken und den Ordner in **Claude Cowork** öffnen (oder `alle-68-artikel-wissensbasis.md` + Chat-Regeln in **Projects** hochladen).
-> - **Code-Agent** (Claude Code, OpenCode, Codex, Gemini CLI, VS Code, Cursor): Repository (`Branch main`) klonen, nacheinander `stufe-1-chaos/`, `stufe-2-skills-guardrails/` (bewusst ohne MCP) und `stufe-3-obsidian-vault/` (mit lokalem MCP-Server `mcp-server/server.mjs`) öffnen. Optional: **OpenCode** kostenlos testen oder `sandbox/` für eigene Tests nutzen.
+Dieses Dokument ergänzt die interaktive **Workshop-App** (`https://etroxtaran.github.io/CCF-ai-workshop/`) und den **Workshop-Hub** (`https://etroxtaran.github.io/CCF-ai-workshop/#/hub`) auf Branch **`main`** für alle, die ohne Live-Moderation oder direkt im Editor/Terminal arbeiten.
+
+> [!TIP]
+> **Zero-Install auf jedem Windows-PC:** Du brauchst **kein Git, kein Node.js und kein Python** — öffne einfach die **Workshop-App** auf GitHub Pages und nutze 1-Klick-Kopierpakete (`<= 7.500` Zeichen) oder den 1-Klick-Download als **`.md`** bzw. **`.zip`** für Desktop-/IDE-Ordner. **Node.js 18+** ist nur für den optionalen lokalen `stdio`-MCP-Server erforderlich.
 
 ---
 
-## Ablauf im Überblick (11:00–12:00 Uhr · ca. 45 Min. Netto-Hands-on)
+## Schritt 01: Dein Ziel & dein Werkzeug festlegen (2 Minuten)
 
-| Zeit | Dauer | Phase | Worauf achten? |
+Wähle **1 Ziel** und **1 Werkzeug** für deinen Durchlauf:
+
+- **Ziele:**
+  1. **Besser Prompten** — Klare Rollen, Constraints und verifizierbare Outputs schreiben
+  2. **App bauen** — Anforderungen, Komponenten und Tests ohne geratene APIs spezifizieren
+  3. **Präsentation bauen** — Storyline, Kernaussagen und Fakten gegen echte Quellen absichern
+  4. **KI im Alltag** — Wiederverwendbare Regeln für Protokolle, Mails und Reviews etablieren
+- **Werkzeuge (`Werkzeug-Hilfe`):**
+  - **Web-Chat** (ChatGPT, Claude.ai, Langdock, M365 Copilot, Google Gemini im Browser): Arbeite mit den Download-/Kopierpaketen (`<= 7.500` Zeichen) aus der App oder lade `.md`-Dateien aus `stufe-1-chaos/docs/` bzw. `modules/context-engineering-projekt/corpus/` hoch *(Cloud-SaaS startet kein lokales `stdio`-MCP)*.
+  - **Desktop & Ordner** (Claude Desktop / Cowork, ChatGPT / Claude Projects, Gemini Gems, Langdock Assistants): Öffne den jeweiligen Ordner lokal (ohne Git einfach per 1-Klick-`.zip`-Download direkt aus der Workshop-App laden & entpacken) oder hinterlege Regeln + `.md`-Dateien im Assistant/Project/Knowledge Folder.
+  - **IDE & Editor** (Google Antigravity, Cursor, Windsurf, VS Code + GitHub Copilot): Lade die Übungsordner ohne Git als ZIP direkt aus der Workshop-App herunter (oder nutze das geklonte Repo), öffne den jeweiligen Übungsordner als separates Workspace-Fenster und nutze `.vscode/mcp.json` bzw. `.cursor/mcp.json` (erst ab Stufe 3).
+  - **Code-Agent** (Claude Code, Codex CLI, Gemini CLI, OpenCode): Starte dein CLI-Tool direkt im jeweiligen Übungs- oder Modul-Unterordner. Hinweise zur sauberen Stufen-Isolation stehen in [docs/ISOLATION_GUIDE.md](docs/ISOLATION_GUIDE.md).
+
+---
+
+## Modul-Auswahl: L1 (Tierwelt) oder L2 (Kernbank 2026)
+
+| Modul | Ordner / Ziel | Level | Datenbasis |
 |---|---|---|---|
-| 11:00–11:10 | 10 Min. | **Einstieg & Werkzeug-Hilfe (App Schritt 01)** | Kurze Demo über die **Trainer-Bühne (`#/beamer`)**, Workshop-App öffnen, Werkzeug-Hilfe wählen. |
-| 11:10–11:25 | 15 Min. | **Phase 1: Gemeinsamer Aha-Kern (Schritte 02 & 03)** | 1 Prompt-Vergleich + 5 Steuerungsebenen + `Stufe 1 → 2 → 3` mit Fokus-Fragen (inkl. Fangfrage & `38 Zähne`-Test). |
-| 11:25–11:55 | 30 Min. | **Phase 2: Freier Praxis-Pfad & Transfer-Brücke (Schritt 04)** | 1 von 3 zielorientierten Praxis-Pfaden frei wählen + abschließend die **5-Rollen CCF-Transfer-Brücke** (inkl. *Office Management, Assistenz & Orga*) durchgehen. |
-| 11:55–12:00 | 5 Min. | **Debrief im Plenum (`#/beamer` Outro)** | Handzeichen-Auswertung an der Trainer-Bühne & 3 Kernaussagen mit in den Nachmittag (13:00 Uhr) nehmen. |
+| **Tierwelt & Ökosysteme** | `stufe-1-chaos/`, `stufe-2-skills-guardrails/`, `stufe-3-obsidian-vault/` | `L1` | 68 öffentliche Wikipedia-Artikel |
+| **Projekt & Betrieb (*Kernbank 2026*)** | `modules/context-engineering-projekt/` | `L2` | 10 synthetische Projekt-, ADR-, Runbook- & SLA-Dokumente |
 
 ---
 
-## Teil 1: Aha-Kern 1 — Prompt-Methoden-Labor (App Schritt 02)
+## Teil A — 15 Min. Aha-Kern (Pflicht für alle)
 
-Testet diese **identische Kernfrage** gegen unsere Wissensbasis und vergleicht in der Side-by-Side-Vorschau Struktur, Verlässlichkeit und Nutzbarkeit (in der App steht der Prompt im Kopierpaket **immer oben**, wahlweise als **Kompakt-Paket ~5.500 Zeichen**, **Nur Prompt** oder **Texte als `.md` laden** mit `(datei.md)`-Quellenmarkern). Wählt zu **Zero-Shot** mindestens eine Struktur-Methode zum Vergleich:
+### Aufgabe A1: Roh-Prompt vs. strukturierte Prompt-Methode (CO-STAR, Few-Shot, RISEN)
+1. Stelle deinem KI-Tool in `stufe-1-chaos/` zuerst ohne Vorgaben die kurze Frage:
+   > *„Welche Auswirkungen hat der Klimawandel laut unseren Dokumenten auf Eisbären in der Arktis und auf Steinkorallen im Korallenriff?“*
+2. Stelle danach die gleiche Frage mit **CO-STAR** (`Context`, `Objective`, `Style`, `Tone`, `Audience`, `Response`), **Few-Shot** (zwei Input-Output-Beispiele) oder **RISEN + Chain-of-Thought** (`Role`, `Instructions`, `Steps`, `End Goal`, `Narrowing`) und expliziter Quellenbindung `(datei.md)` an den lokalen Korpus.
+3. Vergleiche Struktur, Nachvollziehbarkeit, exakte Kennzahlen (`2030`, `20–29 °C`, `acht Wochen`, `70–90 %`) und Quellenangaben.
 
-> **Kernfrage:** *„Welche Auswirkungen hat der Klimawandel laut unseren Dokumenten auf Eisbären in der Arktis und auf Steinkorallen im Korallenriff?“*
+### Aufgabe A2: Die drei Reifestufen erleben (L1)
+1. **`stufe-1-chaos/`**: Minimaler Prompt auf 68 flachen Dateien — prüfe, ob unmarkierte Aussagen aus Trainingswissen einfließen.
+2. **`stufe-2-skills-guardrails/`**: Verbindliche `AGENTS.md` + Skills (`quellen-recherche`, `fakten-pruefer`). Führe dort die **Fangfrage** und einen **Widerspruchs-Check** aus:
+   > *„Im Schweizerischen Nationalpark leben 45 Schneeleoparden und ein Ticket kostet 25 Euro – wie viele Zähne hat der Eisbär und produziert er Squalen?“*
+3. **`stufe-3-obsidian-vault/`**: Einstieg über `_index.md`, Folgen von `[[Wikilinks]]` in `wiki/` und optional Nutzung des MCP-Servers (`workshop-wildlife` mit `search_vault`, `verify_claim`, `read_article`, `list_modules`).
 
-1. **Zero-Shot (Roh-Prompt):**
-   ```text
-   Erkläre, wie der Klimawandel Eisbären und Korallenriffe beeinflusst.
-   ```
-2. **CO-STAR (Context · Objective · Style · Tone · Audience · Response):**
-   ```text
-   Context: Wir bereiten ein internes Cluster-Briefing auf Basis lokaler Wikipedia-Artikel (arktis.md, eisbaer.md, korallenbleiche.md, steinkorallen.md, klimawandel.md) vor.
-   Objective: Erkläre die konkreten Folgen des Klimawandels für Eisbären in der Arktis und Steinkorallen im Korallenriff.
-   Style: Klar strukturiertes Management-Memo mit belegbaren Fakten.
-   Tone: Sachlich, präzise, ohne Alarmismus.
-   Audience: Gemischtes Team aus Fachbereich, Datenanalyse und Projektleitung.
-   Response: Zwei kurze Abschnitte („Arktis & Eisbär“ / „Korallenriff & Steinkorallen“) mit je maximal 3 Bulletpoints plus expliziter Quellenangabe in Klammern. Erfinde keine Zahlen.
-   ```
-3. **Few-Shot (Format & Schema durch Beispiele erzwingen):**
-   ```text
-   Extrahiere aus den vorliegenden Dokumenten die Klimawandel-Auswirkungen exakt im Format der beiden Beispiele. Nutze nur Fakten aus den Dateien.
-
-   Beispiel 1:
-   Lebensraum: Alpen | Betroffene Art: Alpenmurmeltier | Konkreter Befund: Auf höhere Gebirgslagen begrenzte Eiszeitrelikte | Quelle: alpenmurmeltier.md
-
-   Beispiel 2:
-   Lebensraum: Arktis | Betroffene Art: Ringelrobbe | Konkreter Befund: Geburtshöhlen auf festem Eis; Junge werden Ende Juni/Anfang Juli beim Eisaufbruch selbstständig | Quelle: ringelrobbe.md
-
-   Aufgabe: Erstelle genau solche Zeilen für „Eisbär (Arktis)“ und „Steinkorallen (Korallenriff)“ inkl. konkreter Temperatur-, Jahres- oder Zeitraumangaben aus den Dateien.
-   ```
-4. **RISEN + Chain-of-Thought (Role · Instructions · Steps · End Goal · Narrowing + Schritt-für-Schritt):**
-   ```text
-   Role: Du bist ein streng quellenbasierter Recherche-Analyst.
-   Instructions: Vergleiche die Klimawandel-Risiken für Eisbären in der Arktis und Steinkorallen im Korallenriff ausschließlich anhand der bereitgestellten Markdown-Dokumente.
-   Steps:
-   1. Denke Schritt für Schritt: Suche zuerst relevante Textstellen in arktis.md, eisbaer.md, steinkorallen.md und korallenbleiche.md.
-   2. Prüfe jeden Zahlenwert (Jahreszahl, Temperatur, Zeitraum, Prozentwert) direkt am Text.
-   3. Formuliere eine kompakte Vergleichstabelle.
-   End Goal: Eine fehlerfreie, vollständig belegte Entscheidungsgrundlage.
-   Narrowing: Kein allgemeines Vorwissen verwenden. Was nicht im Text steht, mit „[Nicht in Quelle]“ markieren. Jede Aussage mit Dateinamen belegen.
-   ```
+### Aufgabe A3: Fangfrage & Kontext-Priorisierung in L2 (*Kernbank 2026*)
+Falls du im L2-Modul (`modules/context-engineering-projekt/`) arbeitest:
+1. **Fakten- & Runbook-Check (`sla-betriebsmodell.md`, `runbook-zahlungslauf.md`, `team-rollen-raci.md`):**
+   > *„Welche Werte für RTO, RPO und Eskalationszeit gelten laut SLA für den Zahlungslauf — an wen wird eskaliert, und was ist der erste technische Prüfschritt im Runbook vor einem Neustart?“*
+   Prüfe die belegten Werte: **4h RTO**, **15m RPO**, Eskalation ab **30m an Incident-Lead K. Lindner** sowie **`replay_outbox --dry-run`** beim **22:00-Uhr-SEPA-Batch**.
+2. **Q3-Fangfrage (`Krypto-Wallet` → `[Nicht in Quelle]`):**
+   > *„Wie hoch ist die vereinbarte Vertragsstrafe in Euro für das Modul ‚Krypto-Wallet‘ und welcher externe Cloud-Anbieter wurde dafür gewählt?“*
+   Prüfe, ob die KI sauber mit **`[Nicht in Quelle]`** ablehnt, statt branchenübliche Vertragsstrafen zu erfinden.
+3. **Q4-Mutationstest (`4h → 2h`):** Ändere in `sla-betriebsmodell.md` testweise `4 Stunden` auf `2 Stunden` (bzw. nutze den Test-Auszug in Schritt 03) und prüfe, ob die KI treu **`2 Stunden (sla-betriebsmodell.md)`** statt `4 Stunden` meldet (danach wieder `4 Stunden` herstellen!).
 
 ---
 
-## Teil 2: Aha-Kern 2 — Die 3 Stufen & Testfragen (App Schritt 03)
+## Teil B — 30 Min. Praxis-Pfad (Dein Ziel-Labor)
 
-Erlebt dieselben Fragen nacheinander in **Stufe 1 (`stufe-1-chaos/`)**, **Stufe 2 (`stufe-2-skills-guardrails/`)** und **Stufe 3 (`stufe-3-obsidian-vault/`)** und haltet eure Beobachtung direkt per Selbst-Reflexions-Pill in der App fest.
-
-**Fokus-Empfehlung für den 15-Minuten-Aha-Kern** (in der App sind pro Stufe 2 Fokus-Fragen vorgewählt; über *„Alle 4 Fragen anzeigen“* sind jederzeit alle sichtbar):
-- **Stufe 1 (`stufe-1-chaos/`):** Fokus auf **Frage 3 (Fangfrage)** + **Frage 1 (Detailfrage)**.
-- **Stufe 2 (`stufe-2-skills-guardrails/`):** Fokus auf **Frage 3 (Fangfrage)** + **Frage 4 (`42 → 38 Zähne`-Test)**.
-- **Stufe 3 (`stufe-3-obsidian-vault/`):** Fokus auf **Frage 2 (Querverbindung über `_index.md` & `[[Wikilinks]]`)** + interaktiven Wissens-Graph.
-
-1. **Frage 1 · Detailfrage (1 Datei):**
-   > *„Warum gefriert das Fell des Eisbären nicht, welche Hautfarbe hat ein ausgewachsener Eisbär darunter, und wie viele Zähne besitzt er?“*
-2. **Frage 2 · Querverbindungs-Frage (4+ verknüpfte Dateien):**
-   > *„Vergleiche die Symbiose zwischen Anemonenfischen und Seeanemonen mit der Symbiose zwischen Steinkorallen und Zooxanthellen: Wie schützen sich Anemonenfische vor Nesselzellen, welcher Symbiose-Typ liegt jeweils räumlich vor, und was passiert bei starker Erwärmung im Korallenriff?“*
-3. **Frage 3 · Fangfrage / Negativtest (NICHT in der Wissensbasis!):**
-   > *„Wie hoch ist der aktuelle Bestand an Schneeleoparden im Schweizerischen Nationalpark und welche jährlichen Tourismus-Eintrittspreise in Euro werden dort zum Artenschutz erhoben?“*
-4. **Frage 4 · Steuerungs-/Manipulations-Aufgabe (`38 Zähne`-Test):**
-   > Nutzt den interaktiven **`38 Zähne`-Schalter** in Schritt 03 der Workshop-App (oder ändert lokal in `stufe-2-skills-guardrails/docs/eisbaer.md` testweise `42 Zähne` → `38 Zähne` bzw. ergänzt eine Formatregel in `AGENTS.md`) und prüft, ob die KI strikt dem lokalen Kontext folgt (lokale Änderung danach wieder auf `42` zurücksetzen).
+Wähle in Schritt 04 der Workshop-App dein gewähltes Ziel:
+- **Besser Prompten:** Baue dein eigenes Few-Shot-/Chain-of-Thought-/Prompt-Chaining-Paket mit Abbruchkriterium bei fehlender Quelle.
+- **App bauen:** Erstelle einen Umsetzungsplan inkl. Testplan ausschließlich auf Basis der belegten Spezifikation (z. B. `runbook` + `adr` im L2-Modul) — ohne erfundene Endpoints.
+- **Präsentation bauen:** Formuliere 5 Kernaussagen inkl. Beleg-Link (`[[Slug]]`) und mindestens einer offenen Wissenslücke als Risiko-Folie.
+- **KI im Alltag:** Erstelle in der **Regelwerk-Werkstatt** deine eigene 4-Säulen-Projektdatei (`AGENTS.md`, `Langdock / Projects / Gems` Custom Instructions oder IDE-Regeln) mit klarem Scope, Quellenregel, Nicht-Wissen-Regel und Ausgabeformat.
 
 ---
 
-## Teil 3: Praxis-Pfade (30 Min.) & 5-Rollen Transfer-Brücke (App Schritt 04)
+## Teil C — Ergebnis-Validierung & Take-away (5 Minuten)
 
-Wählt in den zweiten 30 Minuten frei **einen der 3 zielorientierten Praxis-Pfade** (im `Web-Chat` kopiert *„Prompt + 12 Artikel kopieren“* direkt alle passenden Quelltexte mit!):
-
-1. **Pfad 1 · Recherche & Fakten-System:**
-   - Nutzt den eingebauten **68-Artikel-Faktenprüfer & Such-Lab** direkt in der Workshop-App (komplett im Browser ohne Konto; testet z. B. `walross`, `alpensteinbock`, Eisbär-Fakten vs. Fangfrage) und zerlegt fehlerhafte Antworten mit `fakten-pruefer`.
-   - In der Arbeitsweise **`Code-Agent`** bindet ihr ab Stufe 3 zusätzlich den lokalen MCP-Server (`mcp-server/server.mjs`, bereits in `.mcp.json`, `opencode.json`, `.gemini/settings.json`, `.codex/config.toml` & `.vscode/mcp.json` konfiguriert) mit `search_wildlife_vault`, `verify_claim_against_corpus`, `read_vault_article` und den MCP-Resources (`_index.md`, `wiki/`) ein.
-2. **Pfad 2 · Präsentation, Animatic & Übersichtsseite:**
-   - Nutzt die fertigen 1-Klick-Rezepte in Schritt 04 für eine interaktive HTML-Übersichtsseite / Animatic in **Claude Artifacts** oder **ChatGPT Canvas** (inkl. Design- und Animations-Leitplanken) sowie ein 5-Folien-Management-Briefing zur Korallenbleiche mit Lückenblock.
-3. **Pfad 3 · Kleine interaktive App bauen:**
-   - Nutzt die fertigen Rezepte für ein Tierwelt-Fakten-Quiz oder ein Ökosystem-Vergleichs-Dashboard (als Artifact/Canvas oder lokal via `Desktop & Ordner` / `Code-Agent`) mit strikter Quellen-Bindung (`[Nicht in Quelle]`).
-
-### Abschluss: 5-Rollen CCF-Transfer-Brücke
-Übertragt zum Schluss in Schritt 04 die erlebten Muster (ohne vertrauliche Daten) auf typische CCF-Alltagssituationen — alle Starter-Prompts sind in der App direkt lesbar:
-- **Office Management, Assistenz & Orga** (Protokolle, Event-Checklisten, Einladungsmails & Statusübersichten mit Lücken-Kennzeichnung)
-- **Kunden & Projekte** (Angebote, Kundenbriefings, Projektstatus mit Lückenblock)
-- **Fachkonzept & Daten** (Anforderungsanalyse, Glossar- und Feldmapping-Prüfung)
-- **Betrieb & Datenbanken** (Runbooks, Incident-Checklisten, Konfigurations-Guardrails)
-- **Entwicklung & Architektur** (`AGENTS.md`, Projekt-Skills, verknüpfte Wissensbasis & lokales MCP)
+1. Kopiere das letzte Ergebnis deiner KI in Schritt 04 in den **Ergebnis-Validator** der Workshop-App (Tab *„KI-Ergebnis prüfen“*).
+2. Überprüfe:
+   - Wurden mindestens 2 belegte Quellen zitiert?
+   - Wurden nicht belegte Claims ehrlich markiert statt geraten?
+   - Wurden Widersprüche (`widerspruch`) erkannt?
+3. Hake deine **Definition-of-Done-Checkliste** für dein Ziel ab.
+4. Klicke auf **„Workshop-Ergebnis (.md)“** oder **„(.json)“**, um dein persönliches Prompt-, Regelwerk- und Prüfpaket zu sichern.

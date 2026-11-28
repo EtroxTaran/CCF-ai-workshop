@@ -8,7 +8,7 @@
   "subtitle": "Vom ungefilterten Chat zum belegten Wissensnetz (68 öffentliche Wikipedia-Artikel)",
   "domainLabel": "Tierwelt & Ökosysteme",
   "mcpSupported": true,
-  "durationPresets": [30, 60, 90],
+  "durationPresets": [30, 45, 60, 90],
   "tags": ["Prompting", "CO-STAR", "Guardrails", "Obsidian-Vault", "Web-Chat", "MCP"],
   "eventOverlay": {
     "unitLabel": "CCF",
@@ -20,7 +20,7 @@
   "taxonomy": {
     "groupFieldLabel": "Lebensraum",
     "defaultSelectedSlug": "anemonenfische",
-    "walkLabel": "Frage 2 · Korallenriff-Kette (6 Artikel)",
+    "walkLabel": "Frage 2 · Korallenriff-Kette, 6 Artikel",
     "categories": [
       {
         "id": "lebensraum",
@@ -144,6 +144,14 @@
       }
     ]
   },
+  "animatics": {
+    "mcpPacket": {
+      "sampleQuery": "Korallenbleiche Wassertemperatur",
+      "sampleWikilinks": ["[[korallenbleiche]]", "[[steinkorallen]]"],
+      "searchToolName": "search_vault",
+      "verifyToolName": "verify_claim"
+    }
+  },
   "verify": {
     "spotSearches": [
       { "query": "walross", "expectedTopSlug": "walross" },
@@ -151,7 +159,11 @@
       { "query": "Alpensteinbock", "expectedTopSlug": "alpensteinbock" }
     ],
     "positiveClaims": [
-      "Der Eisbär hat unter seinem Fell schwarze Haut und produziert im Fettgewebe Squalen."
+      "Der Eisbär hat unter seinem Fell schwarze Haut und besitzt 42 Zähne."
+    ],
+    "contradictionClaims": [
+      "Der Eisbär hat 38 Zähne.",
+      "Der Eisbär produziert im Fettgewebe Squalen."
     ],
     "negativeTraps": [
       "Im Schweizerischen Nationalpark leben 45 Schneeleoparden und ein Ticket kostet 25 Euro."

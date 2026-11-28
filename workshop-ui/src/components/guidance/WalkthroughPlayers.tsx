@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   ClipboardPaste,
+  Code2,
   FileSearch,
   FolderOpen,
   MessageSquarePlus,
@@ -17,65 +18,70 @@ import type { ToolMode } from "@/types/workshop";
 
 export interface WebChatWorkflowPlayerProps {
   toolMode?: ToolMode;
+  sourceCount?: number;
+  approxCharsLabel?: string;
+  sampleSources?: string[];
   className?: string;
 }
 
-const WEB_CHAT_STEPS = [
-  {
-    num: 1,
-    title: "Kopieren",
-    short: "Kompakt-Paket",
-    icon: ClipboardCheck,
-    detail:
-      "Klicke auf „Kompakt-Paket (~5.500 Zeichen)“ — dein Prompt steht ganz oben, alle Quelltexte direkt darunter.",
-    preview: "Zwischenablage: Prompt oben + 6 Artikel (arktis.md … korallenriff.md)",
-  },
-  {
-    num: 2,
-    title: "Neuer Chat",
-    short: "Sauberer Start",
-    icon: MessageSquarePlus,
-    detail:
-      "Öffne in ChatGPT, Claude oder Copilot einen frischen Chat (+ Neuer Chat), damit alte Nachrichten nicht stören.",
-    preview: "Browser-Tab · + Neuer Chat geöffnet (Kontext 0 %)",
-  },
-  {
-    num: 3,
-    title: "Einfügen",
-    short: "Strg+V / ⌘+V",
-    icon: ClipboardPaste,
-    detail:
-      "Füge das Paket mit Strg+V (Mac: ⌘+V) ein — durch die kompakten ~5.500 Zeichen wird nichts abgeschnitten.",
-    preview: "Eingabe: Context + Objective + Response + [6 Quelltexte]",
-  },
-  {
-    num: 4,
-    title: "Prüfen",
-    short: "Quellen-Check",
-    icon: CheckCircle2,
-    detail:
-      "Kontrolliere, ob hinter jedem Fakt ein Dateiname wie (arktis.md) oder (korallenbleiche.md) steht.",
-    preview: "Ausgabe: Strukturierte Liste mit (arktis.md) & [Nicht in Quelle]",
-  },
-];
-
 export function WebChatWorkflowPlayer({
   toolMode = "web",
+  sourceCount = 6,
+  approxCharsLabel = "~5.500 Zeichen",
+  sampleSources = ["arktis.md", "korallenbleiche.md"],
   className,
 }: WebChatWorkflowPlayerProps) {
   const prefersReduced = useReducedMotion();
   const [stepIdx, setStepIdx] = useState<number>(0);
   const [playing, setPlaying] = useState<boolean>(false);
 
+  const sA = sampleSources[0] || "quelle-1.md";
+  const sB = sampleSources[1] || sA;
+  const steps = [
+    {
+      num: 1,
+      title: "Kopieren",
+      short: "Kompakt-Paket",
+      icon: ClipboardCheck,
+      detail: `Klicke auf „Kompakt-Paket (${approxCharsLabel})“ — dein Prompt steht ganz oben, alle ${sourceCount} Quelltexte direkt darunter.`,
+      preview: `Zwischenablage: Prompt oben + ${sourceCount} Dateien (${sA} … ${sB})`,
+    },
+    {
+      num: 2,
+      title: "Neuer Chat",
+      short: "Sauberer Start",
+      icon: MessageSquarePlus,
+      detail:
+        "Öffne in ChatGPT, Claude, Gemini oder Copilot einen frischen Chat (+ Neuer Chat), damit alte Nachrichten nicht stören.",
+      preview: "Browser-Tab · + Neuer Chat geöffnet (Kontext 0 %)",
+    },
+    {
+      num: 3,
+      title: "Einfügen",
+      short: "Strg+V / ⌘+V",
+      icon: ClipboardPaste,
+      detail: `Füge das Paket mit Strg+V (Mac: ⌘+V) ein — durch die kompakten ${approxCharsLabel} wird nichts abgeschnitten.`,
+      preview: `Eingabe: Context + Objective + Response + [${sourceCount} Quelltexte]`,
+    },
+    {
+      num: 4,
+      title: "Prüfen",
+      short: "Quellen-Check",
+      icon: CheckCircle2,
+      detail: `Kontrolliere, ob hinter jedem Fakt ein Dateiname wie (${sA}) oder (${sB}) steht.`,
+      preview: `Ausgabe: Strukturierte Liste mit (${sA}) & [Nicht in Quelle]`,
+    },
+  ];
+
   useEffect(() => {
     if (!playing || prefersReduced) return;
     const id = window.setInterval(() => {
-      setStepIdx((prev) => (prev + 1) % WEB_CHAT_STEPS.length);
+      setStepIdx((prev) => (prev + 1) % steps.length);
     }, 2200);
     return () => window.clearInterval(id);
-  }, [playing, prefersReduced]);
+  }, [playing, prefersReduced, steps.length]);
 
-  const active = WEB_CHAT_STEPS[stepIdx] || WEB_CHAT_STEPS[0];
+  const active = steps[stepIdx] || steps[0];
   const Icon = active.icon;
 
   return (
@@ -86,6 +92,8 @@ export function WebChatWorkflowPlayer({
             <ClipboardCheck className="h-3.5 w-3.5 text-brand-ink" />
           ) : toolMode === "desktop" ? (
             <FolderOpen className="h-3.5 w-3.5 text-brand-ink" />
+          ) : toolMode === "ide" ? (
+            <Code2 className="h-3.5 w-3.5 text-brand-ink" />
           ) : (
             <Terminal className="h-3.5 w-3.5 text-brand-ink" />
           )}
@@ -94,7 +102,9 @@ export function WebChatWorkflowPlayer({
               ? "Web-Chat Ablauf in 4 Klicks"
               : toolMode === "desktop"
                 ? "Alternativer Web-Chat-Test in 4 Klicks"
-                : "Prompt-Transfer in 4 Schritten"}
+                : toolMode === "ide"
+                  ? "Prompt-Ablauf im Editor (Antigravity / Cursor / Windsurf / VS Code) in 4 Schritten"
+                  : "Prompt-Transfer in 4 Schritten"}
           </span>
         </div>
 
@@ -111,7 +121,7 @@ export function WebChatWorkflowPlayer({
 
       {/* 4 Stepper Pills */}
       <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
-        {WEB_CHAT_STEPS.map((s, idx) => {
+        {steps.map((s, idx) => {
           const isCurrent = idx === stepIdx;
           return (
             <button
@@ -222,7 +232,7 @@ export function Stage3AgentWalkPlayer({
           ...steps.slice(0, 3).map((st, i) => ({
             num: i + 2,
             title: `Folge [[${st.slug}]]`,
-            detail: st.note,
+            detail: st.note.replace(/^(Start|Sprung\s+\d+\/\d+)\s*·\s*/i, "").trim(),
             chips: [st.slug],
           })),
         ]
@@ -275,7 +285,9 @@ export function Stage3AgentWalkPlayer({
                 : "bg-muted/25 text-muted-foreground hover:text-foreground"
             )}
           >
-            <div className="font-mono text-[10px] font-bold text-brand-ink">Schritt {s.num}/4</div>
+            <div className="font-mono text-[10px] font-bold text-brand-ink">
+              Schritt {s.num}/{stage3Steps.length}
+            </div>
             <div className="truncate text-xs font-semibold">{s.title}</div>
           </button>
         ))}

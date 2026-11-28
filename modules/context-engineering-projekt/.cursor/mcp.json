@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "workshop-context-engineering-projekt": {
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/../../mcp-server/server.mjs",
+        "--module",
+        "context-engineering-projekt"
+      ]
+    }
+  }
+}

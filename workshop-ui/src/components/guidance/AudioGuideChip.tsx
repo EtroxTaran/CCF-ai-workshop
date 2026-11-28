@@ -19,7 +19,7 @@ const AUDIO_SCRIPTS: Record<AudioGuideId, AudioGuideScriptSpec> = {
     title: "Einstieg in 20 Sekunden erklärt",
     durationLabel: "0:20",
     transcript:
-      "Öffne am besten jetzt schon einen zweiten Browser-Tab mit ChatGPT oder Claude. Hier oben wählst du nur aus, ob du im Browser arbeitest (Web-Chat), einen entpackten Ordner öffnest oder im Terminal entwickelst — umschalten geht jederzeit ohne Verlust.",
+      "Wähle hier Ziel und Werkzeug: Web-Chat (ChatGPT, Claude, Langdock, Gemini, M365 Copilot — am besten im zweiten Browser-Tab), Desktop & Ordner (Claude Cowork, Projects, Gems, Langdock Assistants), IDE & Editor (Antigravity, Cursor, Windsurf, VS Code Copilot) oder CLI Code-Agent (Claude Code, Codex, Gemini CLI, OpenCode) — umschalten geht jederzeit ohne Verlust.",
   },
   "step-02": {
     title: "Prompt-Methoden in 20 Sekunden erklärt",
@@ -43,15 +43,23 @@ const AUDIO_SCRIPTS: Record<AudioGuideId, AudioGuideScriptSpec> = {
 
 export function AudioGuideChip({
   clipId,
+  moduleId = "prompt-werkstatt-tierwelt",
   audioGuides,
   className = "",
 }: {
   clipId: AudioGuideId;
+  moduleId?: string;
   audioGuides?: Record<string, AudioGuideScriptSpec>;
   className?: string;
 }) {
-  const filename = `${clipId}.mp3`;
-  const hasAudioFile = AVAILABLE_AUDIO.has(filename);
+  const namespacedFile = `${moduleId}/${clipId}.mp3`;
+  const flatFile = `${clipId}.mp3`;
+  const resolvedAudioPath = AVAILABLE_AUDIO.has(namespacedFile)
+    ? namespacedFile
+    : AVAILABLE_AUDIO.has(flatFile)
+      ? flatFile
+      : null;
+  const hasAudioFile = resolvedAudioPath !== null;
   const spec = audioGuides?.[clipId] || AUDIO_SCRIPTS[clipId];
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -71,12 +79,12 @@ export function AudioGuideChip({
   }, []);
 
   function toggleAudio() {
-    if (!hasAudioFile) {
+    if (!hasAudioFile || !resolvedAudioPath) {
       setOpenTranscript((v) => !v);
       return;
     }
     if (!audioRef.current) {
-      const el = new Audio(`./audio/${filename}`);
+      const el = new Audio(`./audio/${resolvedAudioPath}`);
       el.playbackRate = rate;
       el.addEventListener("ended", () => setPlaying(false));
       el.addEventListener("pause", () => setPlaying(false));
@@ -95,32 +103,26 @@ export function AudioGuideChip({
 
   return (
     <div className={`rounded-xl border bg-muted/35 px-3 py-2 text-xs ${className}`}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={toggleAudio}
-          className="inline-flex items-center gap-2 font-semibold text-foreground hover:text-brand-ink"
-        >
-          {hasAudioFile ? (
-            playing ? (
+      {hasAudioFile ? (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={toggleAudio}
+            className="inline-flex items-center gap-2 font-semibold text-foreground hover:text-brand-ink"
+          >
+            {playing ? (
               <Pause className="h-3.5 w-3.5 text-brand-ink" />
             ) : (
               <Play className="h-3.5 w-3.5 text-brand-ink" />
-            )
-          ) : (
-            <FileText className="h-3.5 w-3.5 text-brand-ink" />
-          )}
-          <span>{spec.title}</span>
-          {hasAudioFile && (
+            )}
+            <span>{spec.title}</span>
             <span className="inline-flex items-center gap-1 rounded-full bg-secondary px-2 py-0.5 font-mono text-[10px] text-brand-ink">
               <Volume2 className="h-3 w-3" />
               {spec.durationLabel}
             </span>
-          )}
-        </button>
+          </button>
 
-        <div className="flex items-center gap-2">
-          {hasAudioFile && (
+          <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setRate((r) => (r === 1 ? 1.25 : 1))}
@@ -129,19 +131,38 @@ export function AudioGuideChip({
             >
               {rate}×
             </button>
-          )}
-          <button
-            type="button"
-            onClick={() => setOpenTranscript((v) => !v)}
-            className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-ink hover:underline"
-          >
-            <span>{openTranscript ? "Text ausblenden" : "Kurztext lesen"}</span>
+            <button
+              type="button"
+              aria-expanded={openTranscript}
+              onClick={() => setOpenTranscript((v) => !v)}
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-ink hover:underline"
+            >
+              <span>{openTranscript ? "Kurztext schließen" : "Kurztext-Hilfe"}</span>
+              <ChevronDown
+                className={`h-3.5 w-3.5 transition-transform ${openTranscript ? "rotate-180" : ""}`}
+              />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          type="button"
+          aria-expanded={openTranscript}
+          onClick={() => setOpenTranscript((v) => !v)}
+          className="flex w-full flex-wrap items-center justify-between gap-2 text-left font-semibold text-foreground hover:text-brand-ink"
+        >
+          <span className="inline-flex items-center gap-2">
+            <FileText className="h-3.5 w-3.5 shrink-0 text-brand-ink" />
+            <span>{spec.title}</span>
+          </span>
+          <span className="inline-flex items-center gap-1 text-[11px] font-medium text-brand-ink">
+            <span>{openTranscript ? "Kurztext schließen" : "Kurztext-Hilfe"}</span>
             <ChevronDown
               className={`h-3.5 w-3.5 transition-transform ${openTranscript ? "rotate-180" : ""}`}
             />
-          </button>
-        </div>
-      </div>
+          </span>
+        </button>
+      )}
 
       {openTranscript && (
         <p className="mt-2 border-t pt-2 leading-relaxed text-muted-foreground">{spec.transcript}</p>

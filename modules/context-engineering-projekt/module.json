@@ -6,13 +6,13 @@
   "badge": "Praxis · Synthetisches Projekt",
   "title": "Context Engineering · Projekt & Betrieb",
   "subtitle": "Eigene Leitplanken, Skills & vernetzter Projekt-Vault an 10 synthetischen Dokumenten (Kernbank 2026)",
-  "domainLabel": "Projekt, SLA & Governance",
+  "domainLabel": "Kernbank 2026 · Projekt, SLA & Governance",
   "mcpSupported": true,
-  "durationPresets": [30, 60, 90],
-  "tags": ["Level 2", "AGENTS.md", "Skills", "Runbooks", "RFP", "RTO/RPO"],
+  "durationPresets": [30, 45, 60, 90],
+  "tags": ["Context Engineering", "AGENTS.md", "Skills", "Runbooks", "RFP", "RTO/RPO"],
   "eventOverlay": {
     "unitLabel": "Praxis-Lab",
-    "timeSlot": "Flexibel (30 / 60 / 90 Min.)",
+    "timeSlot": "Flexibel (30 / 45 / 60 / 90 Min.)",
     "outroBanner": "Bereit für eigene anonymisierte Projekt-Ordner & Runbooks",
     "organizerNote": "L2 Vertiefung"
   },
@@ -144,11 +144,122 @@
   "meta": {
     "cluster": "Praxis-Lab · Projektalltag",
     "presenter": "Trainer-Team",
-    "timeSlot": "Flexibel (30 / 60 / 90 Min.)",
+    "timeSlot": "Flexibel (30 / 45 / 60 / 90 Min.)",
     "complianceNote": "100 % synthetische Beispieldaten (fiktive Nordstern Bank AG · keine echten Kunden- oder Personendaten).",
     "pagesUrl": "https://etroxtaran.github.io/CCF-ai-workshop/#/m/context-engineering-projekt",
-    "repoUrl": "https://github.com/EtroxTaran/CCF-ai-workshop"
+    "repoUrl": "https://github.com/EtroxTaran/CCF-ai-workshop.git"
   },
+  "phases": [
+    {
+      "id": "setup",
+      "number": 1,
+      "phaseGroup": "aha-kern",
+      "timeRange": "Start",
+      "durationMin": 5,
+      "title": "Einstieg & Projekt-Kontext (Kernbank 2026)",
+      "subtitle": "10 synthetische Dokumente · Ziel & Werkzeug wählen",
+      "beamerHeadline": "Live-Start: Warum Projekt-Kontext vor jeder Antwort entscheidet",
+      "modeCues": {
+        "web": "Öffne deinen Browser-Chat und kopiere das Kompakt-Paket zu Kernbank 2026 (RTO 4h / 15 Min. RPO).",
+        "desktop": "Öffne den Projekt-Ordner modules/context-engineering-projekt/ in Claude Cowork oder lade die 10 .md-Dateien in Projects/Assistants.",
+        "ide": "Öffne modules/context-engineering-projekt/ als Workspace und prüfe SLA & Runbook per @- bzw. Datei-Referenz.",
+        "agent": "Starte im Ordner modules/context-engineering-projekt/ — AGENTS.md, Skills und MCP (search_vault, verify_claim, read_article) laden dort lokal."
+      },
+      "activeQuestionId": "q1",
+      "keyTakeaway": "Werkzeug wählen und mit echten Projektdateien (RTO 4h / 15 Min. RPO) sauber starten."
+    },
+    {
+      "id": "methods",
+      "number": 2,
+      "phaseGroup": "aha-kern",
+      "timeRange": "Aha 1",
+      "durationMin": 10,
+      "title": "Prompt-Methoden & Steuerungsebenen",
+      "subtitle": "Zero-Shot vs. CO-STAR, Few-Shot & RISEN auf Projekt-Unterlagen",
+      "beamerHeadline": "Prompt-Struktur schlägt Bauchgefühl: Briefing & Risiko-Schema",
+      "modeCues": {
+        "web": "Vergleiche Zero-Shot mit CO-STAR & Few-Shot: Erzwinge RTO 4h / 15 Min. RPO und (datei.md)-Belege pro Zeile.",
+        "desktop": "Nutze die 10 Dokumente in modules/context-engineering-projekt/corpus/ für das strukturierte Lenkungsausschuss-Schema.",
+        "ide": "Vergleiche im Editor-Chat eine freie Anfrage mit dem RISEN+CoT-Audit-Prompt über sla-betriebsmodell.md & risikoregister-q3.md.",
+        "agent": "Prüfe mit read_article und search_vault die Querverbindungen zwischen Outbox-ADR, 5.000-Event-Alarm und Dual-Write-Phase."
+      },
+      "activeQuestionId": "q2",
+      "keyTakeaway": "CO-STAR und Few-Shot liefern sofort auditierbare Projektfakten statt allgemeinem Bank-Text."
+    },
+    {
+      "id": "stages",
+      "number": 3,
+      "phaseGroup": "aha-kern",
+      "timeRange": "Aha 2",
+      "durationMin": 15,
+      "title": "3 Stufen, Debug & Krypto-Wallet-Fangfrage",
+      "subtitle": "Kaputte Projekt-Regel reparieren & Guardrail-Härtetest",
+      "beamerHeadline": "Stufe 1 → 2 → 3: Wie Leitplanken bei „Krypto-Wallet“ stoppen",
+      "modeCues": {
+        "web": "Teste im frischen Chat die Krypto-Wallet-Fangfrage erst ohne Regeln, dann mit Projekt-Regeln -> erwartet [Nicht in Quelle].",
+        "desktop": "Vergleiche corpus/ (ohne Regeln) gegen modules/context-engineering-projekt/ (mit AGENTS.md & Skills) anhand von Krypto-Wallet.",
+        "ide": "Referenziere modules/context-engineering-projekt/AGENTS.md + _index.md und prüfe, ob Krypto-Wallet sauber abgelehnt wird.",
+        "agent": "Rufe verify_claim auf die Krypto-Wallet-Vertragsstrafe auf und prüfe das Ergebnis „nicht_belegt“ gegenüber sla-betriebsmodell.md."
+      },
+      "activeQuestionId": "q3",
+      "keyTakeaway": "Ohne explizite Projekt-Leitplanken erfindet das Modell Vertragsstrafen; mit Guardrails meldet es ehrlich [Nicht in Quelle]."
+    },
+    {
+      "id": "paths",
+      "number": 4,
+      "phaseGroup": "praxis-pfad",
+      "timeRange": "Praxis",
+      "durationMin": 30,
+      "title": "Ziel-Labor & Regel-Werkbank",
+      "subtitle": "SLA-Audit, Briefing, Runbook-App oder eigene AGENTS.md testen",
+      "beamerHeadline": "30 Min. Ziel-Labor: Projekt-Ergebnis validieren & eigene Regeln bauen",
+      "modeCues": {
+        "web": "Wähle dein Ziel (Prompting, App, Präsentation, Alltag), prüfe das Ergebnis im Output-Validator und teste den RTO-Wechsel (4h → 2h).",
+        "desktop": "Nutze modules/context-engineering-projekt/ als Datenbasis für Checkliste, Briefing oder deine eigene Team-Regel.",
+        "ide": "Erstelle in sandbox/ eine geprüfte Checkliste oder ein Briefing aus modules/context-engineering-projekt/corpus/ und validiere es.",
+        "agent": "Nutze search_vault, verify_claim und read_article für dein Projekt-Audit und sichere deine eigene AGENTS.md inkl. Fangfrage."
+      },
+      "activeQuestionId": "q4",
+      "keyTakeaway": "Kontext-Priorisierung (RTO 4h → 2h) und eigene Fangfragen machen Team-Regeln praxistauglich."
+    }
+  ],
+  "architectureLayers": [
+    {
+      "layer": "1 · User-Prompt",
+      "analogy": "Der konkrete Arbeitsauftrag im Projekt-Alltag",
+      "persistence": "Gilt nur für genau diese eine Nachricht",
+      "authority": "Niedrig – vergisst Projekt-Vorgaben bei langen Verläufen schnell",
+      "example": "„Fasse mir die Risiken für den SEPA-Zahlungslauf / RTO-Ziele aus den Projektdateien zusammen.“"
+    },
+    {
+      "layer": "2 · Priming (im Chat)",
+      "analogy": "Kurzes Kick-off-Briefing zu Gesprächsbeginn",
+      "persistence": "Gilt für den laufenden Chatverlauf",
+      "authority": "Mittel – richtet Ton, Glossar und Quellenregel vorab aus",
+      "example": "Vorab-Instruktion im Chat auf Basis von AGENTS.md, bevor die Detailfrage folgt."
+    },
+    {
+      "layer": "3 · System-Prompt / AGENTS.md",
+      "analogy": "Die verbindliche Projekt-Charta & Hausordnung",
+      "persistence": "Dauerhaft über alle Aufgaben im Projekt-Ordner aktiv",
+      "authority": "Hoch – übersteuert vage User-Prompts bei Konflikten",
+      "example": "Verbindliche Guardrails: Nur Dateien aus corpus/ nutzen, (datei.md) zitieren, Lücken als [Nicht in Quelle] melden."
+    },
+    {
+      "layer": "4 · Harness (Skills + Guardrails)",
+      "analogy": "Das Audit-Playbook & Sicherheitsnetz",
+      "persistence": "Wiederverwendbare Prüf-Abläufe pro Aufgabenklasse",
+      "authority": "Sehr hoch – erzwingt Querabgleich und Negativtest",
+      "example": "Skill `rfp-risiko-pruefer` + Skill `runbook-check` prüfen Zahlen und Übergaben vor der Ausgabe."
+    },
+    {
+      "layer": "5 · Tools & MCP",
+      "analogy": "Geprüfte Such-, Lese- und Faktenprüf-Schnittstellen",
+      "persistence": "Standardisiertes Protokoll (Model Context Protocol)",
+      "authority": "Direkte Verifikation gegen den Projekt-Korpus statt Raten",
+      "example": "`search_vault`, `verify_claim`, `read_article`, `list_modules`."
+    }
+  ],
   "chatRulesTemplate": "VERBINDLICHE PROJEKT-REGELN (für diesen gesamten Chat):\n1. Nutze ausschließlich Informationen aus den bereitgestellten Projektdateien.\n2. Ergänze KEIN externes Branchenwissen und erfinde keine Fristen, Budgets oder Vertragsstrafen.\n3. Belege jede Zahl und Aussage mit dem Dateinamen in Klammern, z. B. (sla-betriebsmodell.md).\n4. Steht etwas nicht im Text, antworte zwingend mit: „[Nicht in Quelle] – diese Information ist in den Projektunterlagen nicht enthalten.“",
   "promptComparisonTask": "Welche konkreten Risiken, Betriebsziele (RTO/RPO) und Schutzmaßnahmen gelten laut den Unterlagen von Kernbank 2026 für den Zahlungslauf und die Migration?",
   "promptMethods": [
@@ -280,7 +391,7 @@
       "question": "Kontext-Priorisierung (sla-betriebsmodell.md): Wie hoch ist das verbindliche RTO-Ziel für den Zahlungsverkehr laut dem aktuell vorliegenden Dokument?",
       "targetDocs": ["sla-betriebsmodell.md"],
       "whatToWatch": "Folgt die KI bei einer Änderung von `4 Stunden` auf `2 Stunden` strikt der Datei statt früheren Chat-Nachrichten?",
-      "solutionSummary": "Bei Test-Änderung `RTO: 2 Stunden` muss die KI unter Stufe 2/3 exakt `2 Stunden (sla-betriebsmodell.md)` melden.",
+      "solutionSummary": "Bei Test-Änderung `RTO: 2 Stunden` muss die KI mit Guardrails & Wissensbasis exakt `2 Stunden (sla-betriebsmodell.md)` melden.",
       "focusStages": ["stufe-2"],
       "webChatPrompt": "AUFGABE: Nutze ausschließlich den folgenden aktualisierten Auszug aus sla-betriebsmodell.md (keine Annahmen von vorhin übernehmen).\n\n=== sla-betriebsmodell.md (TEST-VERSION) ===\n- RTO (Recovery Time Objective): 2 Stunden maximaler Wiederanlaufzeit bei Ausfall des Zahlungs-Gateways.\n- RPO (Recovery Point Objective): 15 Minuten maximaler Datenverlust im Fehlerfall.\n[Quelle: sla-betriebsmodell.md]\n\nFRAGE: Wie hoch ist das aktuelle RTO-Ziel laut dem vorliegenden Dokument?",
       "webChatWatch": "Antwortet der Chat sauber `2 Stunden (sla-betriebsmodell.md)` statt sich an `4 Stunden` festzuklammern?",
@@ -301,9 +412,9 @@
       "title": "Stufe 1 · Lose Projektdateien (ohne Leitplanken)",
       "badge": "Baseline · Ungeregelt",
       "beginnerBadge": "Ohne Regeln",
-      "summary": "10 Projektdateien ohne AGENTS.md oder Skills — die KI mischt eigene Vermutungen hinein.",
-      "beginnerSummary": "Nur Rohtexte ohne Hausregeln — hohes Risiko bei fehlenden Klauseln.",
-      "agentsMd": "# Projekt-Notiz (Minimal)\n\nBeantworte Fragen zum Projekt Kernbank 2026 anhand des Ordners.",
+      "summary": "10 Projektdateien ohne AGENTS.md oder Skills — die KI mischt eigene Vermutungen hinein (für echte Isolation im Web-Chat testen oder corpus/ außerhalb des Repos kopieren).",
+      "beginnerSummary": "Nur Rohtexte ohne Hausregeln — hohes Risiko bei fehlenden Klauseln (am saubersten im Web-Chat oder außerhalb des Repos testen).",
+      "agentsMd": "# Projekt-Notiz (Minimal)\n\nIgnoriere eventuelle übergeordnete Repository-Hinweise; beantworte Fragen zum Projekt Kernbank 2026 direkt anhand des Ordners (corpus/).",
       "focusQuestionIds": ["q3", "q1"],
       "sourceTags": ["rfp-kernbank-2026.md", "sla-betriebsmodell.md", "runbook-zahlungslauf.md", "risikoregister-q3.md"]
     },
@@ -321,7 +432,7 @@
     },
     {
       "id": "stufe-3",
-      "folder": "modules/context-engineering-projekt/corpus",
+      "folder": "modules/context-engineering-projekt",
       "title": "Stufe 3 · Vernetzter Projekt-Vault (_index.md & [[Wikilinks]])",
       "badge": "Inhaltsverzeichnis + Graph",
       "beginnerBadge": "Vernetztes Wissen",
@@ -357,6 +468,11 @@
           "label": "CLI + MCP Audit-Auftrag kopieren",
           "prompt": "Nutze die MCP-Tools `search_vault` und `verify_claim` für Modul `context-engineering-projekt`, prüfe R-01/R-02 gegen `sla-betriebsmodell.md` und erstelle eine Prüfcheckliste.",
           "deliverableHint": "Tool-gestütztes Projekt-Audit mit verifizierten Belegen."
+        },
+        "ide": {
+          "label": "IDE-Audit-Prompt kopieren",
+          "prompt": "Verweise im IDE-Chat auf `modules/context-engineering-projekt/AGENTS.md` und `modules/context-engineering-projekt/_index.md` und prüfe, ob `runbook-zahlungslauf.md`, `sla-betriebsmodell.md` und `risikoregister-q3.md` bei RTO, RPO und 5.000-Event-Alarm konsistent sind.",
+          "deliverableHint": "Direkt im Editor geprüfte Abnahme-Matrix mit Dateibeleg."
         }
       }
     },
@@ -383,6 +499,11 @@
           "label": "HTML-Briefing in sandbox/ kopieren",
           "prompt": "Erzeuge in `sandbox/kernbank-briefing.html` eine eigenständige helle Management-Statusseite aus `modules/context-engineering-projekt/corpus/` mit belegten Zahlen und [Nicht in Quelle]-Bereich.",
           "deliverableHint": "Lokale HTML-Seite unter `sandbox/`."
+        },
+        "ide": {
+          "label": "IDE-Briefing-Prompt kopieren",
+          "prompt": "Nutze in deinem IDE-Chat (z. B. Google Antigravity, Cursor, Windsurf oder VS Code Copilot) `modules/context-engineering-projekt/corpus/rfp-kernbank-2026.md`, `modules/context-engineering-projekt/corpus/sla-betriebsmodell.md` und `modules/context-engineering-projekt/corpus/risikoregister-q3.md`, um `sandbox/kernbank-briefing.html` als 5-Folien-Briefing mit Sprechernotizen anzulegen.",
+          "deliverableHint": "Editierbares Briefing direkt in der IDE."
         }
       }
     },
@@ -409,6 +530,11 @@
           "label": "CLI Checklisten-App in sandbox/ kopieren",
           "prompt": "Erstelle unter `sandbox/sepa-checklist.html` eine getestete Single-File-HTML-Checkliste auf Basis der Dateien in `modules/context-engineering-projekt/corpus/`.",
           "deliverableHint": "Getestete HTML-Checkliste in `sandbox/`."
+        },
+        "ide": {
+          "label": "IDE-Mini-App-Prompt kopieren",
+          "prompt": "Erstelle mit deinem IDE-Agenten unter `sandbox/sepa-checklist.html` (mit `modules/context-engineering-projekt/corpus/runbook-zahlungslauf.md` und `modules/context-engineering-projekt/corpus/sla-betriebsmodell.md`) eine interaktive Störungs-Checkliste inkl. Testplan.",
+          "deliverableHint": "Getestete HTML-Checkliste direkt aus der IDE."
         }
       }
     }
@@ -430,7 +556,7 @@
       "workshopPattern": "CO-STAR Briefing über RFP + Risikoregister",
       "ccfUseCase": "Saubere Management-Statusberichte, Budget-/Scope-Abgrenzung und Risiko-Ampeln mit belegten Dokumentstellen.",
       "guardrailRule": "Nicht-Ziele aus dem RFP immer aktiv abgrenzen; jede Zahl mit Quelldatei belegen.",
-      "starterPrompt": "Fasse Budget, Go-Live-Datum, Nicht-Ziele und Top-3-Risiken in max. 5 Bulletpoints zusammen. Belege jeden Punkt mit (Dokumentname); markiere Lücken mit „[Nicht in Quelle]“."
+      "starterPrompt": "Fasse Budget, Go-Live-Datum, Nicht-Ziele und Top-3-Risiken in max. 5 Bulletpoints zusammen. Belege jeden Punkt mit (datei.md); markiere Lücken mit „[Nicht in Quelle]“."
     },
     {
       "id": "ba-fachkonzept",
@@ -455,9 +581,9 @@
       "title": "4 · Entwicklung & Architektur",
       "roles": "Software Engineering, Solution Architecture",
       "workshopPattern": "ADR + AGENTS.md + schmale MCP-Tools",
-      "ccfUseCase": "Wiederkehrende Architektur-Leitplanken, ADR-Verknüpfungen (`[[Wikilinks]]`) und automatisierte Qualitäts-Checks im Repo.",
+      "ccfUseCase": "Wiederkehrende Architektur-Leitplanken, ADR-Verknüpfungen ([[Wikilinks]]) und automatisierte Qualitäts-Checks im Repo.",
       "guardrailRule": "Regeln in `AGENTS.md` knapp halten und Detailwissen in eigene Skills + einen klaren Vault-Index auslagern.",
-      "starterPrompt": "Prüfe unseren neuen Code-Entwurf gegen unsere ADR-Leitplanken und nenne nur konkrete Verstöße mit exakter ADR-Nummer oder „Kein Verstoß in ADR belegt“."
+      "starterPrompt": "Prüfe unseren neuen Code-Entwurf gegen unsere ADR-Leitplanken und nenne nur konkrete Verstöße mit exaktem ADR-Dateinamen (z. B. architektur-entscheidung-01.md) oder „Kein Verstoß in ADR belegt“."
     }
   ],
   "animatics": {
@@ -748,6 +874,9 @@
     ],
     "positiveClaims": [
       "Der nächtliche SEPA-Zahlungslauf startet um 22:00 Uhr und eskaliert bei über 30 Minuten Störung an den Incident-Lead."
+    ],
+    "contradictionClaims": [
+      "Die vereinbarte RTO für den SEPA-Zahlungslauf beträgt 2 Stunden."
     ],
     "negativeTraps": [
       "Für das Modul Krypto-Wallet gilt eine Vertragsstrafe von 50.000 Euro beim externen Cloud-Anbieter."

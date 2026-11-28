@@ -10,13 +10,14 @@ echo ============================================================
 echo   virtual7 CCF Prompt-Werkstatt - Trainer-Buehne (#/beamer)
 echo ============================================================
 echo   Primaere Online-URL : https://etroxtaran.github.io/CCF-ai-workshop/#/beamer
-echo   Lokales Backup      : %STAGE_URL%
+echo   Workshop-Hub        : https://etroxtaran.github.io/CCF-ai-workshop/#/hub
+echo   Lokales Backup      : %STAGE_URL%  ^(App: http://127.0.0.1:%PORT%/ · Hub: http://127.0.0.1:%PORT%/#/hub^)
 echo.
 
 if not exist "workshop-ui\dist\index.html" (
     echo [FEHLER] workshop-ui\dist\index.html fehlt.
     echo Nutze online https://etroxtaran.github.io/CCF-ai-workshop/#/beamer
-    echo oder baue lokal mit: cd workshop-ui ^&^& npm install ^&^& npm run build
+    echo oder baue lokal mit: node scripts/build_modules.mjs ^&^& cd workshop-ui ^&^& npm install ^&^& npm run build
     pause
     exit /b 1
 )
@@ -48,7 +49,7 @@ if %ERRORLEVEL% EQU 0 set "PY_CMD=python3"
 :run_python
 
 if defined PY_CMD (
-    echo [INFO] Kein Node.js gefunden - starte statischen Offline-Backup-Server fuer Trainer-Bühne ueber Python ^(#/beamer^)...
+    echo [INFO] Kein Node.js gefunden - starte statischen Offline-Backup-Server fuer Trainer-Buehne ueber Python ^(#/beamer^)...
     start "" cmd /c "(timeout /t 2 /nobreak >nul 2>&1 || ping -n 3 127.0.0.1 >nul) && start ^"^" ^"%STAGE_URL%^""
     call %PY_CMD% -m http.server %PORT% --bind 127.0.0.1 --directory workshop-ui\dist
     if errorlevel 1 pause

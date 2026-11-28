@@ -28,16 +28,45 @@ jobs:
           cache: "npm"
           cache-dependency-path: "workshop-ui/package-lock.json"
 
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Install dependencies
         working-directory: workshop-ui
         run: npm ci
 
-      - name: Build and validate modules
-        run: node scripts/build_modules.mjs && node scripts/validate_modules.mjs
+      - name: Validate modules, links, and launcher scripts
+        run: |
+          node scripts/build_modules.mjs --check
+          node scripts/validate_modules.mjs
+          node scripts/check_links_and_scripts.mjs
 
-      - name: Build static site
+      - name: Typecheck and build static site
         working-directory: workshop-ui
-        run: npm run build
+        run: |
+          npx tsc -b --noEmit
+          npm run build
+
+      - name: Run repository verification suite (--skip-pptx)
+        run: python scripts/verify_workshop.py --skip-pptx
+
+      - name: Run unit, integration, and Playwright E2E gate
+        run: |
+          node --test tests/unit/*.test.mjs tests/integration/*.test.mjs
+          cd workshop-ui && npx playwright install --with-deps chromium && npm run test:e2e
+
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-artifacts
+          path: |
+            workshop-ui/playwright-report
+            workshop-ui/test-results
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Add 404 SPA fallback
         run: cp workshop-ui/dist/index.html workshop-ui/dist/404.html

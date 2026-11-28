@@ -66,15 +66,18 @@ export function moduleStorageKeys(moduleId: string) {
   };
 }
 
-export function readModuleProgressPct(moduleId: string, totalChecklist = 7): number {
+export function readModuleProgressPct(moduleId: string, totalChecklist = 6): number {
   if (typeof window === "undefined") return 0;
   try {
     const { storageKey } = moduleStorageKeys(moduleId);
     const raw = localStorage.getItem(storageKey);
     if (!raw) return 0;
-    const parsed = JSON.parse(raw) as { checked?: Record<string, boolean> };
-    const checked = parsed?.checked || {};
-    const doneCount = Object.values(checked).filter(Boolean).length;
+    const parsed = JSON.parse(raw) as {
+      checked?: Record<string, boolean>;
+      gates?: Record<string, boolean>;
+    };
+    const gateMap = parsed?.gates || parsed?.checked || {};
+    const doneCount = Object.values(gateMap).filter(Boolean).length;
     return Math.min(100, Math.round((doneCount / Math.max(totalChecklist, 1)) * 100));
   } catch {
     return 0;

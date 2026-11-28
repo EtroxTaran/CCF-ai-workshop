@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 /**
  * Pure Node.js (>=18) MCP Server (stdio JSON-RPC 2.0) for the virtual7 CCF KI-Workshop.
- * Zero external npm dependencies.
+ * Zero external npm dependencies. Supports multi-module switching via --module <slug>,
+ * WORKSHOP_MODULE env var, or optional `module` tool argument.
  *
  * Tools:
- *  - search_wildlife_vault
- *  - verify_claim_against_corpus
- *  - read_vault_article
+ *  - search_vault (alias: search_wildlife_vault)
+ *  - verify_claim (alias: verify_claim_against_corpus)
+ *  - read_article (alias: read_vault_article)
+ *  - list_modules
  *
  * Resources:
  *  - vault://_index.md
- *  - vault://wiki/<category_dir>/<slug>.md
+ *  - vault://wiki/<category_dir>/<slug>.md (Default module) or vault://corpus/<slug>.md
  */
 
 import fs from "node:fs";
@@ -27,7 +29,21 @@ import {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const REPO_ROOT = path.resolve(__dirname, "..");
+const MODULES_DIR = path.join(REPO_ROOT, "modules");
 const DEFAULT_MODULE_ID = "prompt-werkstatt-tierwelt";
+const SAFE_SLUG_RE = /^[a-z0-9-]+$/;
+const IGNORED_INSTRUCTION_FILES = new Set(["agents.md", "claude.md", "gemini.md"]);
+
+function isIgnoredInstructionFile(filename) {
+  return IGNORED_INSTRUCTION_FILES.has(String(filename || "").toLowerCase());
+}
+
+function isCanonicalOnlyEnabled(argv, isDefaultModule) {
+  if (argv.includes("--canonical-only")) return true;
+  const envVal = String(process.env.WORKSHOP_MCP_CANONICAL_ONLY || "").trim().toLowerCase();
+  if (envVal === "1" || envVal === "true") return true;
+  return !isDefaultModule;
+}
 
 function resolveModuleArg(argv) {
   for (let i = 0; i < argv.length; i++) {
@@ -42,56 +58,96 @@ function resolveModuleArg(argv) {
   return String(process.env.WORKSHOP_MODULE || DEFAULT_MODULE_ID).trim() || DEFAULT_MODULE_ID;
 }
 
-const ACTIVE_MODULE_ID = resolveModuleArg(process.argv.slice(2));
-const MODULES_DIR = path.join(REPO_ROOT, "modules");
-const ACTIVE_MODULE_DIR = path.join(MODULES_DIR, ACTIVE_MODULE_ID);
-const ACTIVE_MODULE_SPEC = (() => {
-  const p = path.join(ACTIVE_MODULE_DIR, "module.json");
-  if (!fs.existsSync(p)) return null;
-  try {
-    return JSON.parse(fs.readFileSync(p, "utf8"));
-  } catch {
-    return null;
+function assertValidModuleId(rawId) {
+  const id = String(rawId || "").trim();
+  if (!SAFE_SLUG_RE.test(id)) {
+    throw new Error(`Ungültiger Modul-Slug '${id}'. Erlaubt sind nur Kleinbuchstaben, Ziffern und Bindestriche.`);
   }
-})();
+  const modDir = path.join(MODULES_DIR, id);
+  const resolved = path.resolve(modDir);
+  if (!resolved.startsWith(path.resolve(MODULES_DIR) + path.sep)) {
+    throw new Error(`Ungültiger Modul-Pfad für '${id}'.`);
+  }
+  if (id !== DEFAULT_MODULE_ID && !fs.existsSync(path.join(resolved, "module.json"))) {
+    throw new Error(`Modul '${id}' nicht gefunden unter modules/${id}/module.json.`);
+  }
+  return id;
+}
 
-const IS_DEFAULT_MODULE = ACTIVE_MODULE_ID === DEFAULT_MODULE_ID;
-const VAULT_ROOT = IS_DEFAULT_MODULE
-  ? path.join(REPO_ROOT, "stufe-3-obsidian-vault")
-  : ACTIVE_MODULE_DIR;
-const WIKI_ROOT = path.join(VAULT_ROOT, "wiki");
-const CORPUS_ROOT = path.join(ACTIVE_MODULE_DIR, "corpus");
-const INDEX_PATH = path.join(VAULT_ROOT, "_index.md");
+let ACTIVE_MODULE_ID;
+try {
+  ACTIVE_MODULE_ID = assertValidModuleId(resolveModuleArg(process.argv.slice(2)));
+} catch (err) {
+  process.stderr.write(`MCP Server Fehler: ${err.message}\n`);
+  process.exit(1);
+}
 
-const fileCache = new Map();
-let cachedArticles = [];
-let cachedIndex = null;
+const moduleContexts = new Map();
+
+function getModuleContext(requestedModuleId = ACTIVE_MODULE_ID) {
+  const modId = assertValidModuleId(requestedModuleId || ACTIVE_MODULE_ID);
+  if (moduleContexts.has(modId)) {
+    return moduleContexts.get(modId);
+  }
+  const moduleDir = path.join(MODULES_DIR, modId);
+  const specPath = path.join(moduleDir, "module.json");
+  let spec = null;
+  if (fs.existsSync(specPath)) {
+    try {
+      spec = JSON.parse(fs.readFileSync(specPath, "utf8"));
+    } catch {
+      spec = null;
+    }
+  }
+  const isDefault = modId === DEFAULT_MODULE_ID;
+  const vaultRoot = isDefault ? path.join(REPO_ROOT, "stufe-3-obsidian-vault") : moduleDir;
+  const ctx = {
+    id: modId,
+    isDefault,
+    moduleDir,
+    spec,
+    vaultRoot,
+    wikiRoot: path.join(vaultRoot, "wiki"),
+    corpusRoot: path.join(moduleDir, "corpus"),
+    indexPath: path.join(vaultRoot, "_index.md"),
+    fileCache: new Map(),
+    cachedArticles: [],
+    cachedIndex: null,
+  };
+  moduleContexts.set(modId, ctx);
+  return ctx;
+}
+
+const ACTIVE_CTX = getModuleContext(ACTIVE_MODULE_ID);
+const IS_DEFAULT_MODULE = ACTIVE_CTX.isDefault;
+const ACTIVE_MODULE_SPEC = ACTIVE_CTX.spec;
+const CANONICAL_ONLY = isCanonicalOnlyEnabled(process.argv.slice(2), IS_DEFAULT_MODULE);
 
 function extractHeadingTitle(body, fallback) {
   const m = String(body || "").match(/^#\s+(.+)$/m);
   return m ? m[1].trim() : fallback;
 }
 
-function collectActiveFiles() {
+function collectActiveFiles(ctx = ACTIVE_CTX) {
   const found = [];
-  if (!IS_DEFAULT_MODULE) {
-    if (fs.existsSync(CORPUS_ROOT)) {
-      for (const entry of fs.readdirSync(CORPUS_ROOT, { withFileTypes: true })) {
-        if (entry.isFile() && entry.name.endsWith(".md")) {
+  if (!ctx.isDefault) {
+    if (fs.existsSync(ctx.corpusRoot)) {
+      for (const entry of fs.readdirSync(ctx.corpusRoot, { withFileTypes: true })) {
+        if (entry.isFile() && entry.name.endsWith(".md") && !isIgnoredInstructionFile(entry.name)) {
           found.push({
-            fullPath: path.join(CORPUS_ROOT, entry.name),
+            fullPath: path.join(ctx.corpusRoot, entry.name),
             relPath: `corpus/${entry.name}`,
-            defaultCategory: ACTIVE_MODULE_SPEC?.taxonomy?.categories?.[0]?.id || "dokument",
+            defaultCategory: ctx.spec?.taxonomy?.categories?.[0]?.id || "dokument",
             slug: entry.name.replace(/\.md$/, ""),
           });
         } else if (entry.isDirectory()) {
-          const subDir = path.join(CORPUS_ROOT, entry.name);
+          const subDir = path.join(ctx.corpusRoot, entry.name);
           for (const subFile of fs.readdirSync(subDir)) {
-            if (!subFile.endsWith(".md")) continue;
+            if (!subFile.endsWith(".md") || isIgnoredInstructionFile(subFile)) continue;
             found.push({
               fullPath: path.join(subDir, subFile),
               relPath: `corpus/${entry.name}/${subFile}`,
-              defaultCategory: ACTIVE_MODULE_SPEC?.taxonomy?.categories?.[0]?.id || entry.name,
+              defaultCategory: ctx.spec?.taxonomy?.categories?.[0]?.id || entry.name,
               slug: subFile.replace(/\.md$/, ""),
             });
           }
@@ -101,16 +157,16 @@ function collectActiveFiles() {
     return found;
   }
 
-  if (fs.existsSync(WIKI_ROOT)) {
+  if (fs.existsSync(ctx.wikiRoot)) {
     const subdirs = fs
-      .readdirSync(WIKI_ROOT, { withFileTypes: true })
+      .readdirSync(ctx.wikiRoot, { withFileTypes: true })
       .filter((d) => d.isDirectory())
       .map((d) => d.name)
       .sort();
     for (const sub of subdirs) {
-      const dir = path.join(WIKI_ROOT, sub);
+      const dir = path.join(ctx.wikiRoot, sub);
       for (const file of fs.readdirSync(dir)) {
-        if (!file.endsWith(".md")) continue;
+        if (!file.endsWith(".md") || isIgnoredInstructionFile(file)) continue;
         found.push({
           fullPath: path.join(dir, file),
           relPath: `wiki/${sub}/${file}`,
@@ -125,13 +181,13 @@ function collectActiveFiles() {
 
   // Fallback roots if wiki/ is unavailable
   const fallbackRoots = [
-    { dir: path.join(VAULT_ROOT, "raw"), prefix: "raw" },
+    { dir: path.join(ctx.vaultRoot, "raw"), prefix: "raw" },
     { dir: path.join(REPO_ROOT, "stufe-1-chaos", "docs"), prefix: "docs" },
   ];
   for (const fb of fallbackRoots) {
     if (!fs.existsSync(fb.dir)) continue;
     for (const file of fs.readdirSync(fb.dir)) {
-      if (!file.endsWith(".md")) continue;
+      if (!file.endsWith(".md") || isIgnoredInstructionFile(file)) continue;
       found.push({
         fullPath: path.join(fb.dir, file),
         relPath: `${fb.prefix}/${file}`,
@@ -172,14 +228,14 @@ function buildArticleRecord(entryMeta, rawMarkdown) {
   };
 }
 
-function loadVaultArticles() {
-  const activeFiles = collectActiveFiles();
+function loadVaultArticles(ctx = ACTIVE_CTX) {
+  const activeFiles = collectActiveFiles(ctx);
   const activeSet = new Set(activeFiles.map((f) => f.fullPath));
   let dirty = false;
 
-  for (const key of fileCache.keys()) {
+  for (const key of ctx.fileCache.keys()) {
     if (!activeSet.has(key)) {
-      fileCache.delete(key);
+      ctx.fileCache.delete(key);
       dirty = true;
     }
   }
@@ -191,11 +247,11 @@ function loadVaultArticles() {
     } catch {
       continue;
     }
-    const existing = fileCache.get(item.fullPath);
+    const existing = ctx.fileCache.get(item.fullPath);
     if (!existing || existing.mtimeMs !== st.mtimeMs || existing.size !== st.size) {
       const rawMarkdown = fs.readFileSync(item.fullPath, "utf8");
       const article = buildArticleRecord(item, rawMarkdown);
-      fileCache.set(item.fullPath, {
+      ctx.fileCache.set(item.fullPath, {
         mtimeMs: st.mtimeMs,
         size: st.size,
         article,
@@ -205,34 +261,34 @@ function loadVaultArticles() {
     }
   }
 
-  if (dirty || cachedArticles.length !== fileCache.size) {
-    cachedArticles = [...fileCache.values()]
+  if (dirty || ctx.cachedArticles.length !== ctx.fileCache.size) {
+    ctx.cachedArticles = [...ctx.fileCache.values()]
       .map((e) => e.article)
       .sort((a, b) => a.rel_path.localeCompare(b.rel_path));
   }
 
-  return cachedArticles;
+  return ctx.cachedArticles;
 }
 
-function loadVaultIndex() {
-  if (fs.existsSync(INDEX_PATH)) {
-    const st = fs.statSync(INDEX_PATH);
-    if (!cachedIndex || cachedIndex.mtimeMs !== st.mtimeMs || cachedIndex.size !== st.size) {
-      const content = fs.readFileSync(INDEX_PATH, "utf8");
-      cachedIndex = {
+function loadVaultIndex(ctx = ACTIVE_CTX) {
+  if (fs.existsSync(ctx.indexPath)) {
+    const st = fs.statSync(ctx.indexPath);
+    if (!ctx.cachedIndex || ctx.cachedIndex.mtimeMs !== st.mtimeMs || ctx.cachedIndex.size !== st.size) {
+      const content = fs.readFileSync(ctx.indexPath, "utf8");
+      ctx.cachedIndex = {
         mtimeMs: st.mtimeMs,
         size: st.size,
         content,
       };
     }
-    return cachedIndex.content;
+    return ctx.cachedIndex.content;
   }
-  if (!IS_DEFAULT_MODULE) {
-    const articles = loadVaultArticles();
+  if (!ctx.isDefault) {
+    const articles = loadVaultArticles(ctx);
     const lines = [
-      `# Inhaltsverzeichnis: ${ACTIVE_MODULE_SPEC?.title || ACTIVE_MODULE_ID}`,
+      `# Inhaltsverzeichnis: ${ctx.spec?.title || ctx.id}`,
       "",
-      `Aktives Modul: \`${ACTIVE_MODULE_ID}\` (${articles.length} Dokumente)`,
+      `Aktives Modul: \`${ctx.id}\` (${articles.length} Dokumente)`,
       "",
     ];
     for (const art of articles) {
@@ -240,8 +296,20 @@ function loadVaultIndex() {
     }
     return lines.join("\n");
   }
-  cachedIndex = null;
+  ctx.cachedIndex = null;
   return null;
+}
+
+function getCategoriesForSpec(spec, articles = null) {
+  const fromSpec = Array.isArray(spec?.taxonomy?.categories)
+    ? spec.taxonomy.categories
+        .map((c) => (typeof c === "string" ? c : c?.id))
+        .filter(Boolean)
+    : [];
+  const fromArticles = Array.isArray(articles)
+    ? articles.map((a) => a.category).filter(Boolean)
+    : [];
+  return [...new Set([...fromSpec, ...fromArticles])];
 }
 
 function listModules() {
@@ -253,12 +321,18 @@ function listModules() {
       if (!fs.existsSync(specPath)) continue;
       try {
         const spec = JSON.parse(fs.readFileSync(specPath, "utf8"));
+        const id = spec.id || entry.name;
+        let categories = getCategoriesForSpec(spec);
+        if (categories.length === 0) {
+          categories = getCategoriesForSpec(spec, loadVaultArticles(getModuleContext(id)));
+        }
         modules.push({
-          id: spec.id || entry.name,
+          id,
           title: spec.title || entry.name,
           level: spec.level || "",
           domainLabel: spec.domainLabel || "",
           isDefault: Boolean(spec.isDefault),
+          categories,
         });
       } catch {
         // skip unreadable module.json
@@ -271,17 +345,25 @@ function listModules() {
   };
 }
 
-function searchVault(query, category, limit = 5) {
-  const articles = loadVaultArticles();
-  const matches = searchCorpus(articles, query, { category, limit });
-  return {
+function searchVault(query, category, limit = 5, moduleId = ACTIVE_MODULE_ID) {
+  const ctx = getModuleContext(moduleId);
+  const articles = loadVaultArticles(ctx);
+  const cleanCategory = typeof category === "string" ? category.trim() : "";
+  const matches = searchCorpus(articles, query, { category: cleanCategory || undefined, limit });
+  const result = {
+    module: ctx.id,
     query,
     total_articles: articles.length,
     matches,
   };
+  if (matches.length === 0 && cleanCategory) {
+    result.available_categories = getCategoriesForSpec(ctx.spec, articles);
+  }
+  return result;
 }
 
-function readVaultArticle(rawSlug) {
+function readVaultArticle(rawSlug, moduleId = ACTIVE_MODULE_ID) {
+  const ctx = getModuleContext(moduleId);
   const raw = String(rawSlug || "").trim();
   if (!raw) {
     throw new Error("Parameter 'slug' fehlt.");
@@ -296,13 +378,14 @@ function readVaultArticle(rawSlug) {
   const lowerClean = clean.toLowerCase();
 
   if (lowerClean === "_index" || lowerClean === "_index.md" || lowerClean === "index" || lowerClean === "vault://_index.md") {
-    const indexContent = loadVaultIndex();
+    const indexContent = loadVaultIndex(ctx);
     if (indexContent === null) {
       throw new Error("_index.md wurde im Vault nicht gefunden.");
     }
     return {
+      module: ctx.id,
       slug: "_index",
-      title: "Vault-Index (_index.md)",
+      title: `Vault-Index (${ctx.spec?.title || ctx.id})`,
       category: "index",
       habitat: "",
       status: "aktiv",
@@ -319,12 +402,12 @@ function readVaultArticle(rawSlug) {
   const normalizedSlugPart = clean
     .replace(/^vault:\/\//i, "")
     .replace(/^wiki\/[^/]+\//i, "")
-    .replace(/^corpus\//i, "")
+    .replace(/^corpus\/(?:[^/]+\/)?/i, "")
     .replace(/^raw\//i, "")
     .replace(/^docs\//i, "")
     .replace(/\.md$/i, "");
 
-  const articles = loadVaultArticles();
+  const articles = loadVaultArticles(ctx);
   const normTarget = normalize(normalizedSlugPart);
 
   const found =
@@ -338,10 +421,11 @@ function readVaultArticle(rawSlug) {
     const sugText = suggestions.length
       ? ` Meintest du: ${suggestions.map((s) => `${s.slug} (${s.title})`).join(", ")}?`
       : "";
-    throw new Error(`Artikel '${raw}' nicht im Vault gefunden.${sugText}`);
+    throw new Error(`Artikel '${raw}' nicht im Modul '${ctx.id}' gefunden.${sugText}`);
   }
 
   return {
+    module: ctx.id,
     slug: found.slug,
     title: found.title,
     category: found.category,
@@ -359,18 +443,21 @@ function readVaultArticle(rawSlug) {
 
 function listResources() {
   const resources = [];
-  const indexContent = loadVaultIndex();
+  const indexContent = loadVaultIndex(ACTIVE_CTX);
   if (indexContent !== null) {
+    const desc = IS_DEFAULT_MODULE
+      ? "Zentrale Übersichtskarte des Obsidian-Vaults nach Lebensräumen, Tierarten und Konzepten."
+      : `Zentrale Übersichtskarte für das Modul „${ACTIVE_MODULE_SPEC?.title || ACTIVE_MODULE_ID}“ (${ACTIVE_MODULE_SPEC?.domainLabel || "Wissensbasis"}).`;
     resources.push({
       uri: "vault://_index.md",
       name: "_index.md",
-      title: "Vault-Index (Kategorien & Einstieg)",
-      description: "Zentrale Übersichtskarte des Obsidian-Vaults nach Lebensräumen, Tierarten und Konzepten.",
+      title: `Vault-Index (${ACTIVE_MODULE_SPEC?.title || ACTIVE_MODULE_ID})`,
+      description: desc,
       mimeType: "text/markdown",
     });
   }
 
-  const articles = loadVaultArticles();
+  const articles = loadVaultArticles(ACTIVE_CTX);
   for (const art of articles) {
     resources.push({
       uri: `vault://${art.rel_path}`,
@@ -394,12 +481,12 @@ function readResource(uri) {
   }
 
   if (rel === "_index.md") {
-    const text = loadVaultIndex();
+    const text = loadVaultIndex(ACTIVE_CTX);
     if (text === null) return null;
     return { uri: rawUri, mimeType: "text/markdown", text };
   }
 
-  const articles = loadVaultArticles();
+  const articles = loadVaultArticles(ACTIVE_CTX);
   const art = articles.find((a) => a.rel_path === rel);
   if (!art) return null;
 
@@ -410,23 +497,24 @@ function readResource(uri) {
   };
 }
 
-const CATEGORY_ENUM = IS_DEFAULT_MODULE
+const CATEGORY_EXAMPLES = IS_DEFAULT_MODULE
   ? ["lebensraum", "tierart", "konzept"]
   : Array.isArray(ACTIVE_MODULE_SPEC?.taxonomy?.categories) &&
       ACTIVE_MODULE_SPEC.taxonomy.categories.length > 0
-    ? ACTIVE_MODULE_SPEC.taxonomy.categories.map((c) => c.id)
-    : undefined;
+    ? ACTIVE_MODULE_SPEC.taxonomy.categories.map((c) => c.id).filter(Boolean)
+    : [];
 
-const CATEGORY_SCHEMA = CATEGORY_ENUM
-  ? {
-      type: "string",
-      enum: CATEGORY_ENUM,
-      description: "Optionaler Filter auf Kategorie.",
-    }
-  : {
-      type: "string",
-      description: "Optionaler Filter auf Kategorie.",
-    };
+const CATEGORY_SCHEMA = {
+  type: "string",
+  description: CATEGORY_EXAMPLES.length
+    ? `Optionaler Filter auf Kategorie oder Bereich (Beispiele im aktiven Modul: ${CATEGORY_EXAMPLES.map((c) => `'${c}'`).join(", ")}; Kategorien anderer Module siehe list_modules).`
+    : "Optionaler Filter auf Kategorie oder Bereich (Beispiele z. B. 'lebensraum', 'tierart', 'konzept', 'dokument', 'entscheidung', 'runbook'; siehe list_modules).",
+};
+
+const MODULE_PROP = {
+  type: "string",
+  description: `Optionaler Modul-Slug (Standard: '${ACTIVE_MODULE_ID}'). Siehe list_modules.`,
+};
 
 const SEARCH_INPUT_SCHEMA = {
   type: "object",
@@ -443,6 +531,7 @@ const SEARCH_INPUT_SCHEMA = {
       default: 5,
       description: "Maximale Anzahl Treffer (Standard: 5).",
     },
+    module: MODULE_PROP,
   },
   required: ["query"],
 };
@@ -454,6 +543,7 @@ const VERIFY_INPUT_SCHEMA = {
       type: "string",
       description: "Die zu prüfende Aussage oder Faktenbehauptung.",
     },
+    module: MODULE_PROP,
   },
   required: ["claim"],
 };
@@ -465,53 +555,75 @@ const READ_INPUT_SCHEMA = {
       type: "string",
       description: "Artikel-Slug (z. B. '_index', '[[slug]]' oder relativer Pfad).",
     },
+    module: MODULE_PROP,
   },
   required: ["slug"],
 };
 
-const TOOLS = [
+const READ_ONLY_ANNOTATIONS = {
+  readOnlyHint: true,
+  destructiveHint: false,
+  idempotentHint: true,
+  openWorldHint: false,
+};
+
+const CANONICAL_TOOLS = [
   {
     name: "search_vault",
-    description: `Durchsucht die Wissensbasis des aktiven Moduls (${ACTIVE_MODULE_ID}) und liefert [[Wikilinks]] sowie Textauszüge.`,
+    description: `Durchsucht die Wissensbasis des aktiven Moduls (${ACTIVE_MODULE_ID}, oder per 'module'-Parameter) und liefert [[Wikilinks]] sowie Textauszüge.`,
     inputSchema: SEARCH_INPUT_SCHEMA,
+    annotations: READ_ONLY_ANNOTATIONS,
   },
   {
     name: "verify_claim",
-    description: `Prüft eine Aussage gegen alle lokalen Dokumente des aktiven Moduls (${ACTIVE_MODULE_ID}) und deckt unbelegte Behauptungen auf.`,
+    description: `Prüft eine Aussage gegen alle lokalen Dokumente des aktiven Moduls (${ACTIVE_MODULE_ID}) und deckt unbelegte Behauptungen oder Zahlenwidersprüche auf.`,
     inputSchema: VERIFY_INPUT_SCHEMA,
+    annotations: READ_ONLY_ANNOTATIONS,
   },
   {
     name: "read_article",
     description: "Liest den vollständigen Markdown-Inhalt eines Dokuments (oder '_index') anhand von Slug, Titel, [[Wikilink]] oder relativem Pfad.",
     inputSchema: READ_INPUT_SCHEMA,
+    annotations: READ_ONLY_ANNOTATIONS,
   },
   {
     name: "list_modules",
-    description: "Listet alle verfügbaren Workshop-Module unter modules/ und markiert das aktive Modul.",
+    description: "Listet alle verfügbaren Workshop-Module unter modules/ inklusive verfügbarer Kategorien auf und markiert das aktive Modul.",
     inputSchema: {
       type: "object",
       properties: {},
     },
+    annotations: READ_ONLY_ANNOTATIONS,
   },
+];
+
+const LEGACY_ALIAS_TOOLS = [
   {
     name: "search_wildlife_vault",
     description:
       "Kompatibilitäts-Alias für search_vault: Durchsucht die Wissensbasis und liefert [[Wikilinks]] sowie Textauszüge.",
     inputSchema: SEARCH_INPUT_SCHEMA,
+    annotations: READ_ONLY_ANNOTATIONS,
   },
   {
     name: "verify_claim_against_corpus",
     description:
       "Kompatibilitäts-Alias für verify_claim: Prüft eine Aussage gegen alle lokalen Artikel im Korpus.",
     inputSchema: VERIFY_INPUT_SCHEMA,
+    annotations: READ_ONLY_ANNOTATIONS,
   },
   {
     name: "read_vault_article",
     description:
       "Kompatibilitäts-Alias für read_article: Liest den vollständigen Markdown-Inhalt eines Artikels (oder '_index').",
     inputSchema: READ_INPUT_SCHEMA,
+    annotations: READ_ONLY_ANNOTATIONS,
   },
 ];
+
+const EXPOSED_TOOLS = CANONICAL_ONLY
+  ? CANONICAL_TOOLS
+  : [...CANONICAL_TOOLS, ...LEGACY_ALIAS_TOOLS];
 
 function writeMessage(msg) {
   process.stdout.write(JSON.stringify(msg) + "\n");
@@ -535,7 +647,7 @@ async function handleRequest(req) {
           capabilities: { tools: {}, resources: {} },
           serverInfo: {
             name: "virtual7-ccf-workshop-mcp",
-            version: "1.1.0",
+            version: "1.3.0",
           },
         },
       });
@@ -548,7 +660,7 @@ async function handleRequest(req) {
     }
 
     if (method === "tools/list") {
-      writeMessage({ jsonrpc: "2.0", id, result: { tools: TOOLS } });
+      writeMessage({ jsonrpc: "2.0", id, result: { tools: EXPOSED_TOOLS } });
       return;
     }
 
@@ -556,33 +668,45 @@ async function handleRequest(req) {
       const toolName = params?.name;
       const args = params?.arguments || {};
 
-      let data;
-      if (toolName === "search_vault" || toolName === "search_wildlife_vault") {
-        if (!args.query) throw new Error("Parameter 'query' fehlt.");
-        data = searchVault(args.query, args.category, args.limit);
-      } else if (toolName === "verify_claim" || toolName === "verify_claim_against_corpus") {
-        if (!args.claim) throw new Error("Parameter 'claim' fehlt.");
-        data = verifyClaim(loadVaultArticles(), args.claim);
-      } else if (toolName === "read_article" || toolName === "read_vault_article") {
-        data = readVaultArticle(args.slug);
-      } else if (toolName === "list_modules") {
-        data = listModules();
-      } else {
+      try {
+        let data;
+        if (toolName === "search_vault" || toolName === "search_wildlife_vault") {
+          if (!args.query) throw new Error("Parameter 'query' fehlt.");
+          data = searchVault(args.query, args.category, args.limit, args.module);
+        } else if (toolName === "verify_claim" || toolName === "verify_claim_against_corpus") {
+          if (!args.claim) throw new Error("Parameter 'claim' fehlt.");
+          const ctx = getModuleContext(args.module);
+          data = { module: ctx.id, ...verifyClaim(loadVaultArticles(ctx), args.claim) };
+        } else if (toolName === "read_article" || toolName === "read_vault_article") {
+          data = readVaultArticle(args.slug, args.module);
+        } else if (toolName === "list_modules") {
+          data = listModules();
+        } else {
+          writeMessage({
+            jsonrpc: "2.0",
+            id,
+            error: { code: -32601, message: `Unbekanntes Tool: ${toolName}` },
+          });
+          return;
+        }
+
         writeMessage({
           jsonrpc: "2.0",
           id,
-          error: { code: -32601, message: `Unbekanntes Tool: ${toolName}` },
+          result: {
+            content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+          },
         });
-        return;
+      } catch (toolErr) {
+        writeMessage({
+          jsonrpc: "2.0",
+          id,
+          result: {
+            isError: true,
+            content: [{ type: "text", text: `Fehler: ${toolErr.message || String(toolErr)}` }],
+          },
+        });
       }
-
-      writeMessage({
-        jsonrpc: "2.0",
-        id,
-        result: {
-          content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
-        },
-      });
       return;
     }
 
@@ -642,10 +766,7 @@ async function handleRequest(req) {
     writeMessage({
       jsonrpc: "2.0",
       id,
-      result: {
-        isError: true,
-        content: [{ type: "text", text: `Fehler: ${err.message || String(err)}` }],
-      },
+      error: { code: -32603, message: `Interner Fehler: ${err.message || String(err)}` },
     });
   }
 }

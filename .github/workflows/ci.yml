@@ -6,6 +6,10 @@ on:
   push:
     branches: ["main"]
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -25,17 +29,41 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Rebuild and verify modular bundles
+      - name: Install Python verification dependency (python-pptx)
+        run: python -m pip install --upgrade pip && pip install python-pptx
+
+      - name: Rebuild and verify modular bundles & docs/links
         run: |
-          node scripts/build_modules.mjs
+          node scripts/build_modules.mjs --check
           node scripts/validate_modules.mjs
+          node scripts/check_links_and_scripts.mjs
 
       - name: Typecheck and build Workshop UI
         working-directory: workshop-ui
         run: |
           npm ci
-          npx tsc --noEmit
+          npx tsc -b --noEmit
           npm run build
 
-      - name: Run full repository verification suite
-        run: python scripts/verify_workshop.py --skip-pptx
+      - name: Run full repository verification suite (incl. PPTX)
+        run: python scripts/verify_workshop.py
+
+      - name: Run Node unit and integration tests
+        run: node --test tests/unit/*.test.mjs tests/integration/*.test.mjs
+
+      - name: Install Playwright Chromium and run E2E + axe-core checks
+        working-directory: workshop-ui
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:e2e
+
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-artifacts
+          path: |
+            workshop-ui/playwright-report
+            workshop-ui/test-results
+          if-no-files-found: ignore
+          retention-days: 14

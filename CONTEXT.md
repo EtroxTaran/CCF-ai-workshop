@@ -1,51 +1,29 @@
-# CCF Prompt-Werkstatt
+# Projekt-Kontext: virtual7 CCF Prompt-Werkstatt
 
-Hands-on-Workshop des Customer Cluster Finance (CCF) bei virtual7, in dem gemischte Teams anhand 100 % öffentlicher Tierwelt-Artikel erleben, wie klare Prompt-Methodik, verbindliche Regeln und verknüpftes Wissen verlässliche KI-Ergebnisse erzeugen.
+Dieses Dokument dient als verbindlicher semantischer Rahmen („Source of Truth“) für alle Texte, Oberflächen, Präsentationen und Aufgaben in diesem Repository.
 
-## Language
+## Architektur & Rollen
+1. **Workshop-App** (`https://etroxtaran.github.io/CCF-ai-workshop/`, offline `http://127.0.0.1:3777/`): Geführter Einstieg mit **Ziel × Werkzeug**-Auswahl und interaktivem Labor.
+2. **Workshop-Hub** (`#/hub`): Modul-Auswahl über alle Live-Themen (`prompt-werkstatt-tierwelt` L1 und `context-engineering-projekt` L2) hinweg.
+3. **Trainer-Bühne** (`https://etroxtaran.github.io/CCF-ai-workshop/#/beamer`, offline `http://127.0.0.1:3777/#/beamer`): Projektions-Ansicht im Tageslicht-Theme mit **4 Phasen**, **Live-Demo** (inkl. Mutated Q4), **QR-Beitritt**, **Moderatoren-Notizen (`P`)**, **Shortcut-Übersicht (`?`)** und **Dauer-Presets** (`30`/`45`/`60`/`90` Min.). Das detaillierte Regie-Dokument liegt in [PRESENTER_RUNBOOK.md](PRESENTER_RUNBOOK.md).
 
-### Anwendung & Bühne
+## Didaktischer Kern (Didactic Core)
+- **Zwei Phasen (Standard 45 Min. Netto-Hands-on):**
+  - **15 Min. Aha-Kern** (Schritte 02–03): Zero-Shot vs. strukturierte Prompt-Methoden, 5 Steuerungsebenen (Prompt, Priming, System-/Projekt-Kontext, Skills/Workflows, Tools/MCP & Guardrails), 3 Reife-Stufen (Chaos -> Guardrails -> Wissens-Vault) sowie die Anti-Halluzinations-Fangfrage.
+  - **30 Min. Praxis-Pfad** (Schritt 04): **Ziel-Labor** (konkretes Arbeitsziel + Werkzeug-Setup), vertiefter Aufbau/Check der eigenen **Wissensbasis** & **Transfer-Brücke** in den CCF-Projektalltag.
+- **Ergebnis-Validierung:** Deterministische Prüfung generierter KI-Antworten (`verifyClaim` inkl. `widerspruch`-Erkennung), Ziel-spezifische Definition-of-Done-Rubriken, 4-Säulen-Regelwerk-Check (`AGENTS.md`) und 1-Klick-Export (`.md`/`.json`).
 
-**Workshop-App**:
-Die statische HTTPS-Webanwendung, die Teilnehmende Schritt für Schritt durch den Workshop führt.
-_Avoid_: Live-Server, Client-Server-App, Backend-App
+## Ziel × Werkzeug (Keine Spaltung)
+Die **Werkzeug-Hilfe** passt Kopiervorlagen, Hinweise und Schritt-für-Schritt-Aufgaben an **4 Arbeitsumgebungen** an — ohne getrennte Lerninhalte:
+- **Web-Chat** (Browser-Chats ohne lokalen Ordnerzugriff, z. B. ChatGPT, Claude.ai, Langdock, M365 Copilot, Google Gemini)
+- **Desktop & Ordner** (Claude Desktop / Cowork, ChatGPT / Claude Projects, Gemini Gems, Langdock Assistants, lokale Dateiablage / Explorer)
+- **IDE & Editor** (Google Antigravity, Cursor, Windsurf, VS Code + GitHub Copilot mit Workspace-Kontext)
+- **Code-Agent** (Claude Code, Codex CLI, Gemini CLI, OpenCode — Terminal & MCP)
 
-**Trainer-Bühne**:
-Die statische Projektor-Ansicht (`#/beamer`) für Tageslicht-Moderation, Riesen-Countdown, Bühnen-Gong, schrittweise Demo, Wissens-Graph, QR-Einstieg und Debrief.
-_Avoid_: Live-Wall, Beamer-Server, Regie-Backend, Submission-Feed
+Kombiniert mit **4 Zielen** im **Ziel-Labor**:
+- `Besser Prompten` · `App bauen` · `Präsentation bauen` · `KI im Alltag`
 
-### Didaktischer Aufbau
-
-**Aha-Kern**:
-Der gemeinsame 15-Minuten-Einstieg für alle Teilnehmenden aus einem Prompt-Methoden-Vergleich und dem 3-Stufen-Experiment (Ohne Regeln → Klare Regeln → Vernetztes Wissen) inkl. Fangfrage.
-_Avoid_: Pflichtteil, Grundlagen-Track, Theorieblock
-
-**Praxis-Pfad**:
-Die freie 30-Minuten-Vertiefung nach inhaltlichem Ziel: (1) Recherche & Fakten-System, (2) Präsentation, Animatic & Übersichtsseite oder (3) Kleine interaktive App bauen.
-_Avoid_: Wahl-Missionen, Bonus-Aufgaben, Track A, Track B
-
-**Transfer-Brücke**:
-Der abschließende 5-Rollen-Übersetzer (Office Management/Orga, Kunden & Projekte, Fachkonzept & Daten, Betrieb & Datenbanken, Entwicklung & Architektur), der die Workshop-Muster auf typische Arbeitsalltags-Situationen ohne vertrauliche Daten überträgt.
-_Avoid_: Rollen-Track, Zielgruppen-Spaltung
-
-### Werkzeuge & Wissen
-
-**Werkzeug-Hilfe**:
-Der umschaltbare Bedien-Filter in der Workshop-App, der Klick-, Ordner- und Prompt-Hinweise an die eigene Arbeitsweise anpasst, ohne Teilnehmende in Technik-Schubladen zu sortieren.
-_Avoid_: Track A, Track B, Entwickler-Track, Anfänger-Modus
-
-**Web-Chat**:
-Arbeitsweise im Browser (z. B. Claude.ai oder ChatGPT) mit kompakten 1-Klick-Kopierpaketen, `.md`-Datei-Upload sowie Artifacts bzw. Canvas.
-_Avoid_: Track A, Browser-Track
-
-**Desktop & Ordner**:
-Arbeitsweise ohne Terminal (z. B. Claude Cowork oder ChatGPT Projects), die die ausgecheckten Workshop-Ordner direkt öffnet.
-_Avoid_: Hybrid-Track, No-Code-Modus
-
-**Code-Agent**:
-Arbeitsweise im Terminal oder in der IDE (z. B. Claude Code, Codex, OpenCode oder VS Code) mit `AGENTS.md`, Skills und lokalem MCP-Server.
-_Avoid_: Track B, Entwickler-Track, CLI-only
-
-**Wissensbasis**:
-Die 68 öffentlichen deutschsprachigen Wikipedia-Artikel zu Tierwelt & Ökosystemen, die je nach Stufe als lose Texte oder verknüpfter Markdown-Vault vorliegen.
-_Avoid_: Datenbank, Firmendaten, Trainingsdaten
+## Daten- & Compliance-Garantie
+- **L1 (`prompt-werkstatt-tierwelt`):** 68 **100 % öffentliche** Wikipedia-Artikel (Tierwelt & Ökosysteme).
+- **L2 (`context-engineering-projekt`):** 10 **100 % synthetische** Projektdokumente (*Kernbank 2026*).
+- Keinerlei interne, personenbezogene oder vertrauliche Kundendaten.

@@ -1,0 +1,13 @@
+{
+  "servers": {
+    "workshop-context-engineering-projekt": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "${workspaceFolder}/../../mcp-server/server.mjs",
+        "--module",
+        "context-engineering-projekt"
+      ]
+    }
+  }
+}

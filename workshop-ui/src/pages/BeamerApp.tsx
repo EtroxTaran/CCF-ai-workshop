@@ -5,15 +5,18 @@ import {
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
+  Code2,
   Compass,
   Eye,
   FolderOpen,
   GitBranch,
   Globe,
   Hand,
+  HelpCircle,
   Layers,
   LayoutGrid,
   Maximize2,
+  MessageSquareText,
   Minimize2,
   Moon,
   Network,
@@ -50,7 +53,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { DEFAULT_MODULE_ID, fetchModuleData } from "@/lib/moduleLoader";
+import { DEFAULT_MODULE_ID, fetchCatalog, fetchModuleData } from "@/lib/moduleLoader";
+import { scalePhasesExact } from "../lib/scalePhases";
 import {
   isSoundMuted,
   playOneMinuteChime,
@@ -59,16 +63,40 @@ import {
   toggleSoundMuted,
   unlockAudioContext,
 } from "@/lib/soundFx";
-import type { BeamerMode, EventOverlaySpec, ToolMode, WorkshopDataset } from "@/types/workshop";
+import type {
+  BeamerMode,
+  EventOverlaySpec,
+  ModuleCatalogEntry,
+  PhaseItem,
+  ToolMode,
+  WorkshopDataset,
+} from "@/types/workshop";
 
 type DemoSubTab = "stages" | "methods" | "layers" | "graph" | "mcp";
 
-const DEMO_QUESTION_CYCLE: DemoQuestionKey[] = ["q3", "q4", "q2", "q1"];
+const DEMO_QUESTION_CYCLE: DemoQuestionKey[] = ["q1", "q2", "q3", "q4"];
+const DEMO_TAB_ORDER: DemoSubTab[] = ["stages", "methods", "layers", "graph", "mcp"];
+
+const STAGE_MODE_LABELS: Record<BeamerMode, string> = {
+  stage: "Bühne (Stage)",
+  demo: "Keynote-Demo",
+  qr: "QR-Beitritt",
+  outro: "Abschluss (Outro)",
+};
+
+const DEMO_TAB_LABELS: Record<DemoSubTab, string> = {
+  stages: "Stufe 1 → 2 → 3",
+  methods: "4 Prompt-Methoden",
+  layers: "5 Ebenen",
+  graph: "Wissens-Graph",
+  mcp: "MCP-Fluss",
+};
 
 const TOOL_MODE_CARDS: { id: ToolMode; label: string; icon: typeof Globe }[] = [
   { id: "web", label: "Web-Chat", icon: Globe },
-  { id: "desktop", label: "Desktop & Ordner", icon: FolderOpen },
-  { id: "agent", label: "Code-Agent", icon: Terminal },
+  { id: "desktop", label: "Desktop & Projects", icon: FolderOpen },
+  { id: "ide", label: "IDE & Editor", icon: Code2 },
+  { id: "agent", label: "CLI Code-Agent", icon: Terminal },
 ];
 
 const OUTRO_PROMPTS = [
@@ -76,19 +104,19 @@ const OUTRO_PROMPTS = [
     num: "01",
     title: "Handzeichen · Aha-Kern",
     prompt:
-      "Wo war euer größter Aha-Moment: beim Prompt-Struktur-Vergleich (CO-STAR/RISEN), bei der Schneeleopard-Fangfrage oder beim 38-Zähne-Kontexttest?",
+      "Wo war euer größter Aha-Moment: beim Prompt-Struktur-Vergleich (CO-STAR/RISEN), bei der Fangfrage oder beim Live-Kontext-Test?",
   },
   {
     num: "02",
-    title: "Handzeichen · 30 Min. Praxis-Pfad",
+    title: "Handzeichen · Ziel-Labor",
     prompt:
-      "Welcher Praxis-Pfad hat am schnellsten ein brauchbares Ergebnis geliefert: (1) Recherche & Fakten, (2) Präsentation/Animatic oder (3) Mini-App?",
+      "Welches Ziel habt ihr im Labor validiert: Prompting, eine eigene App, eine Präsentation oder ein Alltags-Workflow?",
   },
   {
     num: "03",
     title: "Transfer-Brücke · Nächste Woche",
     prompt:
-      "Welche eine Regel, Checkliste oder verknüpfte Datei nehmt ihr direkt mit in euren CCF-Alltag (ohne interne Daten zu leaken)?",
+      "Welche geprüfte Regel oder Takeaway-Vorlage nehmt ihr am Montag direkt mit in euren Alltag?",
   },
 ];
 
@@ -132,10 +160,18 @@ function formatMMSS(sec: number): string {
 
 function formatWallClock(): string {
   return (
-    new Date()
-      .toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })
-      .replace(":", ".") + " Uhr"
+    new Date().toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" }) + " Uhr"
   );
+}
+
+function formatPhasePillLabel(phase: PhaseItem, isScaled: boolean): string {
+  let label = (phase.timeRange || "").replace(/\s*·\s*\d+\s*Min\.?/gi, "").trim();
+  if (isScaled && /\d{1,2}:\d{2}\s*[–-]\s*\d{1,2}:\d{2}/.test(label)) {
+    label = "";
+  }
+  return label
+    ? `Phase ${phase.number} · ${label} (${phase.durationMin} Min.)`
+    : `Phase ${phase.number} (${phase.durationMin} Min.)`;
 }
 
 function cleanLayerLabel(label: string): string {
@@ -186,7 +222,7 @@ export function BeamerApp({ moduleId = DEFAULT_MODULE_ID }: { moduleId?: string 
     );
   }
 
-  return <BeamerAppInner data={data} moduleId={moduleId} />;
+  return <BeamerAppInner key={moduleId} data={data} moduleId={moduleId} />;
 }
 
 function BeamerAppInner({
@@ -203,6 +239,58 @@ function BeamerAppInner({
   // Live-Session Overlay (nur in sessionStorage, ueberschreibt keine Repo-Daten)
   const overlayStorageKey = `v7-overlay:${moduleId}`;
   const [overlayOpen, setOverlayOpen] = useState<boolean>(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState<boolean>(false);
+  const [speakerNotesOpen, setSpeakerNotesOpen] = useState<boolean>(false);
+  const [qrMode, setQrMode] = useState<"online" | "local">("online");
+  const [catalogModules, setCatalogModules] = useState<ModuleCatalogEntry[]>([]);
+
+  const baseTotalDuration = useMemo(
+    () => data.phases.reduce((sum, p) => sum + p.durationMin, 0) || 60,
+    [data.phases]
+  );
+  const [durationPreset, setDurationPreset] = useState<number>(() => {
+    try {
+      const saved = sessionStorage.getItem(`v7-beamer-duration:${moduleId}`);
+      const parsed = saved ? Number(saved) : NaN;
+      if (Number.isFinite(parsed) && parsed >= 15) return parsed;
+    } catch {
+      // ignore
+    }
+    return baseTotalDuration;
+  });
+
+  const scaledPhases = useMemo(
+    () => scalePhasesExact(data.phases, durationPreset || baseTotalDuration),
+    [data.phases, durationPreset, baseTotalDuration]
+  );
+
+  const activeDurationTotal = useMemo(
+    () => scaledPhases.reduce((sum, p) => sum + p.durationMin, 0),
+    [scaledPhases]
+  );
+
+  const ahaGroupMin = useMemo(
+    () =>
+      scaledPhases
+        .filter((p) => p.phaseGroup === "aha-kern")
+        .reduce((sum, p) => sum + p.durationMin, 0),
+    [scaledPhases]
+  );
+
+  const praxisGroupMin = useMemo(
+    () =>
+      scaledPhases
+        .filter((p) => p.phaseGroup === "praxis-pfad")
+        .reduce((sum, p) => sum + p.durationMin, 0),
+    [scaledPhases]
+  );
+
+  useEffect(() => {
+    fetchCatalog()
+      .then((cat) => setCatalogModules(cat.modules || []))
+      .catch(() => undefined);
+  }, []);
+
   const [overlay, setOverlay] = useState<EventOverlaySpec>(() => {
     const defaults: EventOverlaySpec = {
       unitLabel: data.eventOverlay?.unitLabel || data.meta.cluster,
@@ -236,7 +324,7 @@ function BeamerAppInner({
 
   // Stage Timer & Audio state
   const [phaseIdx, setPhaseIdx] = useState<number>(0);
-  const [secondsLeft, setSecondsLeft] = useState<number>(data.phases[0].durationMin * 60);
+  const [secondsLeft, setSecondsLeft] = useState<number>(scaledPhases[0].durationMin * 60);
   const [running, setRunning] = useState<boolean>(false);
   const [audioMuted, setAudioMuted] = useState<boolean>(() => isSoundMuted());
   const [solutionOpen, setSolutionOpen] = useState<boolean>(false);
@@ -245,7 +333,7 @@ function BeamerAppInner({
 
   // Demo progressive Keynote reveal state
   const [demoTab, setDemoTab] = useState<DemoSubTab>("stages");
-  const [demoQuestionKey, setDemoQuestionKey] = useState<DemoQuestionKey>("q3");
+  const [demoQuestionKey, setDemoQuestionKey] = useState<DemoQuestionKey>("q1");
   const [demoRevealStep, setDemoRevealStep] = useState<number>(0);
   const [q4Mutated, setQ4Mutated] = useState<boolean>(true);
   const [methodRevealCount, setMethodRevealCount] = useState<number>(0);
@@ -259,7 +347,7 @@ function BeamerAppInner({
   runningRef.current = running;
   secondsLeftRef.current = secondsLeft;
 
-  const activePhase = data.phases[phaseIdx] || data.phases[0];
+  const activePhase = scaledPhases[phaseIdx] || scaledPhases[0];
   const activeQuestion = useMemo(
     () =>
       data.testQuestions.find((q) => q.id === activePhase.activeQuestionId) ||
@@ -267,12 +355,23 @@ function BeamerAppInner({
     [activePhase.activeQuestionId, data.testQuestions]
   );
   const appHref = moduleId === DEFAULT_MODULE_ID ? "#/" : `#/m/${moduleId}`;
-  const joinUrl =
-    moduleId === DEFAULT_MODULE_ID
-      ? data.meta.pagesUrl
-      : `${data.meta.pagesUrl.replace(/\/$/, "")}/#/m/${moduleId}`;
+  const cleanPagesBase = `${data.meta.pagesUrl.split("#")[0].replace(/\/$/, "")}/`;
+  const onlineJoinUrl =
+    moduleId === DEFAULT_MODULE_ID ? cleanPagesBase : `${cleanPagesBase}#/m/${moduleId}`;
+  const localJoinUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}${window.location.pathname.replace(/\/beamer\/?.*$/, "/")}${appHref}`
+      : onlineJoinUrl;
+  const joinUrl = qrMode === "local" ? localJoinUrl : onlineJoinUrl;
   const outroPrompts = data.animatics?.outroPrompts || OUTRO_PROMPTS;
   const outroTakeaways = data.animatics?.outroTakeaways || OUTRO_TAKEAWAYS;
+
+  // Keep fullscreen state in sync if user presses Escape
+  useEffect(() => {
+    const onFsChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
 
   // Sync .dark onto document.documentElement so Radix Dialog/Toaster inherit theme cleanly
   useEffect(() => {
@@ -372,15 +471,33 @@ function BeamerAppInner({
 
   const goPhase = useCallback(
     (idx: number) => {
-      const clamped = Math.max(0, Math.min(data.phases.length - 1, idx));
+      const clamped = Math.max(0, Math.min(scaledPhases.length - 1, idx));
       setPhaseIdx(clamped);
       setRunning(false);
       fired60Ref.current = false;
       fired0Ref.current = false;
-      setSecondsLeft(data.phases[clamped].durationMin * 60);
+      setSecondsLeft(scaledPhases[clamped].durationMin * 60);
       setSolutionOpen(false);
     },
-    [data.phases]
+    [scaledPhases]
+  );
+
+  const applyDurationPreset = useCallback(
+    (presetMin: number) => {
+      setDurationPreset(presetMin);
+      try {
+        sessionStorage.setItem(`v7-beamer-duration:${moduleId}`, String(presetMin));
+      } catch {
+        // ignore
+      }
+      const nextScaled = scalePhasesExact(data.phases, presetMin);
+      const scaledMin = nextScaled[phaseIdx]?.durationMin || 10;
+      setRunning(false);
+      fired60Ref.current = false;
+      fired0Ref.current = false;
+      setSecondsLeft(scaledMin * 60);
+    },
+    [data.phases, moduleId, phaseIdx]
   );
 
   const advanceDemoReveal = useCallback(() => {
@@ -414,6 +531,20 @@ function BeamerAppInner({
     demoTab,
   ]);
 
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement
+        .requestFullscreen?.()
+        .then(() => setIsFullscreen(true))
+        .catch(() => undefined);
+    } else {
+      document
+        .exitFullscreen?.()
+        .then(() => setIsFullscreen(false))
+        .catch(() => undefined);
+    }
+  }, []);
+
   // Global keyboard shortcuts with strict input/dialog/modifier guards
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -437,12 +568,30 @@ function BeamerAppInner({
         return;
       }
 
+      if (shortcutsOpen) {
+        if (e.key === "Escape" || e.key === "?") {
+          e.preventDefault();
+          setShortcutsOpen(false);
+        }
+        return;
+      }
+
       if (solutionOpen) {
         if (e.key === "Escape" || e.key === "s" || e.key === "S") {
           e.preventDefault();
           setSolutionOpen(false);
         }
         return;
+      }
+
+      if (e.shiftKey && e.code.startsWith("Digit")) {
+        const idx = Number(e.code.replace("Digit", "")) - 1;
+        if (idx >= 0 && idx < DEMO_TAB_ORDER.length) {
+          e.preventDefault();
+          setStageMode("demo");
+          setDemoTab(DEMO_TAB_ORDER[idx]);
+          return;
+        }
       }
 
       if (e.key === "1") {
@@ -457,6 +606,17 @@ function BeamerAppInner({
         setDarkBeamer((v) => !v);
       } else if (e.key === "m" || e.key === "M") {
         handleToggleMute();
+      } else if (e.key === "p" || e.key === "P") {
+        setSpeakerNotesOpen((v) => !v);
+      } else if (e.key === "?") {
+        e.preventDefault();
+        setShortcutsOpen((v) => !v);
+      } else if (e.key === "f" || e.key === "F") {
+        toggleFullscreen();
+      } else if (e.key === "r" || e.key === "R") {
+        resetPhaseTimer();
+      } else if (e.key === "+") {
+        addOneMinute();
       } else if (e.key === "ArrowRight") {
         goPhase(phaseIdx + 1);
       } else if (e.key === "ArrowLeft") {
@@ -477,29 +637,19 @@ function BeamerAppInner({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [
+    addOneMinute,
     advanceDemoReveal,
     goPhase,
     handleToggleMute,
     overlayOpen,
     phaseIdx,
+    resetPhaseTimer,
+    shortcutsOpen,
     solutionOpen,
     stageMode,
+    toggleFullscreen,
     toggleRunning,
   ]);
-
-  function toggleFullscreen() {
-    if (!document.fullscreenElement) {
-      document.documentElement
-        .requestFullscreen?.()
-        .then(() => setIsFullscreen(true))
-        .catch(() => undefined);
-    } else {
-      document
-        .exitFullscreen?.()
-        .then(() => setIsFullscreen(false))
-        .catch(() => undefined);
-    }
-  }
 
   const totalPhaseSec = Math.max(1, activePhase.durationMin * 60);
   const elapsedPct = Math.min(
@@ -509,7 +659,9 @@ function BeamerAppInner({
   const remainingPct = Math.max(0, Math.min(100, (secondsLeft / totalPhaseSec) * 100));
   const isFinalMinute = secondsLeft > 0 && secondsLeft <= 60;
   const isTimeUp = secondsLeft === 0;
-  const cloneCommand = `git clone -b main ${data.meta.repoUrl}`;
+  const rawRepoUrl = (data.meta.repoUrl || "").replace(/\/+$/, "");
+  const normalizedRepoUrl = rawRepoUrl.endsWith(".git") ? rawRepoUrl : `${rawRepoUrl}.git`;
+  const cloneCommand = `git clone -b main ${normalizedRepoUrl}`;
 
   // Progress ring geometry
   const ringRadius = 46;
@@ -520,18 +672,56 @@ function BeamerAppInner({
     <div className="flex min-h-dvh flex-col bg-background text-foreground lg:h-dvh lg:overflow-hidden">
       {/* Slim Trainer Header */}
       <header className="relative flex min-h-14 flex-wrap items-center justify-between gap-2 border-b bg-card/90 px-3 py-2 backdrop-blur-md sm:px-4 lg:h-14 lg:flex-nowrap lg:px-6 lg:py-0">
-        {/* Left Brand */}
-        <div className="flex min-w-0 items-center gap-2.5">
+        {/* Left Brand + Inline Module Switcher */}
+        <div className="flex min-w-0 items-center gap-2">
           <Virtual7Logo compact className="text-foreground" />
-          <span className="hidden truncate text-sm font-semibold tracking-tight text-muted-foreground xl:inline">
-            {overlay.unitLabel || data.meta.cluster} · {data.meta.title}
+          <span
+            data-testid="beamer-mobile-module-pill"
+            className="inline-flex max-w-[165px] items-center gap-1 truncate rounded-md border bg-muted/60 px-2 py-0.5 text-[11px] font-semibold text-foreground sm:hidden"
+          >
+            <span className="font-mono text-brand-ink">[{data.level || "L1"}]</span>
+            <span className="truncate">{data.meta.domainLabel || data.meta.title}</span>
           </span>
+          {catalogModules.length > 1 ? (
+            <div className="hidden min-w-0 items-center gap-2 sm:flex">
+              <select
+                aria-label="Aktives Workshop-Modul wechseln"
+                value={moduleId}
+                onChange={(e) => {
+                  const nextId = e.target.value;
+                  window.location.hash =
+                    nextId === DEFAULT_MODULE_ID ? "#/beamer" : `#/m/${nextId}/beamer`;
+                }}
+                className="h-8 max-w-[230px] rounded-lg border bg-muted/60 px-2 text-xs font-semibold text-foreground"
+              >
+                {catalogModules.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    [{m.level}] {m.domainLabel || m.title}
+                  </option>
+                ))}
+              </select>
+              {overlay.unitLabel && (
+                <Badge variant="outline" className="hidden text-[11px] md:inline-flex">
+                  {overlay.unitLabel}
+                </Badge>
+              )}
+            </div>
+          ) : (
+            <span className="hidden truncate text-sm font-semibold tracking-tight text-muted-foreground xl:inline">
+              {overlay.unitLabel || data.meta.cluster} · {data.meta.title}
+            </span>
+          )}
+          {overlay.timeSlot && (
+            <Badge variant="outline" className="hidden text-[11px] xl:inline-flex">
+              {overlay.timeSlot}
+            </Badge>
+          )}
         </div>
 
         {/* Center 4-Mode Switcher */}
         <nav
           aria-label="Trainer-Bühne Modi"
-          className="no-scrollbar inline-flex max-w-full shrink-0 items-center gap-1 overflow-x-auto rounded-xl border bg-muted/85 p-1"
+          className="no-scrollbar inline-flex max-w-full shrink-0 flex-wrap items-center gap-1 rounded-xl border bg-muted/85 p-1 sm:flex-nowrap sm:overflow-x-auto"
         >
           {(
             [
@@ -625,7 +815,7 @@ function BeamerAppInner({
             size="sm"
             variant={audioMuted ? "outline" : "accent"}
             aria-pressed={!audioMuted}
-            aria-label={audioMuted ? "Gong stumm (M)" : "Gong aktiv (M)"}
+            aria-label={audioMuted ? "Stumm (M) — Gong einschalten" : "Gong aktiv (M) — stummschalten"}
             onClick={(e) => {
               e.currentTarget.blur();
               handleToggleMute();
@@ -679,6 +869,39 @@ function BeamerAppInner({
             )}
           </Button>
 
+          {/* Speaker Notes Toggle (P) */}
+          <Button
+            type="button"
+            size="icon"
+            variant={speakerNotesOpen ? "accent" : "outline"}
+            aria-pressed={speakerNotesOpen}
+            onClick={(e) => {
+              e.currentTarget.blur();
+              setSpeakerNotesOpen((v) => !v);
+            }}
+            className="h-8 w-8 shrink-0"
+            aria-label="Sprechernotizen umschalten (P)"
+            title="Sprechernotizen für Moderation (P)"
+          >
+            <MessageSquareText className="h-4 w-4" />
+          </Button>
+
+          {/* Keyboard Cheat-Sheet (?) */}
+          <Button
+            type="button"
+            size="icon"
+            variant="outline"
+            onClick={(e) => {
+              e.currentTarget.blur();
+              setShortcutsOpen(true);
+            }}
+            className="hidden h-8 w-8 shrink-0 sm:inline-flex"
+            aria-label="Tastenkürzel anzeigen (?)"
+            title="Alle Tastenkürzel (?)"
+          >
+            <HelpCircle className="h-4 w-4" />
+          </Button>
+
           {/* Session Overlay Settings */}
           <Button
             type="button"
@@ -690,7 +913,7 @@ function BeamerAppInner({
             }}
             className="h-8 w-8 shrink-0"
             aria-label="Session-Overlay anpassen"
-            title="Live-Session Overlay (Cluster, Zeitfenster, Banner)"
+            title="Live-Session Overlay (Cluster, Zeitfenster, Dauer-Preset, Banner)"
           >
             <Settings2 className="h-4 w-4" />
           </Button>
@@ -699,7 +922,7 @@ function BeamerAppInner({
           <a
             href="#/hub"
             className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border bg-card text-foreground transition-colors hover:bg-muted sm:w-auto sm:gap-1.5 sm:px-2.5"
-            aria-label="Alle Workshop-Module (Hub)"
+            aria-label="Hub · Alle Workshop-Module"
             title="Alle Module (Hub)"
           >
             <LayoutGrid className="h-3.5 w-3.5 text-brand-ink" />
@@ -712,7 +935,8 @@ function BeamerAppInner({
             onClick={(e) => {
               if (window.location.pathname.startsWith("/beamer")) {
                 e.preventDefault();
-                window.history.replaceState(null, "", `./${appHref}`);
+                const rootPath = window.location.pathname.replace(/\/beamer\/?.*$/, "/");
+                window.history.replaceState(null, "", `${rootPath}${appHref}`);
                 window.dispatchEvent(new HashChangeEvent("hashchange"));
               }
             }}
@@ -827,7 +1051,7 @@ function BeamerAppInner({
                       type="button"
                       size="sm"
                       variant={running ? "outline" : "accent"}
-                      aria-label={running ? "Timer pausieren (Space)" : "Timer starten (Space)"}
+                      aria-label={running ? "Pause — Timer anhalten (Space)" : "Start — Timer starten (Space)"}
                       onClick={(e) => {
                         e.currentTarget.blur();
                         toggleRunning();
@@ -850,7 +1074,7 @@ function BeamerAppInner({
                       type="button"
                       size="sm"
                       variant="outline"
-                      aria-label="Eine Minute hinzufügen"
+                      aria-label="1m hinzufügen"
                       onClick={(e) => {
                         e.currentTarget.blur();
                         addOneMinute();
@@ -879,12 +1103,12 @@ function BeamerAppInner({
                 <div className="space-y-3 lg:col-span-7">
                   <div className="flex flex-wrap items-center gap-2.5">
                     <span className="num-tabular rounded-full bg-brand-lime px-3.5 py-1 font-mono text-xs font-extrabold uppercase tracking-wider text-brand-obsidian">
-                      Phase {activePhase.number} · {activePhase.timeRange} ({activePhase.durationMin} Min.)
+                      {formatPhasePillLabel(activePhase, durationPreset !== baseTotalDuration)}
                     </span>
                     <Badge variant="outline" className="text-xs font-semibold">
                       {activePhase.phaseGroup === "aha-kern"
-                        ? "15 Min. gemeinsamer Aha-Kern"
-                        : "30 Min. freier Praxis-Pfad"}
+                        ? `${ahaGroupMin} Min. gemeinsamer Aha-Kern`
+                        : `${praxisGroupMin} Min. freier Praxis-Pfad`}
                     </Badge>
                   </div>
 
@@ -898,32 +1122,43 @@ function BeamerAppInner({
                 </div>
               </div>
 
-              {/* Middle Focus: 3-Column Werkzeug-Hilfe Cues (22–26px projector legibility) */}
-              <div className="grid gap-4 border-y py-5 md:grid-cols-3 md:gap-0 md:divide-x">
-                {TOOL_MODE_CARDS.map((tool, idx) => {
+              {/* Middle Focus: 4-Column Werkzeug-Hilfe Cues */}
+              <div className="grid gap-4 border-y py-4 md:grid-cols-2 xl:grid-cols-4 md:gap-4">
+                {TOOL_MODE_CARDS.map((tool) => {
                   const Icon = tool.icon;
+                  const cueText =
+                    activePhase.modeCues[tool.id] || activePhase.modeCues.agent || "";
                   return (
                     <div
                       key={tool.id}
-                      className={`space-y-2 ${
-                        idx === 0
-                          ? "md:pr-6"
-                          : idx === 1
-                            ? "md:px-6"
-                            : "md:pl-6"
-                      }`}
+                      className="space-y-1.5 rounded-xl border bg-card/60 p-3.5"
                     >
-                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.1em] text-brand-ink sm:text-sm">
+                      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.08em] text-brand-ink">
                         <Icon className="h-4 w-4 shrink-0" />
                         <span>{tool.label}</span>
                       </div>
-                      <p className="text-[clamp(1.15rem,1.45vw,1.6rem)] font-medium leading-snug text-foreground">
-                        {activePhase.modeCues[tool.id]}
+                      <p className="text-[clamp(0.95rem,1.2vw,1.25rem)] font-medium leading-snug text-foreground">
+                        {cueText}
                       </p>
                     </div>
                   );
                 })}
               </div>
+
+              {activePhase.phaseGroup === "praxis-pfad" && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-brand-lime/40 bg-secondary/35 px-4 py-2.5 text-xs sm:text-sm">
+                  <span className="font-bold text-brand-ink">4 Ziele wählbar in Schritt 01 &amp; 04:</span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {["1 · Prompting", "2 · App bauen", "3 · Präsentation", "4 · KI im Arbeitsalltag"].map(
+                      (g) => (
+                        <Badge key={g} variant="outline" className="bg-card font-semibold">
+                          {g}
+                        </Badge>
+                      )
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Bottom Anchor: Active Test Question Spotlight */}
               <div
@@ -998,7 +1233,7 @@ function BeamerAppInner({
                 <div
                   role="tablist"
                   aria-label="Demo Stationen"
-                  className="no-scrollbar inline-flex max-w-full overflow-x-auto rounded-xl border bg-muted p-1"
+                  className="no-scrollbar inline-flex max-w-full flex-wrap gap-1 rounded-xl border bg-muted p-1 sm:flex-nowrap sm:overflow-x-auto"
                 >
                   {(
                     [
@@ -1267,7 +1502,7 @@ function BeamerAppInner({
                             : "text-muted-foreground hover:text-foreground"
                         }`}
                       >
-                        {data.animatics?.mcpPacket?.searchToolName || "search_wildlife_vault"}
+                        {data.animatics?.mcpPacket?.searchToolName || "search_vault"}
                       </button>
                       <button
                         type="button"
@@ -1281,13 +1516,14 @@ function BeamerAppInner({
                             : "text-muted-foreground hover:text-foreground"
                         }`}
                       >
-                        {data.animatics?.mcpPacket?.verifyToolName || "verify_claim_against_corpus"}
+                        {data.animatics?.mcpPacket?.verifyToolName || "verify_claim"}
                       </button>
                     </div>
                   </div>
 
                   <McpPacketAnimatic
                     projectorMode
+                    defaultView="klartext"
                     toolMode="agent"
                     mode={mcpMode}
                     spec={data.animatics?.mcpPacket}
@@ -1333,9 +1569,36 @@ function BeamerAppInner({
 
               {/* URL, Git Clone & 3 Onboarding Steps */}
               <div className="min-w-0 max-w-xl space-y-5 text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 rounded-full border border-brand-lime/45 bg-brand-lime/15 px-3.5 py-1 text-xs font-bold uppercase tracking-[0.1em] text-brand-ink">
-                  <QrCode className="h-3.5 w-3.5" />
-                  {data.meta.title} · {overlay.unitLabel || data.meta.cluster}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-2 rounded-full border border-brand-lime/45 bg-brand-lime/15 px-3.5 py-1 text-xs font-bold uppercase tracking-[0.1em] text-brand-ink">
+                    <QrCode className="h-3.5 w-3.5" />
+                    {data.meta.title} · {overlay.unitLabel || data.meta.cluster}
+                    {overlay.timeSlot ? ` · ${overlay.timeSlot}` : ""}
+                  </div>
+                  <div className="inline-flex rounded-lg border bg-muted p-0.5 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setQrMode("online")}
+                      className={`rounded-md px-2.5 py-1 font-semibold ${
+                        qrMode === "online"
+                          ? "bg-card text-foreground shadow-sm"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      GitHub Pages
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQrMode("local")}
+                      className={`rounded-md px-2.5 py-1 font-semibold ${
+                        qrMode === "local"
+                          ? "bg-card text-foreground shadow-sm"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      Lokal / Offline-LAN
+                    </button>
+                  </div>
                 </div>
 
                 <h1 className="font-display text-[clamp(2rem,3.5vw,3.5rem)] font-extrabold leading-[1.06] tracking-[-0.03em] text-foreground">
@@ -1377,11 +1640,11 @@ function BeamerAppInner({
                     },
                     {
                       n: "02",
-                      t: "Werkzeug-Hilfe wählen: Web-Chat, Desktop & Ordner oder Code-Agent",
+                      t: "Ziel & Werkzeug wählen: Prompting / App / Deck / Alltag × Web / Desktop / IDE / CLI",
                     },
                     {
                       n: "03",
-                      t: `${data.durationPresets?.[0] ? `${data.durationPresets[0]} Min.` : data.meta.timeSlot} · Aha-Kern + Praxis-Pfad durchlaufen`,
+                      t: `${activeDurationTotal} Min. · Aha-Kern + Ziel-Labor + Ergebnis-Check`,
                     },
                   ].map((st) => (
                     <div key={st.n} className="card-elevated rounded-xl border bg-card/90 p-3.5">
@@ -1482,10 +1745,43 @@ function BeamerAppInner({
           )}
       </main>
 
+      {/* Optional Speaker Notes Cue Bar (P) */}
+      {speakerNotesOpen && (
+        <aside
+          data-testid="beamer-speaker-notes"
+          className="border-t border-brand-lime/50 bg-secondary/40 px-4 py-2.5 text-xs lg:px-6"
+        >
+          <div className="mx-auto flex max-w-[1260px] flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0 space-y-0.5">
+              <div className="font-bold uppercase tracking-wider text-brand-ink">
+                Moderation-Hinweis ({STAGE_MODE_LABELS[stageMode]} · Phase {activePhase.number})
+              </div>
+              <p className="text-foreground">
+                {stageMode === "stage"
+                  ? `Kernaussage: „${activePhase.keyTakeaway}“ · Danach mit Space Timer starten oder mit S Lösung aufdecken.`
+                  : stageMode === "demo"
+                    ? `Aktiver Tab: ${DEMO_TAB_LABELS[demoTab]} · Mit Space/N schrittweise aufdecken, mit Shift+1..5 zwischen Demo-Tabs wechseln.`
+                    : stageMode === "qr"
+                      ? "Teilnehmende öffnen den Link am Laptop (Split-Screen) und wählen zuerst Ziel + Werkzeug."
+                      : "2–3 Teilnehmende aus verschiedenen Zielen (Prompting / App / Deck / Alltag) ihr Takeaway-Kit kurz zeigen lassen."}
+              </p>
+            </div>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              onClick={() => setSpeakerNotesOpen(false)}
+            >
+              Schließen (P)
+            </Button>
+          </div>
+        </aside>
+      )}
+
       {/* Bottom Timeline & Shortcut Bar */}
       <footer className="flex flex-wrap items-center justify-between gap-2 border-t bg-card/90 px-4 py-2 text-xs text-muted-foreground lg:px-6">
-        <div className="no-scrollbar flex max-w-full items-center gap-1.5 overflow-x-auto">
-          {data.phases.map((p, idx) => {
+        <div className="no-scrollbar flex max-w-full flex-wrap items-center gap-1.5 sm:flex-nowrap sm:overflow-x-auto">
+          {scaledPhases.map((p, idx) => {
             const active = idx === phaseIdx;
             return (
               <button
@@ -1494,14 +1790,15 @@ function BeamerAppInner({
                 onClick={(e) => {
                   e.currentTarget.blur();
                   goPhase(idx);
+                  setStageMode("stage");
                 }}
-                className={`whitespace-nowrap rounded-lg px-2.5 py-1 font-semibold transition-colors ${
+                className={`max-w-full rounded-lg px-2.5 py-1 text-left font-semibold transition-colors sm:whitespace-nowrap ${
                   active
                     ? "bg-brand-lime text-brand-obsidian"
                     : "hover:bg-muted hover:text-foreground"
                 }`}
               >
-                <span className="num-tabular mr-1 font-mono">{p.number}.</span>
+                <span className="num-tabular mr-1 font-mono">{p.number}. </span>
                 {p.title}
               </button>
             );
@@ -1509,9 +1806,13 @@ function BeamerAppInner({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <span className="hidden font-mono text-[11px] xl:inline">
-            1–4 Modi · T Licht/Dunkel · M Gong · Space/N Reveal · ←/→ Phase · S Lösung
-          </span>
+          <button
+            type="button"
+            onClick={() => setShortcutsOpen(true)}
+            className="hidden font-mono text-[11px] hover:text-foreground xl:inline"
+          >
+            1–4 Modi · T Licht/Dunkel · M Gong · P Notizen · ? Alle Kürzel
+          </button>
           <span className="num-tabular font-mono font-bold text-foreground">
             {nowClock}
           </span>
@@ -1604,6 +1905,28 @@ function BeamerAppInner({
                 placeholder="z. B. Raum Mannheim / Teams-Link"
               />
             </label>
+            <div className="space-y-1">
+              <span className="text-xs font-semibold text-muted-foreground">
+                Dauer-Preset (skaliert alle Timer proportional)
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {[30, 45, 60, 90].map((minVal) => (
+                  <button
+                    key={minVal}
+                    type="button"
+                    aria-pressed={durationPreset === minVal}
+                    onClick={() => applyDurationPreset(minVal)}
+                    className={`rounded-lg border px-3 py-1 text-xs font-semibold ${
+                      durationPreset === minVal
+                        ? "border-brand-lime bg-secondary/70 text-foreground"
+                        : "bg-muted/40 text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {minVal} Min.
+                  </button>
+                ))}
+              </div>
+            </div>
             <label className="block space-y-1">
               <span className="text-xs font-semibold text-muted-foreground">
                 Abschluss-Banner (Outro)
@@ -1611,7 +1934,7 @@ function BeamerAppInner({
               <Input
                 value={overlay.outroBanner || ""}
                 onChange={(e) => updateOverlay({ outroBanner: e.target.value })}
-                placeholder="z. B. 13:00 Uhr Unit-Programm & World Café"
+                placeholder={data.eventOverlay?.outroBanner || "z. B. Nächster Schritt & Transfer ins Team"}
               />
             </label>
             <div className="flex justify-between pt-2">
@@ -1628,8 +1951,10 @@ function BeamerAppInner({
                     roomHint: data.eventOverlay?.roomHint || "",
                   };
                   setOverlay(defaults);
+                  applyDurationPreset(baseTotalDuration);
                   try {
                     sessionStorage.removeItem(overlayStorageKey);
+                    sessionStorage.removeItem(`v7-beamer-duration:${moduleId}`);
                   } catch {
                     // ignore
                   }
@@ -1641,6 +1966,38 @@ function BeamerAppInner({
                 Übernehmen
               </Button>
             </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Keyboard Shortcut Cheat-Sheet Modal (?) */}
+      <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
+        <DialogContent className="max-w-lg" data-testid="beamer-shortcuts-dialog">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <HelpCircle className="h-5 w-5 text-brand-ink" />
+              <span>Trainer-Bühne · Alle Tastenkürzel</span>
+            </DialogTitle>
+            <DialogDescription>
+              Schnellsteuerung für die Bühne — ohne Maus zwischen Demo, Timer und QR wechseln.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            {[
+              ["1 / 2 / 3 / 4", "Stage / Demo / QR Join / Outro"],
+              ["Shift + 1..5", "Direkt zu Demo-Tab 1–5 springen"],
+              ["Space / N", "Timer Start/Pause oder Demo aufdecken"],
+              ["← / →", "Vorherige / Nächste Phase"],
+              ["+ / R", "+1 Minute / Phase zurücksetzen"],
+              ["S", "Lösung der Testfrage öffnen"],
+              ["P", "Sprechernotizen ein-/ausblenden"],
+              ["T / M / F", "Hell-Dunkel / Gong / Vollbild"],
+            ].map(([key, desc]) => (
+              <div key={key} className="rounded-lg border bg-muted/35 p-2.5">
+                <div className="font-mono font-bold text-brand-ink">{key}</div>
+                <div className="mt-0.5 text-muted-foreground">{desc}</div>
+              </div>
+            ))}
           </div>
         </DialogContent>
       </Dialog>

@@ -8,8 +8,8 @@
   "step-01": {
     "title": "Einstieg in 20 Sekunden erklärt",
     "durationLabel": "0:20",
-    "tts": "Willkommen bei Schritt eins! Öffne am besten in einem zweiten Browser-Tab ChatGPT oder Claude. Hier wählst du oben aus, ob du im Browser arbeitest, einen Ordner am Computer öffnest oder ein Programmier-Werkzeug im Terminal nutzt. Du kannst diesen Filter jederzeit ohne Datenverlust umschalten.",
-    "transcript": "Öffne am besten jetzt schon einen zweiten Browser-Tab mit ChatGPT oder Claude. Hier oben wählst du nur aus, ob du im Browser arbeitest (Web-Chat), einen entpackten Ordner öffnest oder im Terminal entwickelst — umschalten geht jederzeit ohne Verlust."
+    "tts": "Willkommen bei Schritt eins! Öffne am besten jetzt schon ChatGPT, Claude, Langdock, Gemini oder M365 Copilot. Hier oben wählst du nur dein Ziel und genau ein Werkzeug aus: Web-Chat im Browser, Desktop und Projects mit lokalen Ordnern, IDE und Editor wie Antigravity, Cursor, Windsurf oder VS Code, oder den CLI Code-Agent im Terminal. Umschalten geht jederzeit ohne Verlust.",
+    "transcript": "Öffne am besten jetzt schon ChatGPT, Claude, Langdock, Gemini oder M365 Copilot. Hier oben wählst du dein Ziel und genau ein Werkzeug aus: Web-Chat (Browser), Desktop & Projects (Ordner/Assistants), IDE & Editor (Antigravity, Cursor, Windsurf, VS Code) oder CLI Code-Agent (Terminal) — umschalten geht jederzeit ohne Verlust."
   },
   "step-02": {
     "title": "Prompt-Methoden in 20 Sekunden erklärt",

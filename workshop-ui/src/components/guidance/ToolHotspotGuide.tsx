@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FolderOpen, Globe, Terminal } from "lucide-react";
+import { Code2, FolderOpen, Globe, Terminal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AnimaticSpecs, ToolMode } from "@/types/workshop";
 
@@ -7,6 +7,7 @@ export interface ToolHotspotGuideProps {
   toolMode: ToolMode;
   spec?: AnimaticSpecs["toolHotspots"];
   articleCount?: number;
+  stageFolders?: { stufe1: string; stufe2: string; stufe3: string };
   className?: string;
 }
 
@@ -25,96 +26,132 @@ interface ModeGuideSpec {
   hotspots: HotspotItem[];
 }
 
-const MODE_GUIDES: Record<ToolMode, ModeGuideSpec> = {
-  web: {
-    webpFilename: "web-chat.webp",
-    title: "Web-Chat · Klick-Anleitung in 3 Schritten",
-    subtitle: "ChatGPT, Claude.ai oder Microsoft Copilot direkt im Browser — keine Installation.",
-    hotspots: [
-      {
-        id: 1,
-        label: "Neuen Chat öffnen",
-        detail: "Starte immer mit „+ Neuer Chat“, damit vorherige Nachrichten deine Regeln nicht verwässern.",
-        xPct: 16,
-        yPct: 24,
-      },
-      {
-        id: 2,
-        label: "Kompakt-Paket einfügen (Strg+V)",
-        detail: "Der Prompt steht ganz oben, alle benötigten Artikel mit (datei.md)-Tag direkt darunter.",
-        xPct: 54,
-        yPct: 72,
-      },
-      {
-        id: 3,
-        label: "Quellen (datei.md) prüfen",
-        detail: "Jede Aussage braucht einen Dateinamen in Klammern oder den Hinweis [Nicht in Quelle].",
-        xPct: 68,
-        yPct: 40,
-      },
-    ],
-  },
-  desktop: {
-    webpFilename: "desktop-folder.webp",
-    title: "Desktop & Ordner · Arbeitsweise ohne Code-Kenntnisse",
-    subtitle: "ZIP-Ordner entpacken und mit Claude Cowork oder ChatGPT / Claude.ai Projects nutzen.",
-    hotspots: [
-      {
-        id: 1,
-        label: "ZIP entpacken & Ordner wählen",
-        detail:
-          "Lade das Material als ZIP herunter, entpacke es und wähle den Stufen-Ordner (z. B. stufe-2-skills-guardrails/ mit Text-Dateien im Format .md = einfacher Text).",
-        xPct: 20,
-        yPct: 30,
-      },
-      {
-        id: 2,
-        label: "Regeln automatisch oder per Copy-Paste",
-        detail:
-          "Claude Cowork lädt die Regeldatei AGENTS.md direkt aus dem Ordner; in ChatGPT / Claude.ai Projects fügst du die Regeln einmal in die Projekt-Anweisungen ein.",
-        xPct: 55,
-        yPct: 25,
-      },
-      {
-        id: 3,
-        label: "Testfrage im Projekt-Chat stellen",
-        detail: "Stelle Fragen 1–4 aus Schritt 03 und prüfe, ob Fangfrage 3 sauber mit [Nicht in Quelle] gestoppt wird.",
-        xPct: 64,
-        yPct: 72,
-      },
-    ],
-  },
-  agent: {
-    webpFilename: "code-agent.webp",
-    title: "Code-Agent · Terminal & IDE Setup",
-    subtitle: "Claude Code, OpenCode, Codex, Gemini CLI oder VS Code mit AGENTS.md & MCP.",
-    hotspots: [
-      {
-        id: 1,
-        label: "In den Stufen-Ordner wechseln",
-        detail:
-          "Regeln & Skills ohne MCP: cd stufe-2-skills-guardrails. Kompletter Wissens-Graph mit MCP-Server: cd stufe-3-obsidian-vault.",
-        xPct: 24,
-        yPct: 28,
-      },
-      {
-        id: 2,
-        label: "AGENTS.md & Multi-CLI aktiv",
-        detail:
-          "CLIs laden AGENTS.md / CLAUDE.md / GEMINI.md automatisch. Stufe 3 startet zusätzlich .mcp.json (bei neuem MCP-Client ggf. mit /exit neu starten).",
-        xPct: 62,
-        yPct: 32,
-      },
-      {
-        id: 3,
-        label: "MCP-Tool verify_claim_against_corpus prüfen",
-        detail: "Teste in stufe-3-obsidian-vault oder Pfad 1 direkte Tool-Aufrufe gegen alle 68 Artikel.",
-        xPct: 56,
-        yPct: 70,
-      },
-    ],
-  },
-};
+function buildModeGuides(
+  folders: { stufe1: string; stufe2: string; stufe3: string },
+  articleCount: number
+): Record<ToolMode, ModeGuideSpec> {
+  const isUnifiedFolder = folders.stufe2 === folders.stufe3;
+  return {
+    web: {
+      webpFilename: "web-chat.webp",
+      title: "Web-Chat · Klick-Anleitung in 3 Schritten",
+      subtitle: "ChatGPT, Claude.ai, Gemini oder M365 Copilot direkt im Browser — keine Installation.",
+      hotspots: [
+        {
+          id: 1,
+          label: "Neuen Chat öffnen",
+          detail: "Starte immer mit „+ Neuer Chat“, damit vorherige Nachrichten deine Regeln nicht verwässern.",
+          xPct: 16,
+          yPct: 24,
+        },
+        {
+          id: 2,
+          label: "Kompakt-Paket einfügen (Strg+V)",
+          detail: "Der Prompt steht ganz oben, alle benötigten Texte mit (datei.md)-Tag direkt darunter.",
+          xPct: 54,
+          yPct: 72,
+        },
+        {
+          id: 3,
+          label: "Quellen (datei.md) prüfen",
+          detail: "Jede Aussage braucht einen Dateinamen in Klammern oder den Hinweis [Nicht in Quelle].",
+          xPct: 68,
+          yPct: 40,
+        },
+      ],
+    },
+    desktop: {
+      webpFilename: "desktop-folder.webp",
+      title: "Desktop & Projects · Langdock Assistants, Cowork, Projects & Gems",
+      subtitle: "Entpackte Ordner lokal in Claude Cowork — oder Langdock Assistants (Knowledge Folder), ChatGPT/Claude Projects & Gemini Gems.",
+      hotspots: [
+        {
+          id: 1,
+          label: "Ordner wählen oder Knowledge Folder füllen",
+          detail: `In Claude Cowork den entpackten Ordner (${folders.stufe2}/) öffnen — in Langdock Assistants, Projects oder Gems die .md-Dateien in den Knowledge Folder laden.`,
+          xPct: 20,
+          yPct: 30,
+        },
+        {
+          id: 2,
+          label: "Assistant Instructions / AGENTS.md aktivieren",
+          detail: "Claude Cowork lädt AGENTS.md direkt aus dem Ordner; in Langdock Assistants, Projects oder Gems fügst du die Leitplanken einmal in die Assistant Instructions ein.",
+          xPct: 55,
+          yPct: 25,
+        },
+        {
+          id: 3,
+          label: "Testfrage im Assistant-/Projekt-Chat stellen",
+          detail: "Stelle Fragen 1–4 aus Schritt 03 und prüfe, ob Fangfrage 3 sauber mit [Nicht in Quelle] gestoppt wird.",
+          xPct: 64,
+          yPct: 72,
+        },
+      ],
+    },
+    ide: {
+      webpFilename: "ide-editor.webp",
+      title: "IDE & Editor · Google Antigravity, Cursor, Windsurf & VS Code",
+      subtitle: "Workspace-Regeln (AGENTS.md / GEMINI.md / .agents/skills/), @-Dateireferenz und Built-in Preview im Editor.",
+      hotspots: [
+        {
+          id: 1,
+          label: isUnifiedFolder ? "Modul-Ordner als Workspace öffnen" : "Stufen-Ordner als Workspace öffnen",
+          detail: isUnifiedFolder
+            ? `Öffne ${folders.stufe3}/ direkt als Workspace, damit AGENTS.md, .agents/skills/ und MCP sauber greifen.`
+            : `Öffne ${folders.stufe2}/ bzw. ${folders.stufe3}/ direkt als Workspace, damit AGENTS.md, .agents/skills/ und MCP sauber isoliert greifen.`,
+          xPct: 22,
+          yPct: 28,
+        },
+        {
+          id: 2,
+          label: "Dateien gezielt per @ (bzw. #file: in VS Code) anhängen",
+          detail: "Referenziere zuerst AGENTS.md oder _index.md (in Antigravity stehen zudem Plan/Execute-Modus und .agents/skills/ bereit).",
+          xPct: 58,
+          yPct: 30,
+        },
+        {
+          id: 3,
+          label: "Built-in Preview & Fangfrage im Editor prüfen",
+          detail: "Nutze Built-in Preview (z. B. in Antigravity) für sandbox/app.html (wird in Schritt 04 erzeugt/getestet) und prüfe Antworten direkt im Output-Validator.",
+          xPct: 60,
+          yPct: 72,
+        },
+      ],
+    },
+    agent: {
+      webpFilename: "code-agent.webp",
+      title: "CLI Code-Agent · Terminal & MCP Setup",
+      subtitle: "Claude Code, OpenCode, Codex oder Gemini CLI mit AGENTS.md, Skills & lokalem MCP.",
+      hotspots: [
+        {
+          id: 1,
+          label: isUnifiedFolder ? "In den Modul-Ordner wechseln" : "In den Stufen-Ordner wechseln",
+          detail: isUnifiedFolder
+            ? `Wechsle in den Modul-Ordner: cd ${folders.stufe3} (AGENTS.md, Skills & MCP aktiv).`
+            : `Regeln & Skills ohne MCP: cd ${folders.stufe2}. Vernetzter Vault mit MCP: cd ${folders.stufe3}.`,
+          xPct: 24,
+          yPct: 28,
+        },
+        {
+          id: 2,
+          label: "AGENTS.md & Multi-CLI aktiv",
+          detail: isUnifiedFolder
+            ? "CLIs laden AGENTS.md / CLAUDE.md / GEMINI.md sowie .mcp.json automatisch im Modul-Ordner."
+            : "CLIs laden AGENTS.md / CLAUDE.md / GEMINI.md automatisch. Stufe 3 startet zusätzlich .mcp.json.",
+          xPct: 62,
+          yPct: 32,
+        },
+        {
+          id: 3,
+          label: "MCP-Tool verify_claim prüfen",
+          detail: `Teste direkte Tool-Aufrufe gegen alle ${articleCount} Dokumente (inkl. Zahlen- & Fangfragen-Check).`,
+          xPct: 56,
+          yPct: 70,
+        },
+      ],
+    },
+  };
+}
 
 function ModeSchematic({
   toolMode,
@@ -122,12 +159,14 @@ function ModeSchematic({
   onSelect,
   spec: hotspotSpec,
   articleCount = 68,
+  folders,
 }: {
   toolMode: ToolMode;
   activeId: number;
   onSelect: (id: number) => void;
   spec?: AnimaticSpecs["toolHotspots"];
   articleCount?: number;
+  folders: { stufe1: string; stufe2: string; stufe3: string };
 }) {
   if (toolMode === "web") {
     return (
@@ -205,10 +244,10 @@ function ModeSchematic({
               <span>Ordner gewählt</span>
             </div>
             <div className="font-mono text-[11px]">
-              {hotspotSpec?.desktopFolderExample || "📁 stufe-2-skills-guardrails/"}
+              {hotspotSpec?.desktopFolderExample || `📁 ${folders.stufe2}/`}
             </div>
             <div className="font-mono text-[10px] opacity-75">
-              ├── docs/ ({articleCount} Dateien)
+              ├── ({articleCount} Dateien)
             </div>
           </button>
 
@@ -221,7 +260,9 @@ function ModeSchematic({
                 activeId === 2 ? "border-[#A9C23F] bg-[#EEF3D8] text-[#0B0F0A]" : "bg-card"
               )}
             >
-              <div className="font-semibold">Projekt-Regeln aktiv (AGENTS.md)</div>
+              <div className="font-semibold">
+                Assistant Instructions / AGENTS.md &amp; Knowledge Folder
+              </div>
               <div className="font-mono text-[10px] opacity-80">
                 {hotspotSpec?.desktopSkillsLabel || "Skills: quellen-recherche · fakten-pruefer"}
               </div>
@@ -242,11 +283,60 @@ function ModeSchematic({
     );
   }
 
+  if (toolMode === "ide") {
+    return (
+      <div className="relative overflow-hidden rounded-xl border border-[#232B20] bg-[#0B0F0A] p-4 font-mono text-xs text-[#F2F4EE]">
+        <div className="mb-2 flex items-center gap-2 text-[11px] text-[#9FA998]">
+          <Code2 className="h-3.5 w-3.5 text-[#A9C23F]" />
+          <span>IDE &amp; Editor (Google Antigravity / Cursor / Windsurf / VS Code)</span>
+        </div>
+        <div className="space-y-2">
+          <button
+            type="button"
+            onClick={() => onSelect(1)}
+            className={cn(
+              "block w-full rounded-lg border px-3 py-2 text-left transition-colors",
+              activeId === 1
+                ? "border-[#A9C23F] bg-[#1B2419] text-[#A9C23F]"
+                : "border-[#232B20] bg-[#111610] text-[#D3DACD]"
+            )}
+          >
+            Workspace: {folders.stufe3}/ (AGENTS.md, .agents/skills/ &amp; MCP aktiv)
+          </button>
+          <button
+            type="button"
+            onClick={() => onSelect(2)}
+            className={cn(
+              "block w-full rounded-lg border px-3 py-2 text-left transition-colors",
+              activeId === 2
+                ? "border-[#A9C23F] bg-[#1B2419] text-[#A9C23F]"
+                : "border-[#232B20] bg-[#111610] text-[#D3DACD]"
+            )}
+          >
+            Chat-Kontext: @AGENTS.md @_index.md (Dateireferenz im Editor)
+          </button>
+          <button
+            type="button"
+            onClick={() => onSelect(3)}
+            className={cn(
+              "block w-full rounded-lg border px-3 py-2 text-left transition-colors",
+              activeId === 3
+                ? "border-[#A9C23F] bg-[#1B2419] text-[#A9C23F]"
+                : "border-[#232B20] bg-[#111610] text-[#D3DACD]"
+            )}
+          >
+            Built-in Preview für sandbox/app.html (wird in Schritt 04 erzeugt/getestet)
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative overflow-hidden rounded-xl border border-[#232B20] bg-[#0B0F0A] p-4 font-mono text-xs text-[#F2F4EE]">
       <div className="mb-2 flex items-center gap-2 text-[11px] text-[#9FA998]">
         <Terminal className="h-3.5 w-3.5 text-[#A9C23F]" />
-        <span>Terminal / IDE</span>
+        <span>Terminal (CLI Code-Agent)</span>
       </div>
       <div className="space-y-2">
         <button
@@ -259,7 +349,7 @@ function ModeSchematic({
               : "border-[#232B20] bg-[#111610] text-[#D3DACD]"
           )}
         >
-          $ cd stufe-3-obsidian-vault
+          $ cd {folders.stufe3}
         </button>
         <button
           type="button"
@@ -271,7 +361,7 @@ function ModeSchematic({
               : "border-[#232B20] bg-[#111610] text-[#D3DACD]"
           )}
         >
-          ✓ AGENTS.md / CLAUDE.md / GEMINI.md + .mcp.json (Stufe 3) geladen
+          ✓ AGENTS.md / CLAUDE.md / GEMINI.md + .mcp.json geladen
         </button>
         <button
           type="button"
@@ -284,15 +374,26 @@ function ModeSchematic({
           )}
         >
           {hotspotSpec?.agentTrapSample ||
-            '→ MCP Tool: verify_claim_against_corpus("Schneeleopard...") → nicht_belegt'}
+            '→ MCP Tool: verify_claim("Schneeleopard...") → nicht_belegt'}
         </button>
       </div>
     </div>
   );
 }
 
-export function ToolHotspotGuide({ toolMode, spec: hotspotSpec, articleCount = 68, className }: ToolHotspotGuideProps) {
-  const spec = MODE_GUIDES[toolMode];
+export function ToolHotspotGuide({
+  toolMode,
+  spec: hotspotSpec,
+  articleCount = 68,
+  stageFolders = {
+    stufe1: "stufe-1-chaos",
+    stufe2: "stufe-2-skills-guardrails",
+    stufe3: "stufe-3-obsidian-vault",
+  },
+  className,
+}: ToolHotspotGuideProps) {
+  const modeGuides = buildModeGuides(stageFolders, articleCount);
+  const spec = modeGuides[toolMode] || modeGuides.web;
   const [activeId, setActiveId] = useState<number>(1);
 
   useEffect(() => {
@@ -380,6 +481,7 @@ export function ToolHotspotGuide({ toolMode, spec: hotspotSpec, articleCount = 6
           onSelect={setActiveId}
           spec={hotspotSpec}
           articleCount={articleCount}
+          folders={stageFolders}
         />
       )}
 

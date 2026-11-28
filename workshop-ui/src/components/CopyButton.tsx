@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { Button, type ButtonProps } from "@/components/ui/button";
@@ -22,6 +22,23 @@ export function CopyButton({
   ...rest
 }: CopyButtonProps) {
   const [copied, setCopied] = useState(false);
+  const resetTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setCopied(false);
+    if (resetTimerRef.current !== null) {
+      window.clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = null;
+    }
+  }, [text]);
+
+  useEffect(() => {
+    return () => {
+      if (resetTimerRef.current !== null) {
+        window.clearTimeout(resetTimerRef.current);
+      }
+    };
+  }, []);
 
   async function handleCopy() {
     let ok = false;
@@ -67,7 +84,13 @@ export function CopyButton({
     toast.success(
       toastMessage || (cleaned ? `${cleaned} in Zwischenablage kopiert` : "In Zwischenablage kopiert")
     );
-    window.setTimeout(() => setCopied(false), 1800);
+    if (resetTimerRef.current !== null) {
+      window.clearTimeout(resetTimerRef.current);
+    }
+    resetTimerRef.current = window.setTimeout(() => {
+      setCopied(false);
+      resetTimerRef.current = null;
+    }, 1800);
   }
 
   return (

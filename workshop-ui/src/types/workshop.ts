@@ -1,7 +1,44 @@
-export type ToolMode = "web" | "desktop" | "agent";
+export type ToolMode = "web" | "desktop" | "ide" | "agent";
+export type GoalId = "prompting" | "app-building" | "presentations" | "everyday-ai";
 export type WorkshopStepId = "start" | "methods" | "stages" | "paths";
 export type BeamerMode = "stage" | "demo" | "qr" | "outro";
 export type ModuleLevel = "L1" | "L2" | "L3";
+
+export interface GoalTrackStepSpec {
+  id: string;
+  num: string;
+  title: string;
+  durationMin: number;
+  instruction: string;
+  promptsByMode: Record<ToolMode, string>;
+  toolTips: Record<ToolMode, string>;
+  expectedGoodSignals: string[];
+  commonPitfalls: string[];
+  isActionStep?: boolean;
+  actionTargetId?: string;
+}
+
+export type GoalStepSpec = GoalTrackStepSpec;
+
+export interface GoalRubricItem {
+  id: string;
+  criterion: string;
+  howToCheck: string;
+  required: boolean;
+}
+
+export interface GoalTrackSpec {
+  id: GoalId;
+  title: string;
+  shortLabel: string;
+  badge: string;
+  audienceHint: string;
+  durationLabel: string;
+  outcomeSummary: string;
+  steps: GoalTrackStepSpec[];
+  rubric: GoalRubricItem[];
+  validatorPreset: GoalId;
+}
 
 export interface CategoryTaxonomyItem {
   id: string;
@@ -193,6 +230,8 @@ export interface PhaseItem {
   keyTakeaway: string;
 }
 
+export type WorkshopPhase = PhaseItem;
+
 export interface PromptMethod {
   id: string;
   name: string;
@@ -336,11 +375,14 @@ export interface VaultArticle {
 
 export interface McpConfigSet {
   claudeCode: string;
+  claudeDesktop?: string;
   openCode: string;
   geminiCli: string;
+  antigravity?: string;
   codex: string;
   vscode: string;
   cursor: string;
+  windsurf?: string;
   setupCommand: string;
   applyUserCommand: string;
 }
@@ -398,6 +440,8 @@ export interface ModuleCatalogEntry {
   domainLabel: string;
   durationPresets: number[];
   articleCount: number;
+  checklistTotal?: number;
+  goals?: GoalId[];
   tags: string[];
   isDefault?: boolean;
   mcpSupported?: boolean;
@@ -421,8 +465,9 @@ export interface EvidenceMatch {
 }
 
 export interface VerifyClaimResult {
-  status: "belegt" | "teilweise" | "nicht_belegt";
+  status: "belegt" | "teilweise" | "nicht_belegt" | "widerspruch";
   label: string;
+  mismatchReasons?: string[];
   evidence: EvidenceMatch[];
 }
 

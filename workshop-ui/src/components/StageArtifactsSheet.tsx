@@ -10,6 +10,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  buildCompactIndex,
+  compactToCharLimit,
+  MAX_SAFE_CLIPBOARD_CHARS,
+  sliceExpressBySlugs,
+} from "@/lib/compactPacks";
 import { buildAllArticlesMarkdown, downloadMarkdownFile } from "@/lib/exportCorpusMd";
 import type {
   CorpusSearchIndex,
@@ -31,6 +37,7 @@ interface StageArtifactsSheetProps {
   corpusIndex?: CorpusSearchIndex;
   onLoadCorpusIndex?: () => Promise<CorpusSearchIndex>;
   moduleTitle?: string;
+  unitLabel?: string;
   toolMode: ToolMode;
 }
 
@@ -45,10 +52,13 @@ export function StageArtifactsSheet({
   corpusIndex,
   onLoadCorpusIndex,
   moduleTitle,
+  unitLabel = "Artikel",
   toolMode,
 }: StageArtifactsSheetProps) {
   const isWeb = toolMode === "web";
   const tabCount = stage.skills.length + (stage.indexMd ? 3 : 2);
+  const starterCount =
+    (all12Pack.match(/^=== .+ ===$/gm) || []).length || expressArcticReef.sources.length;
   const packList =
     customPacks && customPacks.length > 0
       ? customPacks
@@ -59,7 +69,7 @@ export function StageArtifactsSheet({
               filename: "arktis-4-artikel.md",
               title: "Paket Arktis & Klima (4 Artikel)",
               subtitle: "Frage 1 & 4",
-              slugs: [],
+              slugs: ["arktis", "eisbaer", "ringelrobbe", "klimawandel"],
             },
             content: arcticPack,
           },
@@ -69,7 +79,14 @@ export function StageArtifactsSheet({
               filename: "korallenriff-6-artikel.md",
               title: "Paket Korallenriff & Symbiose (6 Artikel)",
               subtitle: "Frage 2",
-              slugs: [],
+              slugs: [
+                "anemonenfische",
+                "seeanemonen",
+                "symbiose",
+                "steinkorallen",
+                "korallenbleiche",
+                "korallenriff",
+              ],
             },
             content: reefPack,
           },
@@ -103,7 +120,7 @@ export function StageArtifactsSheet({
         <Tabs defaultValue={isWeb ? "packs" : "agents"} className="mt-5">
           <TabsList className="h-auto w-full flex-wrap justify-start gap-1 p-1.5">
             <TabsTrigger value="packs" className="px-2.5 py-1.5 text-xs">
-              Artikel-Pakete
+              {unitLabel}-Pakete
             </TabsTrigger>
             <TabsTrigger value="agents" className="px-2.5 py-1.5 text-xs">
               Regeln (AGENTS.md)
@@ -123,7 +140,11 @@ export function StageArtifactsSheet({
           <TabsContent value="agents" className="space-y-3">
             <div className="flex items-center justify-between gap-2">
               <code className="text-xs text-muted-foreground">{stage.folder}/AGENTS.md</code>
-              <CopyButton text={stage.agentsMd} label="AGENTS.md kopieren" variant="default" />
+              <CopyButton
+                text={compactToCharLimit(stage.agentsMd, MAX_SAFE_CLIPBOARD_CHARS)}
+                label="AGENTS.md kopieren"
+                variant="default"
+              />
             </div>
             <pre className="max-h-[60dvh] overflow-auto whitespace-pre-wrap break-words rounded-xl border bg-muted/40 p-4 font-mono text-xs leading-relaxed">
               {stage.agentsMd}
@@ -136,7 +157,11 @@ export function StageArtifactsSheet({
                 <code className="truncate text-xs text-muted-foreground">
                   .agents/skills/{sk.name}/SKILL.md
                 </code>
-                <CopyButton text={sk.content} label="Skill kopieren" variant="default" />
+                <CopyButton
+                  text={compactToCharLimit(sk.content, MAX_SAFE_CLIPBOARD_CHARS)}
+                  label="Skill kopieren"
+                  variant="default"
+                />
               </div>
               <pre className="max-h-[60dvh] overflow-auto whitespace-pre-wrap break-words rounded-xl border bg-muted/40 p-4 font-mono text-xs leading-relaxed">
                 {sk.content}
@@ -144,59 +169,37 @@ export function StageArtifactsSheet({
             </TabsContent>
           ))}
 
-          {stage.indexMd && (
-            <TabsContent value="index" className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <code className="text-xs text-muted-foreground">
-                  stufe-3-obsidian-vault/_index.md
-                </code>
-                <CopyButton text={stage.indexMd} label="_index.md kopieren" variant="default" />
-              </div>
-              <pre className="max-h-[60dvh] overflow-auto whitespace-pre-wrap break-words rounded-xl border bg-muted/40 p-4 font-mono text-xs leading-relaxed">
-                {stage.indexMd}
-              </pre>
-            </TabsContent>
-          )}
-
-          <TabsContent value="packs" className="space-y-4">
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Für Web-Chats und schnelle Tests: Alle Pakete sind mit <code>(datei.md)</code>-Tags
-              versehen oder lassen sich direkt als <code>.md</code>-Datei herunterladen.
-            </p>
-            <div className="space-y-2.5">
-              <div className="flex items-center justify-between gap-3 rounded-xl border border-[#A9C23F]/50 bg-secondary/35 p-3.5">
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold">{expressArcticReef.title}</div>
-                  <div className="text-xs text-muted-foreground">
-                    ~{expressArcticReef.charCount.toLocaleString("de-DE")} Zeichen · alle 10
-                    Fokus-Dateien (Arktis + Riff)
-                  </div>
-                </div>
-                <CopyButton text={expressArcticReef.content} label="Kopieren" variant="default" />
-              </div>
-
-              {packList.map(({ item, content }) => (
-                <div
-                  key={item.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3.5"
-                >
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold">{item.title}</div>
-                    <div className="text-xs text-muted-foreground">
-                      ~{content.length.toLocaleString("de-DE")} Zeichen · {item.subtitle}
-                    </div>
-                  </div>
+          {stage.indexMd && (() => {
+            const isLargeIndex = stage.indexMd.length > 7000;
+            const indexCopyText = isLargeIndex
+              ? buildCompactIndex(stage.indexMd, expressArcticReef.sources, 7000)
+              : stage.indexMd;
+            const approxIndexChars = Math.max(100, Math.round(indexCopyText.length / 100) * 100);
+            return (
+              <TabsContent value="index" className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <code className="text-xs text-muted-foreground">
+                    {stage.folder}/_index.md
+                  </code>
                   <div className="flex items-center gap-1.5">
-                    <CopyButton text={content} label="Kopieren" />
+                    <CopyButton
+                      text={indexCopyText}
+                      label={
+                        isLargeIndex
+                          ? `Kompakt kopieren (~${approxIndexChars.toLocaleString("de-DE")} Z.)`
+                          : "_index.md kopieren"
+                      }
+                      variant="default"
+                    />
                     <Button
                       type="button"
                       size="sm"
                       variant="outline"
                       onClick={() =>
                         downloadMarkdownFile(
-                          item.filename,
-                          content,
-                          `${item.title} (.md) heruntergeladen`
+                          "_index.md",
+                          stage.indexMd || "",
+                          "_index.md (Volltext) heruntergeladen"
                         )
                       }
                     >
@@ -205,13 +208,98 @@ export function StageArtifactsSheet({
                     </Button>
                   </div>
                 </div>
-              ))}
+                <pre className="max-h-[60dvh] overflow-auto whitespace-pre-wrap break-words rounded-xl border bg-muted/40 p-4 font-mono text-xs leading-relaxed">
+                  {stage.indexMd}
+                </pre>
+              </TabsContent>
+            );
+          })()}
+
+          <TabsContent value="packs" className="space-y-4">
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Für Web-Chats und schnelle Tests: Alle Pakete sind mit <code>(datei.md)</code>-Tags
+              versehen oder lassen sich direkt als <code>.md</code>-Datei herunterladen.
+            </p>
+            <div className="space-y-2.5">
+              {(() => {
+                const expressCopyText = compactToCharLimit(
+                  expressArcticReef.content,
+                  MAX_SAFE_CLIPBOARD_CHARS
+                );
+                const approxExpressChars = Math.max(
+                  100,
+                  Math.round(expressCopyText.length / 100) * 100
+                );
+                return (
+                  <div className="flex items-center justify-between gap-3 rounded-xl border border-[#A9C23F]/50 bg-secondary/35 p-3.5">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold">{expressArcticReef.title}</div>
+                      <div className="text-xs text-muted-foreground">
+                        ~{approxExpressChars.toLocaleString("de-DE")} Zeichen · alle{" "}
+                        {expressArcticReef.sources.length} Fokus-Dateien
+                      </div>
+                    </div>
+                    <CopyButton text={expressCopyText} label="Kopieren" variant="default" />
+                  </div>
+                );
+              })()}
+
+              {packList.map(({ item, content }) => {
+                const isLargePack = content.length > 7000;
+                const copyContent = isLargePack
+                  ? item.slugs.length > 0
+                    ? sliceExpressBySlugs(expressArcticReef.content, item.slugs, 7000)
+                    : compactToCharLimit(content, 7000)
+                  : content;
+                const approxCopyChars = Math.max(
+                  100,
+                  Math.round(copyContent.length / 100) * 100
+                );
+                return (
+                  <div
+                    key={item.id}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3.5"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold">{item.title}</div>
+                      <div className="text-xs text-muted-foreground">
+                        ~{content.length.toLocaleString("de-DE")} Zeichen · {item.subtitle}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CopyButton
+                        text={copyContent}
+                        label={
+                          isLargePack
+                            ? `Kompakt kopieren (~${approxCopyChars.toLocaleString("de-DE")} Z.)`
+                            : "Kopieren"
+                        }
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() =>
+                          downloadMarkdownFile(
+                            item.filename,
+                            content,
+                            `${item.title} (.md) heruntergeladen`
+                          )
+                        }
+                      >
+                        <Download className="h-3.5 w-3.5" />
+                        <span>.md</span>
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
 
               <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border p-3.5">
                 <div className="min-w-0">
                   <div className="text-sm font-semibold">Fokus-Dokumente (.md)</div>
                   <div className="text-xs text-muted-foreground">
-                    ~{all12Pack.length.toLocaleString("de-DE")} Zeichen · direkt zum Hochladen
+                    ~{Math.max(1, Math.round(all12Pack.length / 1000)).toLocaleString("de-DE")}k Zeichen ({starterCount} Volltexte)
                   </div>
                 </div>
                 <Button

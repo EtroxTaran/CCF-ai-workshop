@@ -657,14 +657,14 @@ def build_deck(master_arg: Path | None = None, out_path: Path = DEFAULT_OUT_PPTX
             ("• 15 Min. Aha-Kern (Schritte 02–03)", 22, True, V7_INK),
             ("  Methoden, 3 Stufen & Fangfrage", 22, False, V7_MUTED),
             ("• 30 Min. Praxis-Pfad (Schritt 04)", 22, True, V7_INK),
-            ("  3 Ziel-Pfade & Transfer-Brücke", 22, False, V7_MUTED),
+            ("  4 Ziele, DoD-Check & Transfer", 22, False, V7_MUTED),
             ("→ Alle starten gleich — ohne Spaltung.", 22, True, V7_GREEN_DARK),
         ],
         space_after_pt=10,
     )
 
     add_rounded_card(s2, 6.80, 1.68, 6.10, 5.26, fill_color=V7_CREAM_GREEN, border_color=V7_GREEN, accent_bar_color=V7_GREEN)
-    add_badge_pill(s2, 7.03, 1.98, 4.10, 0.52, "WERKZEUG-HILFE (APP 01)", V7_GREEN_DARK, WHITE, size_pt=22)
+    add_badge_pill(s2, 7.03, 1.98, 4.95, 0.52, "4 ZIELE × 4 TOOLS (APP 01)", V7_GREEN_DARK, WHITE, size_pt=22)
     add_textbox(
         s2,
         7.03,
@@ -672,18 +672,19 @@ def build_deck(master_arg: Path | None = None, out_path: Path = DEFAULT_OUT_PPTX
         5.65,
         3.95,
         [
-            ("• Web-Chat: ~5.500-Z.-Pakete & .md", 22, False, V7_INK),
-            ("• Desktop & Ordner: Repo direkt", 22, False, V7_INK),
-            ("• Code-Agent: Stufen 1–3 & MCP", 22, False, V7_INK),
-            ("• Kein Abo? OpenCode + OpenRouter", 22, True, V7_GREEN_DARK),
+            ("• 4 Ziele: Prompt, App, Folie, Alltag", 22, True, V7_INK),
+            ("• Web-Chat · Desktop · IDE/Editor", 22, False, V7_INK),
+            ("• Code-Agent (CLI & MCP)", 22, False, V7_INK),
+            ("• Check & Take-away-Export", 22, True, V7_GREEN_DARK),
         ],
         space_after_pt=14,
     )
     set_notes(
         s2,
-        "Erkläre die 4 Schritte der Workshop-App (01 Einstieg & Werkzeug-Hilfe, 02 Prompt-Methoden, 03 3 Stufen & Wissen, "
-        "04 Praxis-Pfade & Transfer). Die Werkzeug-Hilfe passt Hinweise an Web-Chat, Desktop & Ordner oder Code-Agent an, "
-        "ohne Teilnehmende in Technik-Schubladen zu sortieren.",
+        "Erkläre die 4 Schritte der Workshop-App (01 Einstieg: 4 Ziele × 4 Werkzeuge, 02 Prompt-Methoden, "
+        "03 3 Stufen & Wissen, 04 Ziel-Labor, Ergebnis-Validierung & Transfer). "
+        "Web-Chat (inkl. Langdock), Desktop & Projects, IDE & Editor (inkl. Google Antigravity, Cursor, Windsurf, VS Code) "
+        "sowie Code-Agent laufen parallel — ohne Teilnehmende zu spalten.",
     )
 
     # ------------------------------------------------------------------
@@ -818,12 +819,12 @@ def build_deck(master_arg: Path | None = None, out_path: Path = DEFAULT_OUT_PPTX
     )
 
     # ------------------------------------------------------------------
-    # SLIDE 5: 30 Min. Praxis-Pfade & CCF Transfer-Brücke
+    # SLIDE 5: 30 Min. 4 Ziele, Ergebnis-Validator & CCF Transfer-Brücke
     # ------------------------------------------------------------------
-    s5 = setup_content_slide(prs, is_master, "PRAXIS-PFADE & CCF TRANSFER-BRÜCKE")
+    s5 = setup_content_slide(prs, is_master, "4 ZIELE, VALIDATOR & TRANSFER-BRÜCKE")
 
     add_rounded_card(s5, 0.42, 1.68, 6.10, 5.26, fill_color=V7_CARD_BG, border_color=V7_BORDER, accent_bar_color=V7_GREEN)
-    add_badge_pill(s5, 0.65, 1.98, 4.10, 0.52, "3 PRAXIS-PFADE (30 MIN.)", V7_GREEN_DARK, WHITE, size_pt=22)
+    add_badge_pill(s5, 0.65, 1.98, 5.50, 0.52, "4 ZIELE + ERGEBNIS-VALIDATOR", V7_GREEN_DARK, WHITE, size_pt=22)
     add_textbox(
         s5,
         0.65,
@@ -831,14 +832,13 @@ def build_deck(master_arg: Path | None = None, out_path: Path = DEFAULT_OUT_PPTX
         5.65,
         4.05,
         [
-            ("1. Recherche & Fakten-System", 22, True, V7_INK),
-            ("   68-Artikel-Prüfer & lokales MCP", 22, False, V7_MUTED),
-            ("2. Präsentation & Animatic", 22, True, V7_INK),
-            ("   Claude Artifacts / ChatGPT Canvas", 22, False, V7_MUTED),
-            ("3. Kleine interaktive App bauen", 22, True, V7_INK),
-            ("   Quiz/Dashboard mit [Nicht in Quelle]", 22, False, V7_MUTED),
+            ("1. Besser Prompten: CO-STAR + Check", 22, True, V7_INK),
+            ("2. App bauen: Spec → Prototyp → Test", 22, True, V7_INK),
+            ("3. Präsentation: SCQA + Action-Titles", 22, True, V7_INK),
+            ("4. KI im Alltag: Pipeline + Hausregel", 22, True, V7_INK),
+            ("→ Ergebnis-Validator & DoD-Check!", 22, True, V7_GREEN_DARK),
         ],
-        space_after_pt=6,
+        space_after_pt=10,
     )
 
     add_rounded_card(s5, 6.80, 1.68, 6.10, 5.26, fill_color=V7_CREAM_GREEN, border_color=V7_GREEN, accent_bar_color=V7_INK)
@@ -850,19 +850,20 @@ def build_deck(master_arg: Path | None = None, out_path: Path = DEFAULT_OUT_PPTX
         5.65,
         4.05,
         [
-            ("• Office & Orga: Protokolle", 22, False, V7_INK),
+            ("• Office & Orga: Protokolle & Mails", 22, False, V7_INK),
             ("• Kunden & Projekte: Briefings", 22, False, V7_INK),
             ("• Fachkonzept & Daten: Mappings", 22, False, V7_INK),
-            ("• Betrieb & Dev: Runbook & MCP", 22, False, V7_INK),
+            ("• Betrieb & DB: Runbook & Checks", 22, False, V7_INK),
+            ("• Dev & Architektur: AGENTS.md + MCP", 22, False, V7_INK),
             ("100 % ohne vertrauliche Daten!", 22, True, V7_GREEN_DARK),
         ],
-        space_after_pt=10,
+        space_after_pt=6,
     )
     set_notes(
         s5,
-        "In Schritt 04 wählen die Gruppen frei einen der 3 Praxis-Pfade nach ihrem Anwendungsziel "
-        "(Pfad 1 Recherche & Fakten-System, Pfad 2 Präsentation/Animatic/Übersichtsseite, Pfad 3 Kleine interaktive App) "
-        "und übertragen die Muster am Ende über die 5-Rollen CCF-Transfer-Brücke (inkl. Office Management) in den Alltag.",
+        "In Schritt 04 arbeiten Teilnehmende in ihrem gewählten Ziel (Besser Prompten, App bauen, Präsentation bauen, KI im Alltag), "
+        "prüfen ihr Ergebnis direkt im Ergebnis-Validator inkl. Definition-of-Done-Rubrik und 4-Säulen-Regelwerk "
+        "und übertragen die Muster über die 5-Rollen CCF-Transfer-Brücke (Office & Orga, Kunden & Projekte, Fachkonzept & Daten, Betrieb & DB, Dev & Architektur) in den Alltag.",
     )
 
     # ------------------------------------------------------------------
@@ -894,10 +895,10 @@ def build_deck(master_arg: Path | None = None, out_path: Path = DEFAULT_OUT_PPTX
             4.35,
             2.80,
             [
-                ("Bühne: #/beamer (T / M / Space)", 22, False, V7_INK),
+                ("Hub: #/hub · Bühne: #/beamer", 22, False, V7_INK),
+                ("P Notizen · ? Shortcuts", 22, False, V7_INK),
                 ("Backup: start-workshop.bat/.sh", 22, False, V7_INK),
-                ("Port: http://127.0.0.1:3777/", 22, False, V7_MUTED),
-                ("Repo: Branch main", 22, False, V7_MUTED),
+                ("Port: 127.0.0.1:3777 (main)", 22, False, V7_MUTED),
             ],
             space_after_pt=8,
         )
@@ -928,9 +929,9 @@ def build_deck(master_arg: Path | None = None, out_path: Path = DEFAULT_OUT_PPTX
         [
             ("1. Struktur schlägt Roh-Prompt", 22, True, V7_INK),
             ("2. Leitplanken stoppen Raten", 22, True, V7_INK),
-            ("3. Wissens-Graph schlägt Chaos", 22, True, V7_INK),
-            ("13:00 Uhr: Unit-Programm", 22, True, V7_GREEN_DARK),
-            ("& World Café", 22, True, V7_GREEN_DARK),
+            ("3. Wissens-Graph + Check siegen", 22, True, V7_INK),
+            ("Export als .md / .json sichern", 22, True, V7_GREEN_DARK),
+            ("13:00 Uhr: Unit & World Café", 22, True, V7_GREEN_DARK),
         ],
         space_after_pt=12,
     )

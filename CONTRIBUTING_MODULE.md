@@ -1,42 +1,66 @@
-# Neues Thema zum Workshop-Hub hinzufügen (1-Ordner-Anleitung)
+# Neues Themen-Modul beisteuern (`CONTRIBUTING_MODULE.md`)
 
-> **Ziel:** Neue Themen, Fachbereiche oder Übungssets lassen sich in **einem einzigen Ordner unter `modules/<slug>/`** anlegen — ganz ohne Änderungen an React-Komponenten, Verifier-Skripten oder `vite.config.ts`.
+Die Workshop-Plattform ist modular aufgebaut (`modules/<slug>/`). Jedes Modul erzeugt automatisch einen eigenen **Workshop-Einstieg** im Hub (`#/hub`), ein durchsuchbares UI-Datenpaket unter `workshop-ui/public/modules/<slug>/`, on-disk Übungsdateien (`_index.md`, `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, MCP-Configs) sowie einen eigenen **MCP-Server-Endpunkt** (`--module <slug>`).
 
 ---
 
-## Schnellstart in 3 Minuten
+## Schnellstart (in 5 Minuten)
 
-1. **Neuen Modul-Ordner automatisch anlegen:**
+1. **Neues Modul-Gerüst erzeugen:**
    ```bash
-   node scripts/new_topic.mjs --slug mein-thema --title "Mein Thema Praxis" --level L2
+   node scripts/new_topic.mjs --slug mein-thema --title "Mein Themen-Modul" --level L2
    ```
-   Dadurch entsteht `modules/mein-thema/` mit:
-   - `module.json` (Metadaten, Fragen, Methoden, Rollen, Tests)
-   - `corpus/` (deine Markdown-Wissensdateien `.md` — **100 % öffentlich / synthetisch, keine Kundendaten!**)
-   - `skills/` (optional eigene `SKILL.md`-Arbeitsanweisungen)
-   - `audio-scripts.json` (optional Einlesetexte für Voice-Guides)
+   Dadurch entsteht `modules/mein-thema/` inkl. `module.json`, `corpus/`-Beispielartikeln sowie vorbereiteten Vorlagen für `praxisPaths` (`web`, `desktop`, `ide`, `agent`), `contradictionClaims` und `expressConfig.methodsKeywords`.
 
-2. **Eigene `.md`-Dateien in `modules/<slug>/corpus/` legen:**
-   Jede Datei bekommt oben 5 Zeilen YAML-Metadaten (Frontmatter):
-   ```markdown
-   ---
-   title: Sprechender Dokumenttitel
-   category: dokument
-   group: Bereich A
-   tags: [begriff1, begriff2]
-   ---
+2. **Eigene Wissensbasis (Markdown) unter `modules/mein-thema/corpus/` ablegen:**
+   - Jede `.md`-Datei sollte YAML-Frontmatter enthalten:
+     ```yaml
+     ---
+     title: Dokumenttitel
+     category: Kategorie-Name
+     tags: [begriff-1, begriff-2]
+     slug: datei-slug
+     ---
+     ```
+   - Verwende klare `[[Wikilinks]]` zwischen verwandten Artikeln.
+   - **Compliance-Regel:** Nur **100 % öffentliche** oder **100 % synthetische** Daten einchecken — niemals vertrauliche oder personenbezogene Daten.
 
-   Dein Klartext-Inhalt mit optionalen Querverweisen wie [[anderer-dateiname]].
-   ```
+3. **`module.json` ausfüllen & Build ausführen:**
+   - Achte darauf, dass alle `ragWalkSteps`, `stagePackSpecs` (`starterSlugs`), `expressConfig.goodTokens` und `contradictionClaims` auf reale Slugs/Fakten im eigenen Korpus verweisen.
+   - Prüfe `praxisPaths` für alle **4 Werkzeuge** (`web`, `desktop`, `ide`, `agent`).
+   - Danach generieren & validieren:
+     ```bash
+     node scripts/build_modules.mjs
+     node scripts/validate_modules.mjs
+     node scripts/build_modules.mjs --check
+     ```
 
-3. **Modul-Paket bauen & automatisch prüfen lassen:**
+4. **MCP-Server & UI lokal testen:**
    ```bash
-   node scripts/build_modules.mjs
-   node scripts/validate_modules.mjs
-   ```
-   `build_modules.mjs` erzeugt automatisch das Inhaltsverzeichnis `_index.md`, die Suchindizes und aktualisiert `workshop-ui/public/modules/catalog.json`.
-   `validate_modules.mjs` prüft alle Links (`[[Wikilinks]]`), deine positiven Beleg-Tests sowie deine negativen Fangfragen.
+   # MCP-Server gezielt für dein neues Modul testen
+   node mcp-server/server.mjs --module mein-thema
+   node mcp-server/setup-client.mjs --client all --module mein-thema --scope user --dry-run
 
-4. **Lokal ansehen oder per Pull Request teilen:**
-   - Öffne die App (`npm run dev` in `workshop-ui/` oder `node workshop-ui/server.mjs` nach `npm run build`) und rufe `#/hub` bzw. `#/m/<slug>` auf.
-   - Reiche einen Pull Request ein — `.github/workflows/ci.yml` prüft automatisch Schema, Fangfragen und Build.
+   # Workshop-UI lokal bauen & prüfen
+   cd workshop-ui && npx tsc -b --noEmit && npm run build && cd ..
+   ```
+
+5. **Vollständige Verifikations-Suite vor dem Pull Request ausführen:**
+   ```bash
+   node scripts/check_links_and_scripts.mjs
+   node --test tests/unit/*.test.mjs tests/integration/*.test.mjs
+   python scripts/verify_workshop.py
+   cd workshop-ui && npm run test:e2e && cd ..
+   ```
+
+---
+
+## Pflicht-Verträge (`scripts/validate_modules.mjs`)
+
+Jedes Modul wird automatisiert gegen folgende Verträge geprüft:
+- **Gültige Modul-ID:** Kleinbuchstaben + Bindestrich (`^[a-z0-9][a-z0-9-]*$`).
+- **Vollständige `toolModes`:** Alle 4 Modi (`web`, `desktop`, `ide`, `agent`) müssen definiert sein (oder über `toolModes` bereitstehen).
+- **Ehrliche Fangfragen & Widersprüche:** Mindestens 1 nicht belegbarer Claim (`expectedStatus: "nicht_belegt"`) und idealerweise konkrete `contradictionClaims` (`expectedStatus: "widerspruch"`), die `verifyClaim()` deterministisch bestätigt.
+- **Referenz-Integrität:** Alle in `ragWalkSteps`, `stagePackSpecs` und `verificationClaims` referenzierten Slugs und `targetDocs` müssen im Korpus existieren.
+- **On-Disk Sync:** Nach `build_modules.mjs` dürfen weder `_index.md` noch `AGENTS.md`/`CLAUDE.md`/`GEMINI.md` noch `workshop-ui/public/modules/` von der Moduldefinition abweichen (`--check` Exit 0).
+- **Designentscheidungen:** Siehe `docs/adr/0001` bis `docs/adr/0006`.

@@ -1,0 +1,3 @@
+[mcp_servers.workshop-context-engineering-projekt]
+command = "node"
+args = ["../../mcp-server/server.mjs","--module","context-engineering-projekt"]

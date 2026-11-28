@@ -25,6 +25,7 @@ const MIME_TYPES = {
   ".webp": "image/webp",
   ".ico": "image/x-icon",
   ".txt": "text/plain; charset=utf-8",
+  ".md": "text/markdown; charset=utf-8",
   ".woff2": "font/woff2",
   ".mp3": "audio/mpeg",
 };
@@ -36,7 +37,7 @@ const sendText = (res, status, msg) => {
 
 const server = http.createServer((req, res) => {
   if (req.method !== "GET" && req.method !== "HEAD") return sendText(res, 405, "Method Not Allowed");
-  if (!fs.existsSync(DIST_DIR)) return sendText(res, 500, "workshop-ui/dist fehlt. Bitte 'npm run build' in workshop-ui ausführen.");
+  if (!fs.existsSync(DIST_DIR)) return sendText(res, 500, "workshop-ui/dist fehlt. Bitte zuerst 'node scripts/build_modules.mjs' und in workshop-ui 'npm run build' ausführen.");
 
   let pathname;
   try {
@@ -98,5 +99,5 @@ server.on("error", (err) => {
 for (const sig of ["SIGINT", "SIGTERM"]) process.on(sig, () => server.close(() => process.exit(0)));
 
 server.listen(PORT, HOST, () => {
-  console.log(`\nvirtual7 CCF Prompt-Werkstatt (Offline-Backup)\n  Workshop-App  : http://${HOST}:${PORT}/\n  Trainer-Bühne : http://${HOST}:${PORT}/#/beamer\n`);
+  console.log(`\nvirtual7 CCF Prompt-Werkstatt (Offline-Backup)\n  Workshop-App  : http://${HOST}:${PORT}/\n  Workshop-Hub  : http://${HOST}:${PORT}/#/hub\n  Trainer-Bühne : http://${HOST}:${PORT}/#/beamer\n`);
 });

@@ -9,16 +9,37 @@ import type {
 
 const EMPTY_STARTER_ARTICLES: StarterArticle[] = [];
 const EMPTY_INDEX: CorpusSearchIndex = {};
+const mergedCache = new WeakMap<
+  VaultArticle[],
+  WeakMap<StarterArticle[], WeakMap<CorpusSearchIndex, Record<string, unknown>[]>>
+>();
 
 function mergeArticlesWithIndex(
   vaultArticles: VaultArticle[],
   starterArticles: StarterArticle[] = EMPTY_STARTER_ARTICLES,
   corpusIndex: CorpusSearchIndex = EMPTY_INDEX
 ): Record<string, unknown>[] {
+  let byStarter = mergedCache.get(vaultArticles);
+  if (!byStarter) {
+    byStarter = new WeakMap();
+    mergedCache.set(vaultArticles, byStarter);
+  }
+  let byIndex = byStarter.get(starterArticles);
+  if (!byIndex) {
+    byIndex = new WeakMap();
+    byStarter.set(starterArticles, byIndex);
+  }
+  const cached = byIndex.get(corpusIndex);
+  if (cached) return cached;
+
   const starterMap = new Map(starterArticles.map((s) => [s.slug, s]));
-  return vaultArticles.map((art) => {
+  const merged = vaultArticles.map((art) => {
     const starter = starterMap.get(art.slug);
     const body = corpusIndex[art.slug] || starter?.content || art.summary || "";
+    const sourceFile = art.source_file || `raw/${art.slug}.md`;
+    const relPath = sourceFile.startsWith("corpus/")
+      ? sourceFile
+      : `wiki/${art.category}/${art.slug}.md`;
     return {
       slug: art.slug,
       title: art.title,
@@ -30,10 +51,13 @@ function mergeArticlesWithIndex(
       summary: art.summary || "",
       key_points: art.key_points || [],
       related: art.related || [],
-      source_file: art.source_file || `raw/${art.slug}.md`,
+      source_file: sourceFile,
+      rel_path: relPath,
       body,
     };
   });
+  byIndex.set(corpusIndex, merged);
+  return merged;
 }
 
 /** Search module articles using the shared ESM corpus engine (zero duplication). */
@@ -69,12 +93,13 @@ export function offlineVerifyClaim(
   return {
     status: res.status,
     label: res.confidence_label,
+    mismatchReasons: res.mismatch_reasons || [],
     evidence: (res.evidence || []).map((ev) => ({
       slug: ev.slug,
       title: ev.title,
       wikilink: ev.wikilink,
-      rel_path: `${ev.category}/${ev.slug}.md`,
-      source_file: `raw/${ev.slug}.md`,
+      rel_path: ev.rel_path || ev.source_file || `${ev.category}/${ev.slug}.md`,
+      source_file: ev.source_file || ev.rel_path || `raw/${ev.slug}.md`,
       snippet: ev.snippet,
       matched_tokens: ev.matched_tokens,
       score: ev.score,

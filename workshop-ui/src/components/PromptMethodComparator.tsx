@@ -6,6 +6,7 @@ import { GlossaryTip } from "@/components/guidance/GlossaryTip";
 import { WebChatWorkflowPlayer } from "@/components/guidance/WalkthroughPlayers";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { compactToCharLimit, MAX_SAFE_CLIPBOARD_CHARS } from "@/lib/compactPacks";
 import { downloadMarkdownFile } from "@/lib/exportCorpusMd";
 import type { ExpressPackage, PromptMethod, ToolMode } from "@/types/workshop";
 
@@ -14,6 +15,7 @@ interface PromptMethodComparatorProps {
   methods: PromptMethod[];
   toolMode: ToolMode;
   expressPackage: ExpressPackage;
+  stage1Folder?: string;
   onCopyPrompt?: () => void;
 }
 
@@ -53,6 +55,7 @@ export function PromptMethodComparator({
   methods,
   toolMode,
   expressPackage,
+  stage1Folder = "stufe-1-chaos",
   onCopyPrompt,
 }: PromptMethodComparatorProps) {
   const prefersReduced = useReducedMotion();
@@ -68,12 +71,13 @@ export function PromptMethodComparator({
   // Prompt ALWAYS at the very top of the copied bundle!
   // Bei Zero-Shot bewusst neutral ohne strikte Guardrails, damit der Aha-Effekt im Vergleich funktioniert.
   const compactBundle = useMemo(() => {
-    if (active.id === "zero-shot") {
-      return `${active.prompt}\n\n---\nHINTERGRUNDTEXTE:\n\n${expressPackage.content}`;
-    }
-    return expressPackage.promptHeaderTemplate
-      .replace("{{PROMPT}}", active.prompt)
-      .replace("{{TEXTS}}", expressPackage.content);
+    const raw =
+      active.id === "zero-shot"
+        ? `${active.prompt}\n\n---\nHINTERGRUNDTEXTE:\n\n${expressPackage.content}`
+        : expressPackage.promptHeaderTemplate
+            .replace("{{PROMPT}}", active.prompt)
+            .replace("{{TEXTS}}", expressPackage.content);
+    return compactToCharLimit(raw, MAX_SAFE_CLIPBOARD_CHARS);
   }, [expressPackage, active.id, active.prompt]);
 
   function downloadTextsMd() {
@@ -87,7 +91,7 @@ export function PromptMethodComparator({
     downloadMarkdownFile(
       "methoden-kompakt-texte.md",
       mdContent,
-      "6 Kompakt-Texte (.md) heruntergeladen"
+      `${expressPackage.sources.length} Kompakt-Texte (.md) heruntergeladen`
     );
     onCopyPrompt?.();
   }
@@ -110,7 +114,7 @@ export function PromptMethodComparator({
     const normPart = activeHighlight.toLowerCase();
     const normLine = line.toLowerCase();
     if (normPart.includes("response") || normPart.includes("format") || normPart.includes("schema")) {
-      return normLine.includes("|") || normLine.includes("arktis") || normLine.includes("korallen") || normLine.includes("quelle");
+      return normLine.includes("|") || normLine.includes("•") || normLine.includes("quelle") || normLine.includes(".md");
     }
     if (normPart.includes("narrowing") || normPart.includes("regel") || normPart.includes("lücke")) {
       return normLine.includes("[nicht in quelle]") || normLine.includes("fehlt");
@@ -119,7 +123,7 @@ export function PromptMethodComparator({
       return normLine.includes(".md");
     }
     if (normPart.includes("beispiel")) {
-      return normLine.includes("|") || normLine.includes("29") || normLine.includes("2030");
+      return normLine.includes("|") || /\d/.test(normLine);
     }
     return true;
   }
@@ -129,6 +133,8 @@ export function PromptMethodComparator({
     [active.structuredComparison.excerpt]
   );
 
+  const approxCharsLabel = `~${Math.max(100, Math.round(compactBundle.length / 100) * 100).toLocaleString("de-DE")} Zeichen`;
+
   return (
     <div className="space-y-5">
       {/* Mode-aware guidance */}
@@ -136,20 +142,30 @@ export function PromptMethodComparator({
         {toolMode === "web" ? (
           <>
             <strong className="text-brand-ink">Web-Chat Kurzanleitung: </strong>
-            Wähle eine Methode und klicke auf <strong>„Kompakt-Paket (~5.500 Zeichen)“</strong> —
-            dein Prompt steht ganz oben, alle 6 Quelltexte mit <code>(datei.md)</code> direkt darunter.
+            Wähle eine Methode und klicke auf <strong>„Kompakt-Paket ({approxCharsLabel})“</strong> —
+            dein Prompt steht ganz oben, alle {expressPackage.sources.length} Quelltexte mit{" "}
+            <code>(datei.md)</code> direkt darunter.
           </>
         ) : toolMode === "desktop" ? (
           <>
-            <strong className="text-brand-ink">Desktop &amp; Ordner Hinweis: </strong>
-            Du kannst entweder den Ordner <code>stufe-1-chaos/docs/</code> direkt ansprechen oder
-            per <strong>„Nur Prompt“</strong> / <strong>„Texte als .md laden“</strong> testen.
+            <strong className="text-brand-ink">Desktop &amp; Projects Hinweis: </strong>
+            Du kannst entweder den Ordner <code>{stage1Folder}/</code> direkt öffnen oder per{" "}
+            <strong>„Nur Prompt“</strong> /{" "}
+            <strong>„{expressPackage.sources.length} Kompakt-Texte (.md)“</strong> testen.
+          </>
+        ) : toolMode === "ide" ? (
+          <>
+            <strong className="text-brand-ink">IDE &amp; Editor Hinweis: </strong>
+            Öffne <code>{stage1Folder}/</code> in Google Antigravity, Cursor, Windsurf oder VS Code
+            und referenziere Dateien gezielt (<code>@</code> in Antigravity/Cursor/Windsurf,{" "}
+            <code>#file:</code> in VS Code Copilot) oder lade das kompakte Testpaket als{" "}
+            <code>.md</code>.
           </>
         ) : (
           <>
-            <strong className="text-brand-ink">Code-Agent Hinweis: </strong>
-            Kopiere per <strong>„Nur Prompt“</strong> direkt in deine CLI/IDE im Ordner{" "}
-            <code>stufe-1-chaos/</code> oder lade das kompakte Testpaket als <code>.md</code>.
+            <strong className="text-brand-ink">CLI Code-Agent Hinweis: </strong>
+            Kopiere per <strong>„Nur Prompt“</strong> direkt in deine CLI im Ordner{" "}
+            <code>{stage1Folder}/</code> oder lade das kompakte Testpaket als <code>.md</code>.
           </>
         )}
       </div>
@@ -182,7 +198,12 @@ export function PromptMethodComparator({
         </div>
       </div>
 
-      <WebChatWorkflowPlayer toolMode={toolMode} />
+      <WebChatWorkflowPlayer
+        toolMode={toolMode}
+        sourceCount={expressPackage.sources.length}
+        approxCharsLabel={approxCharsLabel}
+        sampleSources={expressPackage.sources.slice(0, 2)}
+      />
 
       {/* 4-Method Segmented Switcher */}
       <div className="grid grid-cols-2 gap-1.5 rounded-xl border bg-muted/60 p-1.5 sm:grid-cols-4">
@@ -251,7 +272,7 @@ export function PromptMethodComparator({
               <div className="flex flex-wrap items-center gap-2">
                 <CopyButton
                   text={compactBundle}
-                  label="Kompakt-Paket (~6.000 Zeichen)"
+                  label={`Kompakt-Paket (${approxCharsLabel})`}
                   toastMessage={`Prompt (oben) + Kompakt-Texte (${active.name}) kopiert`}
                   variant="default"
                   onCopy={onCopyPrompt}
@@ -265,7 +286,7 @@ export function PromptMethodComparator({
                 />
                 <Button type="button" size="sm" variant="secondary" onClick={downloadTextsMd}>
                   <Download className="h-3.5 w-3.5" />
-                  <span>6 Kompakt-Texte (.md)</span>
+                  <span>{expressPackage.sources.length} Kompakt-Texte (.md)</span>
                 </Button>
               </div>
             </div>
@@ -388,10 +409,27 @@ export function PromptMethodComparator({
               </div>
 
               {/* Right: Saubere Ziel-Struktur with animated line mapping */}
-              <div className="space-y-2.5 rounded-xl border border-[#A9C23F]/60 bg-secondary/30 p-4 text-xs">
+              <div
+                className={`space-y-2.5 rounded-xl border p-4 text-xs ${
+                  active.id === "zero-shot"
+                    ? "border-amber-400/60 bg-amber-50/40 dark:border-amber-500/35 dark:bg-amber-500/10"
+                    : "border-[#A9C23F]/60 bg-secondary/30"
+                }`}
+              >
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <span className="font-semibold text-brand-ink">Saubere Ziel-Struktur</span>
-                  <Badge variant="lime" className="font-mono text-[10px]">
+                  <span
+                    className={`font-semibold ${
+                      active.id === "zero-shot"
+                        ? "text-amber-900 dark:text-amber-200"
+                        : "text-brand-ink"
+                    }`}
+                  >
+                    {active.id === "zero-shot" ? "Ohne Ziel-Struktur (Baseline)" : "Saubere Ziel-Struktur"}
+                  </span>
+                  <Badge
+                    variant={active.id === "zero-shot" ? "warning" : "lime"}
+                    className="font-mono text-[10px]"
+                  >
                     {active.structuredComparison.formatTag}
                   </Badge>
                 </div>
@@ -422,14 +460,24 @@ export function PromptMethodComparator({
                   })}
                 </div>
                 <div className="flex flex-wrap gap-1.5 pt-0.5">
-                  {active.structuredComparison.highlights.map((hl) => (
-                    <span
-                      key={hl}
-                      className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold text-emerald-800 dark:text-emerald-300"
-                    >
-                      ✓ {hl}
-                    </span>
-                  ))}
+                  {active.structuredComparison.highlights.map((hl) => {
+                    const isZeroMetric = /^0\s/i.test(hl.trim());
+                    const isNegativeOrBaseline = active.id === "zero-shot" || isZeroMetric;
+                    return (
+                      <span
+                        key={hl}
+                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                          isZeroMetric
+                            ? "bg-rose-500/15 text-rose-800 dark:text-rose-300"
+                            : isNegativeOrBaseline
+                              ? "bg-amber-500/15 text-amber-900 dark:text-amber-200"
+                              : "bg-emerald-500/15 text-emerald-800 dark:text-emerald-300"
+                        }`}
+                      >
+                        {isZeroMetric ? "✗" : isNegativeOrBaseline ? "–" : "✓"} {hl}
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
             </div>

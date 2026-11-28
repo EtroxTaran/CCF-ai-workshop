@@ -10,8 +10,8 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 MANIFEST_PATH = ROOT / "scripts" / "corpus_manifest.json"
-OUT_PATH = ROOT / "workshop-ui" / "src" / "data" / "workshopData.json"
-SEARCH_INDEX_PATH = ROOT / "workshop-ui" / "src" / "data" / "searchIndex.json"
+OUT_PATH = ROOT / "scripts" / "legacy-export" / "workshopData.json"
+SEARCH_INDEX_PATH = ROOT / "scripts" / "legacy-export" / "searchIndex.json"
 
 STARTER_SLUGS = [
     "eisbaer",
@@ -229,9 +229,9 @@ def main() -> None:
         "meta": {
             "title": "Prompt-Werkstatt · virtual7 CCF Clustertag",
             "subtitle": "Vom ungefilterten Chat zum strukturierten KI-System",
-            "presenter": "Nico Rimmele",
+            "presenter": "Moderation · virtual7 CCF",
             "cluster": "Customer Cluster Finance (CCF)",
-            "timeSlot": "45 Min. Hands-on (15 Min. Aha-Kern + 30 Min. Praxis-Pfad)",
+            "timeSlot": "45 Min. Hands-on (15 Min. Aha-Kern + 30 Min. Ziel-Labor)",
             "articleCount": len(manifest),
             "complianceNote": "100 % öffentliche Wikipedia-Artikel (Tierwelt & Ökosysteme) – keine internen oder personenbezogenen Daten.",
             "pagesUrl": "https://etroxtaran.github.io/CCF-ai-workshop/",
@@ -241,10 +241,10 @@ def main() -> None:
             {
                 "id": "start",
                 "num": "01",
-                "label": "01 · Einstieg & Werkzeug-Hilfe",
-                "short": "Einstieg",
+                "label": "01 · Ziel & Werkzeug wählen",
+                "short": "Ziel & Tool",
                 "phaseGroup": "aha-kern",
-                "phaseLabel": "Vorbereitung (2 Min.)",
+                "phaseLabel": "Orientierung (2 Min.)",
             },
             {
                 "id": "methods",
@@ -265,10 +265,10 @@ def main() -> None:
             {
                 "id": "paths",
                 "num": "04",
-                "label": "04 · Praxis-Pfade & Transfer",
-                "short": "Praxis-Pfade",
+                "label": "04 · Ziel-Labor & Ergebnis-Check",
+                "short": "Ziel-Labor",
                 "phaseGroup": "praxis-pfad",
-                "phaseLabel": "30 Min. freier Praxis-Pfad",
+                "phaseLabel": "30 Min. Ziel-Labor & Validierung",
             },
         ],
         "toolModes": [
@@ -277,41 +277,51 @@ def main() -> None:
                 "label": "Web-Chat",
                 "shortLabel": "Web-Chat",
                 "badge": "Kein Setup nötig",
-                "summary": "Direkt im Browser (Claude.ai, ChatGPT, Gemini) mit 1-Klick-Kopierpaketen, .md-Download sowie Artifacts oder Canvas.",
-                "examples": ["Claude.ai", "ChatGPT", "Google Gemini"],
-                "workflowHint": "Nutze die 1-Klick-Kopierpakete (Prompt steht bereits ganz oben) oder lade einzelne .md-Dateien hoch.",
+                "summary": "Direkt im Browser (ChatGPT, Claude.ai, Langdock, Google Gemini, M365 Copilot) mit 1-Klick-Kopierpaketen, .md-Download sowie Canvas / Artifacts.",
+                "examples": ["ChatGPT", "Claude.ai", "Langdock", "Google Gemini", "M365 Copilot"],
+                "workflowHint": "Nutze die 1-Klick-Kopierpakete (Prompt steht ganz oben) oder lade einzelne .md-Dateien hoch. Cloud-Hubs wie Langdock, ChatGPT Web, Claude.ai Web und M365 Copilot können keinen lokalen stdio-MCP-Server starten — nutze dort Knowledge Folder, Remote MCP (Streamable HTTP/SSE) oder unseren Browser-Faktenprüfer.",
                 "noInstallRequired": True,
             },
             {
                 "id": "desktop",
-                "label": "Desktop & Ordner",
-                "shortLabel": "Desktop & Ordner",
+                "label": "Desktop & Projects",
+                "shortLabel": "Desktop & Projects",
                 "badge": "Ohne Terminal",
-                "summary": "Öffne entpackte Workshop-Ordner lokal in Claude Cowork — oder nutze Claude.ai / ChatGPT Projects mit hochgeladenen .md-Dateien.",
-                "examples": ["Claude Cowork (Ordner)", "Claude.ai / ChatGPT Projects"],
-                "workflowHint": "Ohne Git: Workshop als ZIP laden & entpacken → in Claude Cowork Ordner wählen (oder in Projects Regeln + .md hochladen).",
+                "summary": "Öffne entpackte Workshop-Ordner lokal in Claude Cowork — oder nutze Langdock Assistants, ChatGPT/Claude Projects bzw. Gemini Gems mit Knowledge Folder / hochgeladenen .md-Dateien.",
+                "examples": ["Langdock Assistants", "Claude Cowork (Ordner)", "ChatGPT / Claude Projects", "Gemini Gems"],
+                "workflowHint": "Ohne Git: Workshop als ZIP laden & entpacken → in Claude Cowork Ordner wählen oder in Langdock Assistants / Projects / Gems Assistant Instructions + Knowledge Folder (.md) hinterlegen (kein lokales stdio-MCP; dort Remote MCP oder Browser-Faktenprüfer nutzen).",
+                "noInstallRequired": False,
+            },
+            {
+                "id": "ide",
+                "label": "IDE & Editor",
+                "shortLabel": "IDE & Editor",
+                "badge": "Antigravity / Cursor / VS Code",
+                "summary": "Arbeite direkt im Editor (Google Antigravity, Cursor, Windsurf, VS Code + GitHub Copilot) mit Workspace-Regeln (AGENTS.md / GEMINI.md / .agents/skills/ / .github/copilot-instructions.md), Datei-Referenzen (@ / #file:), Plan/Execute und Built-in Preview.",
+                "examples": ["Google Antigravity", "Cursor", "Windsurf", "VS Code + GitHub Copilot"],
+                "workflowHint": "Öffne den jeweiligen Stufen-Ordner (z. B. stufe-2-skills-guardrails/) als Workspace im Editor und referenziere Dateien gezielt (@ in Antigravity/Cursor/Windsurf, #file: in VS Code Copilot). In Google Antigravity stehen zusätzlich Plan/Execute-Modus, .agents/skills/ und Built-in Preview bereit.",
                 "noInstallRequired": False,
             },
             {
                 "id": "agent",
-                "label": "Code-Agent",
-                "shortLabel": "Code-Agent",
-                "badge": "Terminal / IDE",
-                "summary": "Arbeite im Terminal oder in der IDE mit AGENTS.md, Skills und lokalem MCP-Server auf allen 68 Artikeln.",
-                "examples": ["Claude Code", "Codex CLI", "Gemini CLI", "VS Code / Copilot", "OpenCode"],
-                "workflowHint": "Wechsle in stufe-1-chaos/, stufe-2-skills-guardrails/ oder stufe-3-obsidian-vault/ — Regeln & MCP (Stufe 3) laden automatisch.",
+                "label": "CLI Code-Agent",
+                "shortLabel": "CLI Code-Agent",
+                "badge": "Terminal + MCP",
+                "summary": "Arbeite im Terminal mit autonomen Agenten, AGENTS.md, Skills und lokalem MCP-Server auf allen 68 Artikeln.",
+                "examples": ["Claude Code", "Codex CLI", "Gemini CLI", "OpenCode"],
+                "workflowHint": "Starte dein CLI-Werkzeug direkt im jeweiligen Stufen-Ordner (cd stufe-1-chaos → stufe-2 → stufe-3) — Regeln, Skills & MCP (Stufe 3) laden dort sauber.",
                 "noInstallRequired": False,
             },
         ],
         "openCodeHelp": {
             "title": "Kein eigenes KI-Abo? Kostenlos im Browser oder lokal mit OpenCode",
-            "summary": "Auch ohne bezahltes KI-Abo kannst du sofort alles mitmachen — am schnellsten über kostenlose Browser-Chats und unser eingebautes Prüflabor (oder optional im Terminal über OpenCode + OpenRouter).",
+            "summary": "Auch ohne bezahltes KI-Abo kannst du sofort alles mitmachen — am schnellsten über kostenlose Browser-Chats, Langdock (falls im Unternehmen aktiv) und unser eingebautes Prüflabor (oder optional im Terminal über OpenCode + OpenRouter).",
             "steps": [
-                "Am einfachsten im Browser: ChatGPT Free (chatgpt.com), Claude Free (claude.ai) oder Gemini (gemini.google.com) gratis nutzen — oder unseren 68-Artikel-Faktenprüfer in Schritt 04 direkt ohne Login testen.",
+                "Am einfachsten im Browser: ChatGPT Free (chatgpt.com), Claude Free (claude.ai), Langdock (app.langdock.com), Gemini (gemini.google.com) oder M365 Copilot nutzen — oder unseren 68-Artikel-Faktenprüfer in Schritt 04 direkt ohne Login testen.",
                 "Optional fürs Terminal (OpenCode + OpenRouter): Repository klonen (git clone -b main https://github.com/EtroxTaran/CCF-ai-workshop.git), OpenCode starten und mit /connect OpenRouter (inkl. Free-Tier-Modellen) verknüpfen.",
                 "Alle 68 Dateien sind 100 % öffentliche Wikipedia-Artikel ohne interne oder personenbezogene Daten.",
             ],
-            "commandSnippet": "npm install -g @opencode/cli && opencode",
+            "commandSnippet": "npm install -g opencode-ai && opencode",
             "note": "Tipp: Falls kein globales npm gewünscht ist, klappt oft auch npx opencode-ai@latest — im geöffneten OpenCode einfach /connect eingeben und OpenRouter wählen.",
         },
         "phases": [
@@ -327,9 +337,10 @@ def main() -> None:
                 "modeCues": {
                     "web": "Beobachte am Beamer, wie derselbe Chat durch klare Struktur und Quellenpflicht plötzlich belegbar antwortet.",
                     "desktop": "Achte darauf, wie Ordner-Kontext (AGENTS.md & Index) Vorwissen aus dem Internet zähmt.",
+                    "ide": "Beobachte, wie Workspace-Regeln und gezielte Datei-Referenzen (@ in Antigravity/Cursor/Windsurf, #file: in VS Code Copilot) halluzinierte Code-/Faktenvorschläge stoppen.",
                     "agent": "Beobachte, wie derselbe Code-Agent nur durch AGENTS.md, Skills und _index.md anders navigiert.",
                 },
-                "activeQuestionId": "q3",
+                "activeQuestionId": "q1",
                 "keyTakeaway": "Gleiches Modell, gleiche Dateien – völlig anderes Ergebnis durch Kontext-Design.",
             },
             {
@@ -339,14 +350,15 @@ def main() -> None:
                 "timeRange": "11:10–11:25",
                 "durationMin": 15,
                 "title": "Gemeinsamer Aha-Kern (Schritte 01–03)",
-                "subtitle": "Werkzeug-Hilfe wählen, 4 Prompt-Methoden testen & 3 Stufen erleben",
+                "subtitle": "Ziel & Werkzeug wählen, 4 Prompt-Methoden testen & 3 Stufen erleben",
                 "beamerHeadline": "15 Min. Aha-Kern: Erst Prompt-Struktur, dann 3 Stufen inkl. Fangfrage",
                 "modeCues": {
                     "web": "Kopiere Express-Paket 1 & 2 (Prompt steht ganz oben!) in deinen Browser-Chat und teste Q1–Q4.",
                     "desktop": "Öffne stufe-1-chaos → stufe-2-skills-guardrails → stufe-3-obsidian-vault als Ordner-Projekt.",
+                    "ide": "Öffne stufe-1-chaos → stufe-2 → stufe-3 im Editor und prüfe mit Datei-Referenz (@ in Antigravity/Cursor/Windsurf, #file: in VS Code Copilot) Q3 (Schneeleopard) + Q4 (38 Zähne).",
                     "agent": "Wandere im Terminal durch stufe-1-chaos → stufe-2 → stufe-3 und prüfe Q3 (Schneeleopard) + Q4 (38 Zähne).",
                 },
-                "activeQuestionId": "q4",
+                "activeQuestionId": "q2",
                 "keyTakeaway": "Prompt-Struktur steuert das Format – Guardrails & Wissensstruktur verhindern Halluzinationen.",
             },
             {
@@ -355,16 +367,17 @@ def main() -> None:
                 "phaseGroup": "praxis-pfad",
                 "timeRange": "11:25–11:55",
                 "durationMin": 30,
-                "title": "Freier Praxis-Pfad (Schritt 04)",
-                "subtitle": "Recherche & Fakten · Präsentation & Animatic · Kleine App",
-                "beamerHeadline": "30 Min. Praxis-Pfad: Wählt euer eigenes Ziel & baut ein echtes Ergebnis",
+                "title": "Ziel-Labor & Ergebnis-Validierung (Schritt 04)",
+                "subtitle": "Prompting · App bauen · Präsentation · KI im Arbeitsalltag",
+                "beamerHeadline": "30 Min. Ziel-Labor: Wählt euer Ziel + Werkzeug & validiert das Ergebnis",
                 "modeCues": {
-                    "web": "Nutze Pfad 1 (In-Browser-Faktenprüfer), Pfad 2 (Artifacts/Canvas-Folie) oder Pfad 3 (interaktives HTML-Tool).",
-                    "desktop": "Nutze deinen Lieblingsordner als Datenbasis für Recherche-Matrix, Briefing-Seite oder Mini-App.",
-                    "agent": "Nutze MCP (search_wildlife_vault, verify_claim_against_corpus, read_vault_article) oder baue ein Mini-Tool.",
+                    "web": "Arbeite dein gewähltes Ziel im Browser durch und prüfe dein Ergebnis direkt im Output-Validator.",
+                    "desktop": "Nutze deinen Ordner bzw. dein Project als Datenbasis für Ziel-Labor + Output-Validator.",
+                    "ide": "Arbeite dein Ziel direkt in Antigravity / Cursor / Windsurf / VS Code durch und validiere Spezifikation, Deck oder Code im Output-Validator.",
+                    "agent": "Nutze MCP (search_vault, verify_claim, read_article) oder baue/prüfe dein Ergebnis im Ziel-Labor.",
                 },
-                "activeQuestionId": "q2",
-                "keyTakeaway": "Jede CCF-Rolle findet in denselben Mustern sofortigen Hebel für Recherche, Kommunikation oder Bau.",
+                "activeQuestionId": "q3",
+                "keyTakeaway": "Nicht nur Prompts kopieren — jedes Ziel endet mit einem geprüften Ergebnis & Takeaway-Kit.",
             },
             {
                 "id": "debrief",
@@ -373,15 +386,16 @@ def main() -> None:
                 "timeRange": "11:55–12:00",
                 "durationMin": 5,
                 "title": "Debrief & CCF-Transfer-Brücke",
-                "subtitle": "Handzeichen-Impulse, 5 Rollen & Ausblick auf 13:00 Uhr",
-                "beamerHeadline": "Debrief: Was nehmt ihr in den CCF-Alltag mit?",
+                "subtitle": "Ergebnis-Check, 5 Rollen & Takeaway-Export",
+                "beamerHeadline": "Debrief: Geprüfte Ergebnisse & Transfer in den Montagmorgen",
                 "modeCues": {
-                    "web": "Wählt euren Praxis-Alltagsfall aus der 5-Rollen Transfer-Brücke und teilt 1 Learning per Handzeichen.",
-                    "desktop": "Übertragt das Ordner- & Regeln-Prinzip auf Fachkonzepte, Projektberichte oder Runbooks.",
-                    "agent": "Nehmt AGENTS.md, Skills & schmale MCP-Tools als Blaupause für reproduzierbare Agenten-Workflows mit.",
+                    "web": "Exportiere dein Takeaway-Kit (.md) und teile 1 validiertes Learning per Handzeichen.",
+                    "desktop": "Übertrage deine getesteten Projekt-Anweisungen & Fangfrage direkt auf eigene Unterlagen.",
+                    "ide": "Speichere deine geprüfte AGENTS.md / Copilot-Instruktion als Vorlage für eigene Repositories.",
+                    "agent": "Nimm AGENTS.md, Skills & schmale MCP-Tools als geprüfte Blaupause mit ins Team.",
                 },
-                "activeQuestionId": "q2",
-                "keyTakeaway": "Kontext schlägt Magie. Ab 13:00 Uhr geht es weiter ins Unit-Programm & World Café.",
+                "activeQuestionId": "q4",
+                "keyTakeaway": "Kontext schlägt Magie — und jede Regel braucht eine Fangfrage als Abnahmetest.",
             },
         ],
         "promptComparisonTask": "Welche Auswirkungen hat der Klimawandel laut unseren Dokumenten auf Eisbären in der Arktis und auf Steinkorallen im Korallenriff?",
@@ -576,7 +590,7 @@ def main() -> None:
                 "analogy": "Werkzeuge, Datenbanken & geprüfte Schnittstellen",
                 "persistence": "Standardisiertes Protokoll (Model Context Protocol)",
                 "authority": "Direkte Aktion statt reinem Text-Raten",
-                "example": "`search_wildlife_vault`, `verify_claim_against_corpus`, `read_vault_article`.",
+                "example": "`search_vault`, `verify_claim`, `read_article`, `list_modules`.",
             },
         ],
         "chatRulesTemplate": (
@@ -676,6 +690,15 @@ def main() -> None:
                         ],
                         "commandOrAction": "stufe-1-chaos/",
                     },
+                    "ide": {
+                        "headline": "Ordner stufe-1-chaos/ in Antigravity, Cursor, Windsurf oder VS Code öffnen",
+                        "steps": [
+                            "Öffne nur den Unterordner stufe-1-chaos/ als Editor-Workspace (AGENTS.md hat hier nur 1 Satz; für harte Stufe-1-Isolation außerhalb des Repos kopieren).",
+                            "Referenziere docs/eisbaer.md im Chat und stelle Frage 3 (Schneeleopard) sowie Frage 1.",
+                            "Beobachte, wie ohne Guardrails Trainingswissen eingeschmuggelt wird.",
+                        ],
+                        "commandOrAction": "Workspace: stufe-1-chaos/",
+                    },
                     "agent": {
                         "headline": "CLI / Agent direkt in stufe-1-chaos/ starten",
                         "steps": [
@@ -737,6 +760,15 @@ def main() -> None:
                             "Optional für Frage 4: kurz 42 → 38 Zähne in docs/eisbaer.md testen (danach wieder 42).",
                         ],
                         "commandOrAction": "stufe-2-skills-guardrails/",
+                    },
+                    "ide": {
+                        "headline": "Ordner stufe-2-skills-guardrails/ im Editor öffnen (AGENTS.md + Skills aktiv)",
+                        "steps": [
+                            "Öffne stufe-2-skills-guardrails/ als frisches Editor-Fenster und starte einen neuen IDE-Chat.",
+                            "Referenziere AGENTS.md sowie docs/eisbaer.md im Chat und stelle Frage 3 (Schneeleopard).",
+                            "Teste Frage 4 (42 → 38 Zähne in docs/eisbaer.md ändern, danach zurücksetzen) — die KI muss 38 (eisbaer.md) nennen.",
+                        ],
+                        "commandOrAction": "Workspace: stufe-2-skills-guardrails/",
                     },
                     "agent": {
                         "headline": "Neuen Agenten in stufe-2-skills-guardrails/ starten (AGENTS.md + Skills aktiv)",
@@ -801,6 +833,15 @@ def main() -> None:
                         ],
                         "commandOrAction": "stufe-3-obsidian-vault/",
                     },
+                    "ide": {
+                        "headline": "Ordner stufe-3-obsidian-vault/ im Editor öffnen (_index.md + MCP)",
+                        "steps": [
+                            "Öffne stufe-3-obsidian-vault/ im Editor (.vscode/mcp.json, .cursor/mcp.json & Skills sind direkt vorkonfiguriert; Antigravity/Windsurf über --scope user).",
+                            "Starte den Chat mit Bezug auf _index.md für Frage 2 (Anemonenfische ↔ Korallenbleiche).",
+                            "Prüfe danach Frage 3 über den gesamten Vault oder das MCP-Tool verify_claim.",
+                        ],
+                        "commandOrAction": "Workspace: stufe-3-obsidian-vault/",
+                    },
                     "agent": {
                         "headline": "Neuen Agenten in stufe-3-obsidian-vault/ starten (Skills & MCP aktiv)",
                         "steps": [
@@ -835,7 +876,7 @@ def main() -> None:
                 "tag": "Fakten-Audit · Wissens-Graph · MCP",
                 "durationMin": 30,
                 "bestForRoles": ["Kunden & Projekte", "Fachkonzept & Daten", "Entwicklung & Architektur"],
-                "description": "Prüfe KI-Behauptungen gegen alle 68 Artikel direkt im Browser-Faktenprüfer oder verbinde deinen Code-Agenten per lokalem MCP-Server (search_wildlife_vault, verify_claim_against_corpus, read_vault_article).",
+                "description": "Prüfe KI-Behauptungen gegen alle 68 Artikel direkt im Browser-Faktenprüfer oder verbinde deinen Code-Agenten per lokalem MCP-Server (search_vault, verify_claim, read_article).",
                 "includesInBrowserLab": True,
                 "promptsByMode": {
                     "web": {
@@ -861,11 +902,21 @@ def main() -> None:
                         "label": "MCP-Workflow im Code-Agent",
                         "prompt": (
                             "Nutze die MCP-Tools unseres Workshop-Servers (workshop-wildlife):\n"
-                            "1. Suche mit search_wildlife_vault nach 'Korallenbleiche Klimawandel'.\n"
-                            "2. Lies mit read_vault_article den Artikel 'korallenbleiche' sowie '_index'.\n"
-                            "3. Prüfe zwei eigene Thesen mit verify_claim_against_corpus und gib eine kurze Audit-Übersicht mit [[Wikilinks]] aus."
+                            "1. Suche mit search_vault nach 'Korallenbleiche Klimawandel'.\n"
+                            "2. Lies mit read_article den Artikel 'korallenbleiche' sowie '_index'.\n"
+                            "3. Prüfe zwei eigene Thesen mit verify_claim und gib eine kurze Audit-Übersicht mit [[Wikilinks]] aus."
                         ),
                         "deliverableHint": "Nachvollziehbare Tool-Aufrufe über stdio MCP ohne Halluzinationen.",
+                    },
+                    "ide": {
+                        "label": "IDE-Audit-Prompt (+ MCP)",
+                        "prompt": (
+                            "Referenziere im IDE-Chat stufe-3-obsidian-vault/_index.md und prüfe einzeln mit Belegt / Widersprüchlich / Nicht belegt:\n"
+                            "1. Eisbärentalg enthält kein Squalen und ihre Haut ist schwarz.\n"
+                            "2. Eisbären haben 38 Zähne.\n"
+                            "3. Im Schweizerischen Nationalpark leben 45 Schneeleoparden."
+                        ),
+                        "deliverableHint": "Direkt im Editor verifizierte Fakten-Matrix mit Dateibeleg.",
                     },
                 },
             },
@@ -905,6 +956,13 @@ def main() -> None:
                         ),
                         "deliverableHint": "Eigenständige lokale HTML-Präsentation unter sandbox/ mit Quellenangaben.",
                     },
+                    "ide": {
+                        "label": "IDE Slide-Blueprint + HTML-Deck",
+                        "prompt": (
+                            "Nutze stufe-3-obsidian-vault/wiki/lebensraeume/arktis.md und stufe-3-obsidian-vault/wiki/konzepte/korallenbleiche.md und erstelle in sandbox/riff-deck.html ein 5-Folien-Deck nach SCQA mit Action-Titles, Sprechernotizen, (datei.md)-Belegen und „Offene Lücken“."
+                        ),
+                        "deliverableHint": "Editierbares HTML-/Markdown-Deck im Editor.",
+                    },
                 },
             },
             {
@@ -942,6 +1000,13 @@ def main() -> None:
                             "z. B. ein interaktives Tierwelt-Quiz oder einen [[Wikilink]]-Pfadfinder über stufe-3-obsidian-vault/_index.md, inkl. kurzem Smoke-Check."
                         ),
                         "deliverableHint": "Lauffähige Mini-App unter sandbox/ + geprüfte Quellenverweise.",
+                    },
+                    "ide": {
+                        "label": "IDE Spec → App → Test in sandbox/",
+                        "prompt": (
+                            "Erstelle zuerst eine kurze Mini-Spezifikation (Problem, Akzeptanzkriterien, 3 Testfälle) und baue dann unter sandbox/korallen-sim.html einen interaktiven Temperatur-Simulator (18–32 °C) mit stufe-3-obsidian-vault/wiki/konzepte/korallenbleiche.md als Datenbasis."
+                        ),
+                        "deliverableHint": "Getestete Single-File-App + Spezifikation in der IDE.",
                     },
                 },
             },
@@ -1019,11 +1084,14 @@ def main() -> None:
         "vaultArticles": vault_articles,
         "mcpConfigs": {
             "claudeCode": read_text("mcp-server/mcp-config-examples/claude-code.mcp.json"),
+            "claudeDesktop": read_text("mcp-server/mcp-config-examples/claude-desktop.claude_desktop_config.json"),
             "openCode": read_text("mcp-server/mcp-config-examples/opencode.json"),
             "geminiCli": read_text("mcp-server/mcp-config-examples/gemini-cli.settings.json"),
+            "antigravity": read_text("mcp-server/mcp-config-examples/antigravity.mcp_config.json"),
             "codex": read_text("mcp-server/mcp-config-examples/codex.config.toml"),
             "vscode": read_text("mcp-server/mcp-config-examples/vscode.mcp.json"),
             "cursor": read_text("mcp-server/mcp-config-examples/cursor.mcp.json"),
+            "windsurf": read_text("mcp-server/mcp-config-examples/windsurf.mcp_config.json"),
             "setupCommand": "node mcp-server/setup-client.mjs --client all --scope user --dry-run",
             "applyUserCommand": "node mcp-server/setup-client.mjs --client all --scope user",
         },

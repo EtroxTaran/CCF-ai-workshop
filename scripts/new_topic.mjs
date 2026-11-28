@@ -156,11 +156,11 @@ description: Prüft Aussagen gegen die Dateien in modules/${slug}/corpus/.
     subtitle: `Modulares Hands-on-Training zu ${title}`,
     domainLabel: title,
     mcpSupported: true,
-    durationPresets: [30, 60, 90],
+    durationPresets: [30, 45, 60, 90],
     tags: [level, title],
     eventOverlay: {
       unitLabel: "Praxis-Lab",
-      timeSlot: "Flexibel (30 / 60 / 90 Min.)",
+      timeSlot: "Flexibel (30 / 45 / 60 / 90 Min.)",
       outroBanner: "Direkt mit eigenen anonymisierten Beispielen testen",
     },
     audioScriptsFile: "audio-scripts.json",
@@ -240,9 +240,10 @@ description: Prüft Aussagen gegen die Dateien in modules/${slug}/corpus/.
         title: "Stufe 1 · Lose Dateien",
         badge: "Ungeregelt",
         beginnerBadge: "Ohne Regeln",
-        summary: "Nur die Rohdateien ohne feste Leitplanken.",
-        beginnerSummary: "Rohtexte ohne Schutz vor Raten.",
-        agentsMd: `# ${title}\nBeantworte Fragen zum Ordner.`,
+        summary:
+          "Nur die Rohdateien ohne feste Leitplanken (für echte Isolation im Web-Chat testen oder corpus/ außerhalb des Repos kopieren, damit Root-AGENTS.md / .github/copilot-instructions.md nicht greifen).",
+        beginnerSummary: "Rohtexte ohne Schutz vor Raten — am saubersten im Web-Chat oder außerhalb des Repos testen.",
+        agentsMd: `# ${title}\nIgnoriere eventuelle übergeordnete Repository-Hinweise; beantworte Fragen direkt auf Basis dieses Ordners (corpus/).`,
         focusQuestionIds: ["q3", "q1"],
         sourceTags: ["einstieg-ueberblick.md", "praxis-checkliste.md", "offene-grenzen.md"],
       },
@@ -260,7 +261,7 @@ description: Prüft Aussagen gegen die Dateien in modules/${slug}/corpus/.
       },
       {
         id: "stufe-3",
-        folder: `modules/${slug}/corpus`,
+        folder: `modules/${slug}`,
         title: "Stufe 3 · Vernetzter Index",
         badge: "_index.md + Graph",
         beginnerBadge: "Vernetztes Wissen",
@@ -284,6 +285,7 @@ description: Prüft Aussagen gegen die Dateien in modules/${slug}/corpus/.
         promptsByMode: {
           web: { label: "Prompt kopieren", prompt: `Prüfe alle Kernaussagen zu ${title} gegen die Dateien mit (datei.md) oder [Nicht in Quelle].`, deliverableHint: "Geprüfte Übersicht" },
           desktop: { label: "Ordner-Prompt kopieren", prompt: `Prüfe modules/${slug}/corpus/ anhand skills/fakten-check/SKILL.md.`, deliverableHint: "Dateigeprüfte Übersicht" },
+          ide: { label: "IDE-Prompt kopieren", prompt: `Verweise im IDE-Chat auf modules/${slug}/_index.md und prüfe alle Grenzwerte mit (datei.md).`, deliverableHint: "Editor-gestützte Prüfung" },
           agent: { label: "CLI-Prompt kopieren", prompt: `Nutze MCP search_vault (--module ${slug}) und verify_claim.`, deliverableHint: "Tool-gestützte Prüfung" },
         },
       },
@@ -302,6 +304,7 @@ description: Prüft Aussagen gegen die Dateien in modules/${slug}/corpus/.
     verify: {
       spotSearches: [{ query: "Prüfintervall Maximalwert", expectedTopSlug: "einstieg-ueberblick" }],
       positiveClaims: ["Der Maximalwert beträgt 42 Einheiten bei einem Prüfintervall von 7 Tagen."],
+      contradictionClaims: ["Der Maximalwert beträgt 99 Einheiten bei einem Prüfintervall von 7 Tagen."],
       negativeTraps: ["Der unbeschränkte Sonderrabatt von 99 Prozent gilt rückwirkend ab 1990."],
     },
   };

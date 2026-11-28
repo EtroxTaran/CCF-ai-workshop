@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
 import { ArrowLeft, ArrowRight, HelpCircle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,25 +21,25 @@ const TOUR_STATIONS: {
 }[] = [
   {
     selector: '[data-tour="tool-mode"]',
-    title: "1 · Wie arbeitest du heute?",
-    body: "Schalte oben jederzeit zwischen Web-Chat (ChatGPT, Claude, Copilot — keine Installation), Desktop & Ordner (ZIP / Cowork / Projects) und Code-Agent um.",
+    title: "1 · Ziel & Werkzeug wählen",
+    body: "Wähle dein Ziel (Prompting, App bauen, Präsentation oder KI im Arbeitsalltag) und schalte jederzeit zwischen Web-Chat, Desktop & Projects, IDE (VS Code/Cursor) oder CLI Code-Agent um.",
     stepHint: "start",
   },
   {
     selector: '[data-tour="step-nav"]',
     fallbackSelector: '[data-tour="step-nav-mobile"]',
     title: "2 · Workshop in 4 klaren Schritten",
-    body: "Schritte 01–03 zeigen in ca. 15 Minuten das Aha-Erlebnis rund um bessere Prompts & Faktenprüfung. In Schritt 04 wählst du deinen Praxis-Pfad.",
+    body: "Schritte 01–03 zeigen den gemeinsamen Aha-Kern zu besseren Prompts & Leitplanken. In Schritt 04 folgt dein gewähltes Ziel-Labor inkl. Output-Prüfung.",
   },
   {
     selector: '[data-tour="checklist-trigger"]',
-    title: "3 · Dein Fortschritt & Checkliste",
-    body: "Hier siehst du jederzeit, was schon geschafft ist, hakst Erkenntnisse ab und springst mit einem Klick direkt zu jedem Schritt.",
+    title: "3 · Echte Ergebnis-Nachweise",
+    body: "Hier siehst du deine nachgewiesenen Meilensteine (Debug-Test, Output-Validator, Rubrik & Takeaway-Kit).",
   },
   {
     selector: '[data-tour="help-trigger"]',
     title: "4 · Hilfe, Glossar & FAQ",
-    body: "Unklare Begriffe wie „Markdown (.md)“, „Prompt“ oder „Halluzination“? Ein Klick auf Hilfe öffnet Erklärungen, kostenlose Chat-Links und Antworten.",
+    body: "Unklare Begriffe wie „Markdown (.md)“, „SCQA“ oder „Halluzination“? Ein Klick auf Hilfe öffnet Erklärungen, Chat-Links und Antworten.",
   },
 ];
 
@@ -57,6 +57,9 @@ export function OnboardingTour({ open, onOpenChange, onSelectStep }: OnboardingT
   const prefersReduced = useReducedMotion();
   const [idx, setIdx] = useState<number>(0);
   const [rect, setRect] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+  const dialogCardRef = useRef<HTMLDivElement | null>(null);
+  const prevFocusedRef = useRef<HTMLElement | null>(null);
+  const attemptedStepHintRef = useRef<string | null>(null);
 
   const station = TOUR_STATIONS[idx] || TOUR_STATIONS[0];
 
@@ -66,14 +69,41 @@ export function OnboardingTour({ open, onOpenChange, onSelectStep }: OnboardingT
     } catch {
       // ignore
     }
+    attemptedStepHintRef.current = null;
     onOpenChange(false);
     setIdx(0);
+    window.setTimeout(() => prevFocusedRef.current?.focus?.(), 0);
   }
 
   useEffect(() => {
-    if (!open) return;
+    if (!open) {
+      attemptedStepHintRef.current = null;
+      return;
+    }
+    prevFocusedRef.current = document.activeElement as HTMLElement | null;
+    window.setTimeout(() => {
+      const firstBtn = dialogCardRef.current?.querySelector("button") as HTMLElement | null;
+      firstBtn?.focus();
+    }, 20);
+
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") dismiss();
+      if (e.key === "Escape") {
+        dismiss();
+        return;
+      }
+      if (e.key === "Tab" && dialogCardRef.current) {
+        const focusables = [...dialogCardRef.current.querySelectorAll<HTMLElement>("button, a[href], [tabindex]:not([tabindex='-1'])")];
+        if (!focusables.length) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -82,20 +112,56 @@ export function OnboardingTour({ open, onOpenChange, onSelectStep }: OnboardingT
 
   useEffect(() => {
     if (!open) return;
-    function measure() {
+    let timerId: number | undefined;
+    function updateRect() {
       const el = findVisibleTarget(station.selector, station.fallbackSelector);
       if (!el) {
         setRect(null);
         return;
       }
       const r = el.getBoundingClientRect();
-      el.scrollIntoView({ block: "nearest", behavior: prefersReduced ? "auto" : "smooth" });
       setRect({ top: r.top - 4, left: r.left - 4, width: r.width + 8, height: r.height + 8 });
     }
+    function measure() {
+      const el = findVisibleTarget(station.selector, station.fallbackSelector);
+      if (!el) {
+        if (
+          station.stepHint &&
+          onSelectStep &&
+          attemptedStepHintRef.current !== `${idx}:${station.stepHint}`
+        ) {
+          attemptedStepHintRef.current = `${idx}:${station.stepHint}`;
+          onSelectStep(station.stepHint);
+          timerId = window.setTimeout(() => {
+            const retryEl = findVisibleTarget(station.selector, station.fallbackSelector);
+            if (!retryEl) {
+              setRect(null);
+              return;
+            }
+            retryEl.scrollIntoView({
+              block: "nearest",
+              behavior: prefersReduced ? "auto" : "smooth",
+            });
+            updateRect();
+          }, 80);
+          return;
+        }
+        setRect(null);
+        return;
+      }
+      el.scrollIntoView({ block: "nearest", behavior: prefersReduced ? "auto" : "smooth" });
+      updateRect();
+      timerId = window.setTimeout(updateRect, prefersReduced ? 0 : 220);
+    }
     measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [open, idx, station.selector, station.fallbackSelector, prefersReduced]);
+    window.addEventListener("resize", updateRect);
+    window.addEventListener("scroll", updateRect, true);
+    return () => {
+      if (timerId !== undefined) window.clearTimeout(timerId);
+      window.removeEventListener("resize", updateRect);
+      window.removeEventListener("scroll", updateRect, true);
+    };
+  }, [open, idx, station.selector, station.fallbackSelector, station.stepHint, onSelectStep, prefersReduced]);
 
   if (!open) return null;
 
@@ -114,10 +180,17 @@ export function OnboardingTour({ open, onOpenChange, onSelectStep }: OnboardingT
       aria-modal="true"
       aria-label="Kurze Orientierungstour"
     >
-      {/* Backdrop or Spotlight Ring */}
-      {rect ? (
+      {/* Clickable Full-Viewport Backdrop */}
+      <div
+        onClick={dismiss}
+        aria-hidden="true"
+        className={rect ? "fixed inset-0" : "fixed inset-0 bg-[#0B0F0A]/70 backdrop-blur-[1px]"}
+      />
+
+      {/* Spotlight Ring */}
+      {rect && (
         <div
-          onClick={dismiss}
+          aria-hidden="true"
           style={{
             top: rect.top,
             left: rect.left,
@@ -125,14 +198,14 @@ export function OnboardingTour({ open, onOpenChange, onSelectStep }: OnboardingT
             height: rect.height,
             boxShadow: "0 0 0 9999px rgba(11, 15, 10, 0.68)",
           }}
-          className="fixed rounded-xl border-2 border-[#A9C23F] transition-all duration-200"
+          className="pointer-events-none fixed rounded-xl border-2 border-[#A9C23F] transition-all duration-200"
         />
-      ) : (
-        <div onClick={dismiss} className="fixed inset-0 bg-[#0B0F0A]/70 backdrop-blur-[1px]" />
       )}
 
       {/* Clamped Tooltip Card */}
       <div
+        ref={dialogCardRef}
+        onClick={(e) => e.stopPropagation()}
         style={
           rect && cardTop !== undefined && cardLeft !== undefined
             ? { top: cardTop, left: cardLeft }

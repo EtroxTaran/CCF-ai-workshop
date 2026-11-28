@@ -8,18 +8,26 @@ import type { GuardrailDebugChallengeSpec } from "@/types/workshop";
 
 export interface GuardrailDebugChallengeProps {
   challenge: GuardrailDebugChallengeSpec;
+  initialSolved?: boolean;
   onSolved?: () => void;
 }
 
-export function GuardrailDebugChallenge({ challenge, onSolved }: GuardrailDebugChallengeProps) {
-  const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [checkedResult, setCheckedResult] = useState<boolean>(false);
-
+export function GuardrailDebugChallenge({
+  challenge,
+  initialSolved = false,
+  onSolved,
+}: GuardrailDebugChallengeProps) {
   const correctIds = challenge.options.filter((o) => o.isCorrect).map((o) => o.id);
+  const [selectedIds, setSelectedIds] = useState<string[]>(() =>
+    initialSolved ? correctIds : []
+  );
+  const [checkedResult, setCheckedResult] = useState<boolean>(initialSolved);
+
   const isSolved =
-    checkedResult &&
-    selectedIds.length === correctIds.length &&
-    correctIds.every((id) => selectedIds.includes(id));
+    initialSolved ||
+    (checkedResult &&
+      selectedIds.length === correctIds.length &&
+      correctIds.every((id) => selectedIds.includes(id)));
 
   function toggleOption(id: string) {
     setCheckedResult(false);

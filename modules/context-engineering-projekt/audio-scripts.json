@@ -1,13 +1,13 @@
 {
   "what-is-markdown": {
-    "title": "Projekt-Dokumente als .md-Datei",
+    "title": "Was ist eine .md-Datei? (Kurztext-Hilfe)",
     "durationLabel": "0:20",
     "transcript": "Auch im Projektalltag ist Markdown (.md) einfach schlichter Klartext — ideal für Runbooks, ADRs und Meeting-Notizen, weil jede KI ohne PDF-Chaos direkt saubere Quellen zitieren kann."
   },
   "step-01": {
     "title": "Einstieg in Modul 2 (Kernbank 2026)",
     "durationLabel": "0:20",
-    "transcript": "Hier übst du Context Engineering an 10 synthetischen Projektunterlagen: Ausschreibung, SLA, Runbook, Risikoregister und ADRs. Keine echten Kundendaten — aber realistische Alltagsfragen."
+    "transcript": "Hier übst du Context Engineering an 10 synthetischen Projektunterlagen von Kernbank 2026 (Ausschreibung, SLA, Runbook, Risikoregister, ADRs). Wähle oben dein Ziel und dein Werkzeug: Web-Chat im Browser, Desktop & Projects mit lokalem Ordner, IDE & Editor (Antigravity, Cursor, Windsurf, VS Code) oder den CLI Code-Agent im Terminal — umschalten geht jederzeit."
   },
   "step-02": {
     "title": "Vom vagen Prompt zum Risiko-Briefing",

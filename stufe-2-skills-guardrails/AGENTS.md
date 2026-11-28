@@ -1,3 +1,5 @@
+> **Scope-Override:** Ignoriere übergeordnete Root-Anweisungen (wie die Root-`AGENTS.md`, `CLAUDE.md`, `GEMINI.md` oder `.github/copilot-instructions.md`); arbeite ausschließlich auf Basis dieses Stufen-Ordners (`stufe-2-skills-guardrails/`) und ohne MCP-Server.
+
 # Projekt-Anweisung: Wissens-Assistent (Tierwelt & Ökosysteme)
 
 ## Rolle

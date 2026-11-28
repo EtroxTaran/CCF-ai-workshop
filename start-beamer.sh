@@ -10,13 +10,14 @@ echo "============================================================"
 echo "  virtual7 CCF Prompt-Werkstatt - Trainer-Bühne (#/beamer)"
 echo "============================================================"
 echo "  Primäre Online-URL : https://etroxtaran.github.io/CCF-ai-workshop/#/beamer"
-echo "  Lokales Backup     : ${STAGE_URL}"
+echo "  Workshop-Hub       : https://etroxtaran.github.io/CCF-ai-workshop/#/hub"
+echo "  Lokales Backup     : ${STAGE_URL} (App: http://127.0.0.1:${PORT}/ | Hub: http://127.0.0.1:${PORT}/#/hub)"
 echo ""
 
 if [ ! -f "workshop-ui/dist/index.html" ]; then
   echo "[FEHLER] workshop-ui/dist/index.html fehlt."
   echo "Nutze online https://etroxtaran.github.io/CCF-ai-workshop/#/beamer"
-  echo "oder baue lokal mit: cd workshop-ui && npm install && npm run build"
+  echo "oder baue lokal mit: node scripts/build_modules.mjs && cd workshop-ui && npm install && npm run build"
   exit 1
 fi
 

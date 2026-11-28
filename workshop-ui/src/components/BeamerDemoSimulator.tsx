@@ -271,9 +271,22 @@ export function BeamerDemoSimulator({
   const override = demoScenarios?.[questionKey];
   const fallback = buildScenario(questionKey, q4Mutated, questions);
   const q4Spec = questions?.find((q) => q.id === "q4")?.manipulationCheck;
-  const scenario: DemoScenario = override
-    ? { key: questionKey, ...override }
-    : fallback;
+  const scenario: DemoScenario = (() => {
+    if (!override) return fallback;
+    if (questionKey === "q4" && !q4Mutated && q4Spec?.mutatedValue && q4Spec?.originalValue) {
+      return {
+        key: questionKey,
+        ...override,
+        stages: override.stages.map((st, idx) => ({
+          ...st,
+          statusBadge: idx === 0 ? "Originalwert" : "Original belegt",
+          output: st.output.split(q4Spec.mutatedValue).join(q4Spec.originalValue),
+          highlightNote: st.highlightNote.split(q4Spec.mutatedValue).join(q4Spec.originalValue),
+        })),
+      };
+    }
+    return { key: questionKey, ...override };
+  })();
 
   return (
     <div className="flex flex-1 flex-col justify-between gap-4">
@@ -293,8 +306,8 @@ export function BeamerDemoSimulator({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <div className="no-scrollbar inline-flex max-w-full overflow-x-auto rounded-xl border bg-muted p-1">
+        <div className="flex max-w-full flex-wrap items-center gap-2">
+          <div className="no-scrollbar inline-flex max-w-full flex-wrap gap-1 rounded-xl border bg-muted p-1 sm:flex-nowrap sm:overflow-x-auto">
             {QUESTION_ORDER.map((qKey) => {
               const tabText =
                 demoScenarios?.[qKey]?.tabLabel ||
@@ -352,7 +365,7 @@ export function BeamerDemoSimulator({
       {/* Q4 Interactive Context-Prioritization Toggle — ONLY shown once Stufe 2+ is revealed */}
       {questionKey === "q4" && revealStep >= 2 && (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-brand-lime/50 bg-secondary/40 px-5 py-3">
-          <div className="flex items-center gap-2.5 text-base font-semibold text-foreground sm:text-lg">
+          <div className="flex min-w-0 flex-wrap items-center gap-2.5 text-base font-semibold text-foreground sm:text-lg">
             <Sparkles className="h-5 w-5 shrink-0 text-brand-ink" />
             <span>
               Live-Kontext-Test in{" "}
@@ -375,7 +388,7 @@ export function BeamerDemoSimulator({
               e.currentTarget.blur();
               onToggleQ4Mutated();
             }}
-            className="h-auto min-h-9 max-w-full py-1.5 text-center font-semibold"
+            className="h-auto min-h-9 max-w-full whitespace-normal break-words py-1.5 text-center font-semibold"
           >
             Test-Schalter: {q4Spec?.targetFile || "eisbaer.md"} ={" "}
             {q4Spec?.mutatedValue || "38 Zähne"} ↔ {q4Spec?.originalValue || "42 Zähne"}
@@ -398,7 +411,7 @@ export function BeamerDemoSimulator({
                   e.currentTarget.blur();
                   onRevealStepChange(idx + 1);
                 }}
-                className={`group flex min-h-[260px] flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed p-6 text-center transition-all ${
+                className={`group flex min-h-[260px] min-w-0 flex-col items-center justify-center gap-4 rounded-2xl border-2 border-dashed p-6 text-center transition-all ${
                   isNext
                     ? "border-brand-lime bg-secondary/35 hover:bg-secondary/55"
                     : "border-border bg-card/60 opacity-80 hover:border-brand-lime/50 hover:opacity-100"
@@ -429,7 +442,7 @@ export function BeamerDemoSimulator({
           return (
             <div
               key={col.num}
-              className={`card-elevated flex flex-col justify-between rounded-2xl border border-t-4 ${col.stripe} bg-card p-5`}
+              className={`card-elevated flex min-w-0 flex-col justify-between rounded-2xl border border-t-4 ${col.stripe} bg-card p-5`}
             >
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-2">

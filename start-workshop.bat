@@ -10,13 +10,14 @@ echo ============================================================
 echo   virtual7 CCF Prompt-Werkstatt - Offline-Backup (#/)
 echo ============================================================
 echo   Primaere Online-URL : https://etroxtaran.github.io/CCF-ai-workshop/
-echo   Lokales Backup      : %APP_URL%
+echo   Workshop-Hub        : https://etroxtaran.github.io/CCF-ai-workshop/#/hub
+echo   Lokales Backup      : %APP_URL%  ^(Hub: %APP_URL%#/hub · Buehne: %APP_URL%#/beamer^)
 echo.
 
 if not exist "workshop-ui\dist\index.html" (
     echo [FEHLER] workshop-ui\dist\index.html fehlt.
     echo Nutze online https://etroxtaran.github.io/CCF-ai-workshop/
-    echo oder baue lokal mit: cd workshop-ui ^&^& npm install ^&^& npm run build
+    echo oder baue lokal mit: node scripts/build_modules.mjs ^&^& cd workshop-ui ^&^& npm install ^&^& npm run build
     pause
     exit /b 1
 )

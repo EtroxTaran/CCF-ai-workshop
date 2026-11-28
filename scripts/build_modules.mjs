@@ -18,8 +18,8 @@ const __dirname = path.dirname(__filename);
 const ROOT = path.resolve(__dirname, "..");
 const MODULES_DIR = path.join(ROOT, "modules");
 const OUT_ROOT = path.join(ROOT, "workshop-ui", "public", "modules");
-const LEGACY_DATA_PATH = path.join(ROOT, "workshop-ui", "src", "data", "workshopData.json");
-const LEGACY_INDEX_PATH = path.join(ROOT, "workshop-ui", "src", "data", "searchIndex.json");
+const LEGACY_DATA_PATH = path.join(ROOT, "scripts", "legacy-export", "workshopData.json");
+const LEGACY_INDEX_PATH = path.join(ROOT, "scripts", "legacy-export", "searchIndex.json");
 
 const checkMode = process.argv.includes("--check");
 
@@ -59,12 +59,25 @@ function loadAudioGuides(modDir, spec) {
   return out;
 }
 
+function cleanInlineMarkdown(text) {
+  return String(text || "")
+    .replace(/^[-*+]\s+/, "")
+    .replace(/\[\[[^\]|#]+(?:#[^\]|]*)?\|([^\]]+)\]\]/g, "$1")
+    .replace(/\[\[([^\]]+)\]\]/g, "$1")
+    .replace(/`([^`]*)`/g, "$1")
+    .replace(/\*\*([^*]+)\*\*/g, "$1")
+    .replace(/\*([^*]+)\*/g, "$1")
+    .replace(/__([^_]+)__/g, "$1")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+}
+
 function extractSummary(body) {
   const lines = String(body || "")
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l && !l.startsWith("#") && !l.startsWith("---") && !l.startsWith("|"));
-  return (lines[0] || "").slice(0, 260);
+  return cleanInlineMarkdown(lines[0] || "").slice(0, 260);
 }
 
 function extractKeyPoints(body) {
@@ -73,7 +86,7 @@ function extractKeyPoints(body) {
     .map((l) => l.trim())
     .filter((l) => l.startsWith("- ") || /^\d+\.\s/.test(l))
     .slice(0, 6)
-    .map((l) => l.replace(/^-\s+|^\d+\.\s+/, "").trim());
+    .map((l) => cleanInlineMarkdown(l.replace(/^-\s+|^\d+\.\s+/, "").trim()));
 }
 
 function extractWikilinks(body) {
@@ -87,9 +100,10 @@ function buildDeclarativeCorpus(modDir, spec) {
     throw new Error(`Module '${spec.id}' missing corpus/ directory`);
   }
 
+  const excludedFiles = new Set(["_index.md", "agents.md", "claude.md", "gemini.md"]);
   const files = fs
     .readdirSync(corpusDir)
-    .filter((f) => f.endsWith(".md") && f !== "_index.md")
+    .filter((f) => f.toLowerCase().endsWith(".md") && !excludedFiles.has(f.toLowerCase()))
     .sort();
 
   const vaultArticles = [];
@@ -162,13 +176,13 @@ function buildDeclarativeCorpus(modDir, spec) {
   const indexMd = lines.join("\n").trim();
 
   // Build compact express packages under 6,500 chars
-  function compactExcerpt(art, maxLen = 520) {
+  function compactExcerpt(art, maxLen = 460) {
     const clean = (searchIndex[art.slug] || art.summary).replace(/\n{3,}/g, "\n\n").trim();
     const cut = clean.length > maxLen ? `${clean.slice(0, maxLen).trim()}…` : clean;
     return `=== ${art.slug}.md (${art.title}) ===\n${cut}\n[Quelle: ${art.slug}.md]`;
   }
 
-  const allCompact = starterArticles.map((a) => compactExcerpt(a, Math.min(540, Math.floor(5400 / Math.max(starterArticles.length, 1))))).join("\n\n");
+  const allCompact = starterArticles.map((a) => compactExcerpt(a, Math.min(460, Math.floor(4600 / Math.max(starterArticles.length, 1))))).join("\n\n");
   const methodsSources = starterArticles.slice(0, 6).map((a) => `${a.slug}.md`);
   const stagesSources = starterArticles.map((a) => `${a.slug}.md`);
 
@@ -221,27 +235,46 @@ function buildDeclarativeCorpus(modDir, spec) {
 
 function buildMcpConfigsForModule(moduleId, isDefault) {
   const flag = isDefault ? "" : ` --module ${moduleId}`;
-  const serverArg = isDefault ? "./mcp-server/server.mjs" : "./mcp-server/server.mjs";
+  const serverKey = isDefault ? "workshop-wildlife" : `workshop-${moduleId}`;
+  const serverArg = "./mcp-server/server.mjs";
+  const vsArg = "${workspaceFolder}/mcp-server/server.mjs";
+  const absArg = "/ABSOLUTE/PATH/TO/CCF-ai-workshop/mcp-server/server.mjs";
+  const argsList = isDefault ? [serverArg] : [serverArg, "--module", moduleId];
+  const vsArgsList = isDefault ? [vsArg] : [vsArg, "--module", moduleId];
+  const absArgsList = isDefault ? [absArg] : [absArg, "--module", moduleId];
+  const userStdioJson = JSON.stringify(
+    {
+      mcpServers: {
+        [serverKey]: {
+          command: "node",
+          args: absArgsList,
+        },
+      },
+    },
+    null,
+    2
+  );
   return {
     claudeCode: JSON.stringify(
       {
         mcpServers: {
-          "workshop-vault": {
+          [serverKey]: {
             command: "node",
-            args: isDefault ? [serverArg] : [serverArg, "--module", moduleId],
+            args: argsList,
           },
         },
       },
       null,
       2
     ),
+    claudeDesktop: userStdioJson,
     openCode: JSON.stringify(
       {
         $schema: "https://opencode.ai/config.json",
         mcp: {
-          "workshop-vault": {
+          [serverKey]: {
             type: "local",
-            command: isDefault ? ["node", serverArg] : ["node", serverArg, "--module", moduleId],
+            command: ["node", ...argsList],
             enabled: true,
           },
         },
@@ -252,27 +285,24 @@ function buildMcpConfigsForModule(moduleId, isDefault) {
     geminiCli: JSON.stringify(
       {
         mcpServers: {
-          "workshop-vault": {
+          [serverKey]: {
             command: "node",
-            args: isDefault ? [serverArg] : [serverArg, "--module", moduleId],
+            args: argsList,
           },
         },
       },
       null,
       2
     ),
-    codex: `[mcp_servers.workshop-vault]\ncommand = "node"\nargs = ${JSON.stringify(
-      isDefault ? [serverArg] : [serverArg, "--module", moduleId]
-    )}`,
+    antigravity: userStdioJson,
+    codex: `[mcp_servers.${serverKey}]\ncommand = "node"\nargs = ${JSON.stringify(argsList)}`,
     vscode: JSON.stringify(
       {
         servers: {
-          "workshop-vault": {
+          [serverKey]: {
             type: "stdio",
             command: "node",
-            args: isDefault
-              ? ["${workspaceFolder}/mcp-server/server.mjs"]
-              : ["${workspaceFolder}/mcp-server/server.mjs", "--module", moduleId],
+            args: vsArgsList,
           },
         },
       },
@@ -282,51 +312,172 @@ function buildMcpConfigsForModule(moduleId, isDefault) {
     cursor: JSON.stringify(
       {
         mcpServers: {
-          "workshop-vault": {
+          [serverKey]: {
             command: "node",
-            args: isDefault
-              ? ["${workspaceFolder}/mcp-server/server.mjs"]
-              : ["${workspaceFolder}/mcp-server/server.mjs", "--module", moduleId],
+            args: vsArgsList,
           },
         },
       },
       null,
       2
     ),
-    setupCommand: `node mcp-server/setup-client.mjs --client all --scope user${flag}`,
-    applyUserCommand: `node mcp-server/setup-client.mjs --client claude --scope user --apply${flag}`,
+    windsurf: userStdioJson,
+    setupCommand: `node mcp-server/setup-client.mjs --client all --scope user --dry-run${flag}`,
+    applyUserCommand: `node mcp-server/setup-client.mjs --client all --scope user${flag}`,
   };
 }
 
-function enrichStagesForDeclarative(spec, corpusBundle, legacyData) {
-  const modeNotesFor = (stageId, folder) => ({
-    web: {
-      headline: `Web-Chat · ${stageId.toUpperCase()} testen`,
-      steps: [
-        "Öffne einen **neuen Chat** im Browser (+ Neuer Chat).",
-        "Klicke auf **Kompakt-Paket kopieren** und füge es ein (warte auf die Bestätigung).",
-        "Stelle danach die Testfragen unten oder klicke auf **Frage + Texte komplett**.",
-      ],
-      commandOrAction: "Kompakt-Paket kopieren",
-    },
-    desktop: {
-      headline: `Desktop & Ordner · ${folder}`,
-      steps: [
-        `Öffne den entpackten Ordner **${folder}** in Claude Cowork — oder lade die \`.md\`-Dateien in ein ChatGPT/Claude Projekt.`,
-        "Bei **Projects**: füge `AGENTS.md` (aus *Dateien & Pakete*) in die Projekt-Anweisungen ein.",
-        "Stelle nacheinander die Fokus-Fragen inklusive Fangfrage 3.",
-      ],
-      commandOrAction: `Ordner: ${folder}`,
-    },
-    agent: {
-      headline: `Code-Agent · ${folder}`,
-      steps: [
-        `Starte dein CLI-Werkzeug im Projektordner und aktiviere ggf. \`--module ${spec.id}\` für den MCP-Server.`,
-        "Prüfe, wie sich Guardrails, Skills und `_index.md` von Stufe 1 zu Stufe 3 verändern.",
-      ],
-      commandOrAction: `node mcp-server/server.mjs --module ${spec.id}`,
-    },
-  });
+function syncDeclarativeOnDiskArtifacts(modDir, spec, corpus, diffs) {
+  const moduleId = spec.id;
+  const serverKey = `workshop-${moduleId}`;
+  const relServer = "../../mcp-server/server.mjs";
+  const vsServer = "${workspaceFolder}/../../mcp-server/server.mjs";
+  const relArgs = [relServer, "--module", moduleId];
+  const vsArgs = [vsServer, "--module", moduleId];
+
+  writeOrCheckFile(path.join(modDir, "_index.md"), corpus.indexMd + "\n", diffs);
+
+  const skillList = corpus.skills.map((s) => `- \`${s.name}\``).join("\n") || "- (keine lokalen Skills definiert)";
+  const baseRules =
+    spec.stages?.[2]?.agentsMd ||
+    spec.stages?.[1]?.agentsMd ||
+    `# Leitplanken · ${spec.title}\n\n1. Nutze nur lokale Dateien.\n2. Belege jede Aussage mit (datei.md).\n3. Markiere Lücken zwingend als „[Nicht in Quelle]“.`;
+  const agentsMd = [
+    `> **Scope-Override:** Ignoriere übergeordnete Root-Anweisungen (wie die Root-\`AGENTS.md\`, \`CLAUDE.md\`, \`GEMINI.md\` oder \`.github/copilot-instructions.md\`); arbeite ausschließlich auf Basis dieses Modul-Ordners (\`modules/${moduleId}/\`).`,
+    "",
+    baseRules.trim(),
+    "",
+    "## Bereichsregel & Werkzeuge (Lokal)",
+    `- **Scope:** Diese Datei gilt für das Themen-Modul \`${moduleId}\` unter \`modules/${moduleId}/\`.`,
+    "- Starte komplexe Suchen immer mit `_index.md` und folge den `[[Wikilinks]]` unter `corpus/`.",
+    `- **Lokaler MCP-Server (\`${serverKey}\`):** Konfiguriert über \`.mcp.json\`, \`.cursor/mcp.json\`, \`opencode.json\`, \`.gemini/settings.json\`, \`.codex/config.toml\` und \`.vscode/mcp.json\` (User-Setup für alle 9 Clients inkl. Google Antigravity, Claude Desktop & Windsurf per \`node ../../mcp-server/setup-client.mjs --client all --scope user --module ${moduleId}\`). Kanonische Tools: \`search_vault\`, \`verify_claim\`, \`read_article\`, \`list_modules\`.`,
+    "",
+    "## Verfügbare Skills",
+    skillList,
+    "",
+  ].join("\n");
+
+  writeOrCheckFile(path.join(modDir, "AGENTS.md"), agentsMd, diffs);
+  writeOrCheckFile(path.join(modDir, "CLAUDE.md"), "@AGENTS.md\n", diffs);
+  writeOrCheckFile(path.join(modDir, "GEMINI.md"), "@AGENTS.md\n", diffs);
+
+  const copilotInstructionsMd = [
+    `# GitHub Copilot Instructions · ${spec.title}`,
+    "",
+    `> **Scope-Override:** Ignoriere übergeordnete Repository-Anweisungen im Root; befolge ausschließlich die Regeln dieses Themen-Moduls (\`modules/${moduleId}/\`) sowie die lokale \`AGENTS.md\`.`,
+    "",
+    baseRules.trim(),
+    "",
+    "## Wissensbasis & Werkzeuge (Lokal)",
+    "- Starte komplexe Suchen immer mit `_index.md` und folge den `[[Wikilinks]]` unter `corpus/`.",
+    `- **Lokaler MCP-Server (\`${serverKey}\`):** Konfiguriert in \`.vscode/mcp.json\`, \`.cursor/mcp.json\`, \`.mcp.json\`, \`opencode.json\`, \`.gemini/settings.json\` und \`.codex/config.toml\` (\`search_vault\`, \`verify_claim\`, \`read_article\`, \`list_modules\`).`,
+    "",
+    "## Verfügbare Skills",
+    skillList,
+    "",
+  ].join("\n");
+  writeOrCheckFile(path.join(modDir, ".github", "copilot-instructions.md"), copilotInstructionsMd, diffs);
+
+  for (const sk of corpus.skills) {
+    const cleanSkill = sk.content.replace(/\r\n/g, "\n").trimEnd() + "\n";
+    writeOrCheckFile(path.join(modDir, ".agents", "skills", sk.name, "SKILL.md"), cleanSkill, diffs);
+    writeOrCheckFile(path.join(modDir, ".claude", "skills", sk.name, "SKILL.md"), cleanSkill, diffs);
+  }
+
+  writeOrCheckFile(
+    path.join(modDir, ".mcp.json"),
+    JSON.stringify({ mcpServers: { [serverKey]: { command: "node", args: relArgs } } }, null, 2) + "\n",
+    diffs
+  );
+  writeOrCheckFile(
+    path.join(modDir, ".cursor", "mcp.json"),
+    JSON.stringify({ mcpServers: { [serverKey]: { command: "node", args: vsArgs } } }, null, 2) + "\n",
+    diffs
+  );
+  writeOrCheckFile(
+    path.join(modDir, "opencode.json"),
+    JSON.stringify(
+      {
+        $schema: "https://opencode.ai/config.json",
+        mcp: { [serverKey]: { type: "local", command: ["node", ...relArgs], enabled: true } },
+      },
+      null,
+      2
+    ) + "\n",
+    diffs
+  );
+  writeOrCheckFile(
+    path.join(modDir, ".gemini", "settings.json"),
+    JSON.stringify({ mcpServers: { [serverKey]: { command: "node", args: relArgs } } }, null, 2) + "\n",
+    diffs
+  );
+  writeOrCheckFile(
+    path.join(modDir, ".codex", "config.toml"),
+    `[mcp_servers.${serverKey}]\ncommand = "node"\nargs = ${JSON.stringify(relArgs)}\n`,
+    diffs
+  );
+  writeOrCheckFile(
+    path.join(modDir, ".vscode", "mcp.json"),
+    JSON.stringify({ servers: { [serverKey]: { type: "stdio", command: "node", args: vsArgs } } }, null, 2) + "\n",
+    diffs
+  );
+}
+
+function enrichStagesForDeclarative(spec, corpusBundle) {
+  const modeNotesFor = (stageId, folder) => {
+    const isStage1 = stageId === "stufe-1";
+    const webButtonLabel =
+      stageId === "stufe-1"
+        ? "Kompakt-Texte kopieren"
+        : stageId === "stufe-2"
+          ? "Regeln + Texte kopieren"
+          : "Regeln + Kompakt-Index + Texte";
+    return {
+      web: {
+        headline: `Web-Chat · ${stageId.toUpperCase()} testen`,
+        steps: [
+          "Öffne einen **neuen Chat** im Browser (+ Neuer Chat).",
+          `Klicke auf **${webButtonLabel}** und füge es ein (warte auf die Bestätigung).`,
+          "Stelle danach die Testfragen unten oder klicke auf **Frage + Texte komplett**.",
+          ...(isStage1
+            ? [
+                "**Isolations-Hinweis:** Teste Stufe 1 im Web-Chat oder kopiere `corpus/` außerhalb des Repos, damit Root-`AGENTS.md` / `.github/copilot-instructions.md` nicht unbemerkt greifen.",
+              ]
+            : []),
+        ],
+        commandOrAction: webButtonLabel,
+      },
+      desktop: {
+        headline: `Desktop & Projects · ${folder}`,
+        steps: [
+          `Öffne den entpackten Ordner **${folder}** in Claude Cowork — oder lade die \`.md\`-Dateien in Langdock Assistants, ChatGPT/Claude Projects bzw. Gemini Gems.`,
+          "Bei **Assistants/Projects/Gems**: füge `AGENTS.md` (aus *Dateien & Pakete*) in die Projekt-Anweisungen ein.",
+          "Stelle nacheinander die Fokus-Fragen inklusive Fangfrage 3.",
+        ],
+        commandOrAction: `Ordner: ${folder}`,
+      },
+      ide: {
+        headline: `IDE & Editor · ${folder}`,
+        steps: [
+          isStage1
+            ? `Öffne \`${folder}/\` (für echte Stufe-1-Isolation außerhalb des Repos kopieren, damit Root-\`AGENTS.md\` / \`.github/copilot-instructions.md\` nicht greifen) in Google Antigravity, Cursor, Windsurf oder VS Code.`
+            : `Öffne \`${folder}/\` als Workspace in Google Antigravity, Cursor, Windsurf oder VS Code (\`AGENTS.md\`, \`_index.md\`, \`.cursor/mcp.json\` & \`.vscode/mcp.json\` liegen direkt dort).`,
+          "Referenziere Dateien gezielt (`@` in Antigravity/Cursor/Windsurf, `#file:` in VS Code Copilot) und teste die Fangfrage + Q4.",
+        ],
+        commandOrAction: `Workspace: ${folder}/`,
+      },
+      agent: {
+        headline: `CLI Code-Agent · ${folder}`,
+        steps: [
+          isStage1
+            ? `Starte dein CLI-Werkzeug in \`${folder}/\` (für echte Stufe-1-Isolation auf einer Kopie außerhalb des Repos, damit Root-\`AGENTS.md\` nicht greift).`
+            : `Starte dein CLI-Werkzeug direkt in \`${folder}/\` (oder starte den MCP-Server mit \`--module ${spec.id}\`).`,
+          "Prüfe, wie sich Guardrails, Skills und `_index.md` von Stufe 1 zu Stufe 3 verändern.",
+        ],
+        commandOrAction: `cd ${folder}`,
+      },
+    };
+  };
 
   return (spec.stages || []).map((st, idx) => {
     const skillsForStage = idx === 0 ? [] : corpusBundle.skills;
@@ -339,7 +490,225 @@ function enrichStagesForDeclarative(spec, corpusBundle, legacyData) {
   });
 }
 
-function buildModulePayload(modDir, spec, legacyData, legacyIndex) {
+function buildDeclarativeSteps() {
+  return [
+    {
+      id: "start",
+      num: "01",
+      label: "01 · Ziel & Werkzeug wählen",
+      short: "Ziel & Tool",
+      phaseGroup: "aha-kern",
+      phaseLabel: "Orientierung (2 Min.)",
+    },
+    {
+      id: "methods",
+      num: "02",
+      label: "02 · Aha-Kern 1: Prompt-Methoden",
+      short: "Methoden",
+      phaseGroup: "aha-kern",
+      phaseLabel: "15 Min. gemeinsamer Aha-Kern",
+    },
+    {
+      id: "stages",
+      num: "03",
+      label: "03 · Aha-Kern 2: 3 Stufen & Wissen",
+      short: "3 Stufen",
+      phaseGroup: "aha-kern",
+      phaseLabel: "15 Min. gemeinsamer Aha-Kern",
+    },
+    {
+      id: "paths",
+      num: "04",
+      label: "04 · Ziel-Labor & Ergebnis-Check",
+      short: "Ziel-Labor",
+      phaseGroup: "praxis-pfad",
+      phaseLabel: "30 Min. Ziel-Labor & Validierung",
+    },
+  ];
+}
+
+function buildDeclarativeToolModes(spec, docCount, folders) {
+  return [
+    {
+      id: "web",
+      label: "Web-Chat",
+      shortLabel: "Web-Chat",
+      badge: "Kein Setup nötig",
+      summary: `Direkt im Browser (ChatGPT, Claude.ai, Langdock, Google Gemini, M365 Copilot) mit 1-Klick-Kopierpaketen zu allen ${docCount} Dokumenten.`,
+      examples: ["ChatGPT", "Claude.ai", "Langdock", "Google Gemini", "M365 Copilot"],
+      workflowHint:
+        "Nutze die 1-Klick-Kopierpakete (Prompt steht ganz oben) oder lade einzelne .md-Dateien hoch. Cloud-Hubs können keinen lokalen stdio-MCP-Server starten — nutze dort Knowledge Folder oder unseren Browser-Faktenprüfer.",
+      noInstallRequired: true,
+    },
+    {
+      id: "desktop",
+      label: "Desktop & Projects",
+      shortLabel: "Desktop & Projects",
+      badge: "Ohne Terminal",
+      summary: `Öffne ${folders.stage3}/ lokal in Claude Cowork — oder lade die ${docCount} .md-Dateien in Langdock Assistants, ChatGPT/Claude Projects bzw. Gemini Gems.`,
+      examples: ["Langdock Assistants", "Claude Cowork (Ordner)", "ChatGPT / Claude Projects", "Gemini Gems"],
+      workflowHint: `Ohne Git: ZIP laden & entpacken → in Claude Cowork ${folders.stage3}/ wählen oder in Assistants/Projects/Gems die lokale AGENTS.md + .md-Dateien hinterlegen.`,
+      noInstallRequired: false,
+    },
+    {
+      id: "ide",
+      label: "IDE & Editor",
+      shortLabel: "IDE & Editor",
+      badge: "Antigravity / Cursor / VS Code",
+      summary: `Arbeite direkt im Editor (Google Antigravity, Cursor, Windsurf, VS Code + GitHub Copilot) mit Workspace-Regeln in ${folders.stage3}/ und gezielten Datei-Referenzen (@ / #file:).`,
+      examples: ["Google Antigravity", "Cursor", "Windsurf", "VS Code + GitHub Copilot"],
+      workflowHint: `Öffne ${folders.stage3}/ als Workspace im Editor und referenziere Dateien gezielt (@ in Antigravity/Cursor/Windsurf, #file: in VS Code Copilot).`,
+      noInstallRequired: false,
+    },
+    {
+      id: "agent",
+      label: "CLI Code-Agent",
+      shortLabel: "CLI Code-Agent",
+      badge: "Terminal + MCP",
+      summary: `Arbeite im Terminal mit autonomen Agenten, AGENTS.md, Skills und lokalem MCP-Server (search_vault, verify_claim, read_article) auf allen ${docCount} Dokumenten.`,
+      examples: ["Claude Code", "Codex CLI", "Gemini CLI", "OpenCode"],
+      workflowHint: `Starte dein CLI-Werkzeug direkt in ${folders.stage3}/ (oder mit --module ${spec.id}) — Regeln, Skills & MCP laden dort lokal.`,
+      noInstallRequired: false,
+    },
+  ];
+}
+
+function buildDeclarativeOpenCodeHelp(spec, docCount, complianceNote, repoUrl) {
+  return {
+    title: "Kein eigenes KI-Abo? Kostenlos im Browser oder lokal mit OpenCode",
+    summary: `Auch ohne bezahltes KI-Abo kannst du sofort alles mitmachen — am schnellsten über kostenlose Browser-Chats, Langdock und unseren eingebauten ${docCount}-Dokumente-Faktenprüfer.`,
+    steps: [
+      `Am einfachsten im Browser: ChatGPT Free, Claude Free, Langdock, Gemini oder M365 Copilot nutzen — oder unseren ${docCount}-Dokumente-Faktenprüfer in Schritt 04 direkt ohne Login testen.`,
+      `Optional fürs Terminal (OpenCode + OpenRouter): Repository klonen (git clone -b main ${repoUrl}), in modules/${spec.id}/ wechseln und OpenCode starten.`,
+      `Datenschutz-Hinweis: Alle ${docCount} Dokumente in ${spec.title} erfüllen: ${complianceNote}`,
+    ],
+    commandSnippet: "npm install -g opencode-ai && opencode",
+    note: "Tipp: Falls kein globales npm gewünscht ist, klappt oft auch npx opencode-ai@latest — im geöffneten OpenCode einfach /connect eingeben und OpenRouter wählen.",
+  };
+}
+
+function buildDeclarativePhases(spec, docCount, folders, skillNames) {
+  const skillSummary = skillNames.length ? skillNames.join(", ") : "lokale Skills";
+  return [
+    {
+      id: "setup",
+      number: 1,
+      phaseGroup: "aha-kern",
+      timeRange: "Start",
+      durationMin: 5,
+      title: `Einstieg & Kontext (${spec.title})`,
+      subtitle: `${docCount} Dokumente · Ziel & Werkzeug wählen`,
+      beamerHeadline: `${spec.title} · Einstieg & Werkzeugwahl`,
+      modeCues: {
+        web: `Öffne einen sauberen Browser-Chat und nutze die Kompakt-Pakete zu ${spec.title} (${docCount} Dokumente).`,
+        desktop: `Öffne ${folders.stage3}/ in Claude Cowork oder lade die ${docCount} .md-Dateien in Projects/Assistants.`,
+        ide: `Öffne ${folders.stage3}/ als Editor-Workspace und referenziere Dateien per @ bzw. Datei-Referenz.`,
+        agent: `Starte in ${folders.stage3}/ — AGENTS.md, Skills (${skillSummary}) und MCP (search_vault, verify_claim, read_article) greifen dort lokal.`,
+      },
+      activeQuestionId: "q1",
+      keyTakeaway: "Werkzeug wählen und direkt im ersten sauberen Kontext starten.",
+    },
+    {
+      id: "methods",
+      number: 2,
+      phaseGroup: "aha-kern",
+      timeRange: "Aha 1",
+      durationMin: 10,
+      title: "Prompt-Methoden & Regeln",
+      subtitle: "Zero-Shot vs. CO-STAR, Few-Shot & RISEN",
+      beamerHeadline: "Prompt-Struktur & Steuerungsebenen",
+      modeCues: {
+        web: `Vergleiche Zero-Shot mit CO-STAR und Few-Shot auf den ${docCount} Dokumenten von ${spec.title}.`,
+        desktop: `Nutze die Unterlagen aus ${folders.stage1}/ für strukturierte Tabellen- und Briefing-Outputs.`,
+        ide: `Teste im Editor-Chat strukturierte Prompts gegen ${folders.stage3}/ mit exakter (datei.md)-Quellenpflicht.`,
+        agent: "Prüfe mit search_vault und read_article, wie strukturierte Prompts Querverweise zwischen Dokumenten nutzen.",
+      },
+      activeQuestionId: "q2",
+      keyTakeaway: "Klare Struktur + Quellenpflicht schlägt vage Einzeiler sofort.",
+    },
+    {
+      id: "stages",
+      number: 3,
+      phaseGroup: "aha-kern",
+      timeRange: "Aha 2",
+      durationMin: 15,
+      title: "3 Stufen, Debug & Fangfrage",
+      subtitle: "Kaputte Regeln reparieren + Negativtest",
+      beamerHeadline: "Stufe 1 → 2 → 3 & Eigene Leitplanken",
+      modeCues: {
+        web: "Teste zuerst ohne Regeln (Stufe 1), danach mit Schutzregeln (Stufe 2/3) und prüfe die Fangfrage auf [Nicht in Quelle].",
+        desktop: `Vergleiche ${folders.stage1}/ (ohne Regeln) gegen ${folders.stage3}/ (mit AGENTS.md & ${skillSummary}).`,
+        ide: `Referenziere ${folders.stage3}/AGENTS.md und _index.md und prüfe das Fangfrage-Verhalten.`,
+        agent: "Nutze verify_claim auf die Fangfrage und vergleiche Stufe 1 (ohne Guardrail) mit Stufe 2/3 (AGENTS.md + _index.md).",
+      },
+      activeQuestionId: "q3",
+      keyTakeaway: "Eine gute Leitplanke verhindert Halluzinationen und markiert Lücken ehrlich mit [Nicht in Quelle].",
+    },
+    {
+      id: "paths",
+      number: 4,
+      phaseGroup: "praxis-pfad",
+      timeRange: "Praxis",
+      durationMin: 30,
+      title: "Ziel-Labor & Regel-Werkbank",
+      subtitle: "Faktencheck, Briefing oder eigene AGENTS.md bauen",
+      beamerHeadline: "Vom Übungsprojekt direkt in die eigene Arbeit",
+      modeCues: {
+        web: "Wähle dein Ziel im Ziel-Labor, prüfe das Ergebnis im Output-Validator und baue deine eigene Team-Regel.",
+        desktop: `Nutze ${folders.stage3}/ als Datenbasis für Checkliste, Briefing oder eigene Regel-Werkbank.`,
+        ide: `Validiere dein Ergebnis aus ${folders.stage1}/ im Output-Validator und sichere eine wiederverwendbare AGENTS.md.`,
+        agent: "Nutze search_vault, verify_claim und read_article für dein Audit und teste deine eigene Regel gegen eine Fangfrage.",
+      },
+      activeQuestionId: "q4",
+      keyTakeaway: spec.eventOverlay?.outroBanner || "Eigene Regeln immer mit einer Fangfrage testen.",
+    },
+  ];
+}
+
+function buildDeclarativeArchitectureLayers(spec, folders, skillNames) {
+  const skillsDisplay = skillNames.length
+    ? skillNames.map((n) => `Skill \`${n}\``).join(" + ")
+    : "lokale Prüf-Skills";
+  return [
+    {
+      layer: "1 · User-Prompt",
+      analogy: "Der konkrete Arbeitsauftrag im Modul-Alltag",
+      persistence: "Gilt nur für genau diese eine Nachricht",
+      authority: "Niedrig – vergisst Projekt-Vorgaben bei langen Chats schnell",
+      example: `„Fasse die wichtigsten Vorgaben und Risiken aus ${spec.title} mit (datei.md)-Beleg zusammen.“`,
+    },
+    {
+      layer: "2 · Priming (im Chat)",
+      analogy: "Kurzes Briefing zu Gesprächsbeginn",
+      persistence: "Gilt für den laufenden Chatverlauf",
+      authority: "Mittel – richtet Ton, Glossar und Zielbild sauber aus",
+      example: `Vorab-Instruktion im Chat auf Basis von AGENTS.md in ${folders.stage3}/, bevor die Detailfrage folgt.`,
+    },
+    {
+      layer: "3 · System-Prompt / AGENTS.md",
+      analogy: "Die Stellenbeschreibung & Hausordnung",
+      persistence: "Dauerhaft über alle Aufgaben im Modul-Ordner aktiv",
+      authority: "Hoch – übersteuert lockere User-Prompts bei Konflikten",
+      example: `Verbindliche Guardrails: Nur Dateien aus ${folders.stage1}/ nutzen, (datei.md) zitieren, Lücken als [Nicht in Quelle] melden.`,
+    },
+    {
+      layer: "4 · Harness (Skills + Guardrails)",
+      analogy: "Das Sicherheitsgeschirr & Standard-Playbook",
+      persistence: "Wiederverwendbare Abläufe pro Aufgabentyp",
+      authority: "Sehr hoch – erzwingt Recherche-Schritte & Gegenprüfung",
+      example: `${skillsDisplay} prüfen Antworten vor der Ausgabe.`,
+    },
+    {
+      layer: "5 · Tools & MCP",
+      analogy: "Werkzeuge, Indizes & geprüfte Schnittstellen",
+      persistence: "Standardisiertes Protokoll (Model Context Protocol)",
+      authority: "Direkte Aktion statt reinem Text-Raten",
+      example: "`search_vault`, `verify_claim`, `read_article`, `list_modules`.",
+    },
+  ];
+}
+
+function buildModulePayload(modDir, spec, legacyData, legacyIndex, diffs) {
   const audioGuides = loadAudioGuides(modDir, spec);
 
   if (spec.source === "legacy-export") {
@@ -347,14 +716,18 @@ function buildModulePayload(modDir, spec, legacyData, legacyIndex) {
       ...legacyData,
       moduleId: spec.id,
       level: spec.level || "L1",
-      durationPresets: spec.durationPresets || [30, 60, 90],
+      durationPresets: spec.durationPresets || [30, 45, 60, 90],
       taxonomy: spec.taxonomy,
       eventOverlay: spec.eventOverlay,
       audioGuides,
       guardrailDebugChallenge: spec.guardrailDebugChallenge,
-      animatics: spec.animatics || legacyData.animatics,
+      animatics:
+        spec.animatics || legacyData.animatics
+          ? { ...(legacyData.animatics || {}), ...(spec.animatics || {}) }
+          : undefined,
       labPresets: spec.labPresets,
       stagePackSpecs: spec.stagePackSpecs,
+      mcpConfigs: buildMcpConfigsForModule(spec.id, Boolean(spec.isDefault)),
       meta: {
         ...legacyData.meta,
         moduleId: spec.id,
@@ -367,69 +740,29 @@ function buildModulePayload(modDir, spec, legacyData, legacyIndex) {
 
   // Declarative module built natively from modules/<slug>/
   const corpus = buildDeclarativeCorpus(modDir, spec);
-  const stages = enrichStagesForDeclarative(spec, corpus, legacyData);
+  syncDeclarativeOnDiskArtifacts(modDir, spec, corpus, diffs);
+  const stages = enrichStagesForDeclarative(spec, corpus);
+  const docCount = corpus.vaultArticles.length;
+  const folders = {
+    stage1: spec.stages?.[0]?.folder || `modules/${spec.id}/corpus`,
+    stage2: spec.stages?.[1]?.folder || `modules/${spec.id}`,
+    stage3: spec.stages?.[2]?.folder || `modules/${spec.id}`,
+  };
+  const skillNames = corpus.skills.map((s) => s.name);
+  const complianceNote =
+    spec.meta?.complianceNote ||
+    "100 % synthetische / öffentliche Beispieldaten — keine echten Kunden- oder Personendaten.";
+  const repoUrl = spec.meta?.repoUrl || legacyData.meta.repoUrl;
 
   const phases =
-    spec.phases ||
-    [
-      {
-        id: "setup",
-        number: 1,
-        phaseGroup: "aha-kern",
-        timeRange: "Start · 5 Min.",
-        durationMin: 5,
-        title: "Einstieg & Werkzeug-Hilfe",
-        subtitle: spec.title,
-        beamerHeadline: `${spec.title} · Einstieg`,
-        modeCues: legacyData.phases[0].modeCues,
-        activeQuestionId: "q3",
-        keyTakeaway: "Werkzeug wählen und direkt im ersten sauberen Chatfenster starten.",
-      },
-      {
-        id: "methods",
-        number: 2,
-        phaseGroup: "aha-kern",
-        timeRange: "Aha 1 · 10 Min.",
-        durationMin: 10,
-        title: "Prompt-Methoden & Regeln",
-        subtitle: "Zero-Shot vs. CO-STAR, Few-Shot & RISEN",
-        beamerHeadline: "Prompt-Struktur & Steuerungsebenen",
-        modeCues: legacyData.phases[1].modeCues,
-        activeQuestionId: "q1",
-        keyTakeaway: "Klare Struktur + Quellenpflicht schlägt vage Einzeiler sofort.",
-      },
-      {
-        id: "stages",
-        number: 3,
-        phaseGroup: "aha-kern",
-        timeRange: "Aha 2 · 15 Min.",
-        durationMin: 15,
-        title: "3 Stufen, Debug & Fangfrage",
-        subtitle: "Kaputte Regeln reparieren + Negativtest",
-        beamerHeadline: "Stufe 1 → 2 → 3 & Eigene Leitplanken",
-        modeCues: legacyData.phases[2].modeCues,
-        activeQuestionId: "q3",
-        keyTakeaway: "Eine gute Leitplanke verhindert Halluzinationen und Lücken-Erfindungen.",
-      },
-      {
-        id: "paths",
-        number: 4,
-        phaseGroup: "praxis-pfad",
-        timeRange: "Praxis · 30 Min.",
-        durationMin: 30,
-        title: "Praxis-Pfade & Regel-Werkbank",
-        subtitle: "Faktencheck, Briefing oder eigene AGENTS.md bauen",
-        beamerHeadline: "Vom Übungsprojekt direkt in die eigene Arbeit",
-        modeCues: legacyData.phases[3].modeCues,
-        activeQuestionId: "q2",
-        keyTakeaway: spec.eventOverlay?.outroBanner || "Eigene Regeln immer mit einer Fangfrage testen.",
-      },
-    ];
+    Array.isArray(spec.phases) && spec.phases.length > 0
+      ? spec.phases
+      : buildDeclarativePhases(spec, docCount, folders, skillNames);
 
   const data = {
     moduleId: spec.id,
     level: spec.level || "L2",
-    durationPresets: spec.durationPresets || [30, 60, 90],
+    durationPresets: spec.durationPresets || [30, 45, 60, 90],
     taxonomy: spec.taxonomy,
     eventOverlay: spec.eventOverlay,
     audioGuides,
@@ -441,15 +774,15 @@ function buildModulePayload(modDir, spec, legacyData, legacyIndex) {
       { id: "chk-setup", stepId: "start", label: "Arbeitsweise & Projektunterlagen geöffnet" },
       { id: "chk-methods", stepId: "methods", label: "Zero-Shot mit CO-STAR oder Few-Shot verglichen" },
       { id: "chk-rules", stepId: "methods", label: "Steuerungsebenen / Projekt-Regeln kopiert" },
-      { id: "chk-stages", stepId: "stages", label: "Mini-Debug gelöst & Fangfrage / RTO-Test geprüft" },
+      { id: "chk-stages", stepId: "stages", label: "Mini-Debug gelöst & Fangfrage / Steuerungstest geprüft" },
       { id: "chk-reflect", stepId: "stages", label: "Beobachtung per Reflexions-Pill festgehalten" },
       { id: "chk-path", stepId: "paths", label: "Praxis-Pfad oder Dokument-Faktenprüfer ausgeführt" },
       { id: "chk-transfer", stepId: "paths", label: "Eigene Regel gebaut oder Rolle in Transfer-Brücke gewählt" },
     ],
     reflectionPills: spec.reflectionPills || [
-      { id: "ref-guessed", label: "KI hat geraten", hint: "In Stufe 1 wurden fehlende Projektklauseln aus Vorwissen ergänzt." },
+      { id: "ref-guessed", label: "KI hat geraten", hint: "In Stufe 1 wurden fehlende Angaben aus Vorwissen ergänzt." },
       { id: "ref-rejected", label: "Regel hat gestoppt", hint: "Ab Stufe 2 greifen die Leitplanken und melden [Nicht in Quelle]." },
-      { id: "ref-linked", label: "Querverweise genutzt", hint: "In Stufe 3 verknüpft _index.md automatisch ADR, Runbook & SLA." },
+      { id: "ref-linked", label: "Querverweise genutzt", hint: "In Stufe 3 verknüpft _index.md automatisch alle relevanten Dokumente." },
     ],
     meta: {
       moduleId: spec.id,
@@ -460,22 +793,21 @@ function buildModulePayload(modDir, spec, legacyData, legacyIndex) {
       cluster: spec.meta?.cluster || spec.eventOverlay?.unitLabel || "Praxis-Lab",
       domainLabel: spec.domainLabel || spec.title,
       timeSlot: spec.meta?.timeSlot || spec.eventOverlay?.timeSlot || "Flexibel",
-      articleCount: corpus.vaultArticles.length,
-      complianceNote:
-        spec.meta?.complianceNote ||
-        "100 % synthetische / öffentliche Beispieldaten — keine echten Kunden- oder Personendaten.",
+      articleCount: docCount,
+      complianceNote,
       pagesUrl:
         spec.meta?.pagesUrl ||
         `https://etroxtaran.github.io/CCF-ai-workshop/#/m/${spec.id}`,
-      repoUrl: spec.meta?.repoUrl || legacyData.meta.repoUrl,
+      repoUrl,
     },
-    steps: spec.steps || legacyData.steps,
-    toolModes: spec.toolModes || legacyData.toolModes,
-    openCodeHelp: spec.openCodeHelp || legacyData.openCodeHelp,
+    steps: spec.steps || buildDeclarativeSteps(),
+    toolModes: spec.toolModes || buildDeclarativeToolModes(spec, docCount, folders),
+    openCodeHelp: spec.openCodeHelp || buildDeclarativeOpenCodeHelp(spec, docCount, complianceNote, repoUrl),
     phases,
     promptComparisonTask: spec.promptComparisonTask,
     promptMethods: spec.promptMethods,
-    architectureLayers: spec.architectureLayers || legacyData.architectureLayers,
+    architectureLayers:
+      spec.architectureLayers || buildDeclarativeArchitectureLayers(spec, folders, skillNames),
     chatRulesTemplate: spec.chatRulesTemplate,
     testQuestions: spec.testQuestions,
     stages,
@@ -510,7 +842,7 @@ function main() {
   const diffs = [];
 
   for (const { modDir, spec } of modEntries) {
-    const { data, searchIndex } = buildModulePayload(modDir, spec, legacyData, legacyIndex);
+    const { data, searchIndex } = buildModulePayload(modDir, spec, legacyData, legacyIndex, diffs);
     const modOutDir = path.join(OUT_ROOT, spec.id);
 
     writeOrCheckFile(path.join(modOutDir, "data.json"), JSON.stringify(data), diffs);
@@ -523,8 +855,10 @@ function main() {
       level: spec.level || "L1",
       badge: spec.badge || spec.level || "Modul",
       domainLabel: spec.domainLabel || spec.title,
-      durationPresets: spec.durationPresets || [30, 60, 90],
+      durationPresets: spec.durationPresets || [30, 45, 60, 90],
       articleCount: data.vaultArticles.length,
+      checklistTotal: 6,
+      goals: spec.goals || ["prompting", "app-building", "presentations", "everyday-ai"],
       tags: spec.tags || [],
       isDefault: Boolean(spec.isDefault),
       mcpSupported: spec.mcpSupported !== false,

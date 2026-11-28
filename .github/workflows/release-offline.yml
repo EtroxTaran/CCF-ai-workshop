@@ -9,6 +9,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   package:
     runs-on: ubuntu-latest
@@ -23,24 +27,49 @@ jobs:
           cache: "npm"
           cache-dependency-path: "workshop-ui/package-lock.json"
 
-      - name: Build modules and UI
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate, typecheck, and build modules and UI
         working-directory: workshop-ui
         run: |
           npm ci
           cd ..
-          node scripts/build_modules.mjs
+          node scripts/build_modules.mjs --check
           node scripts/validate_modules.mjs
+          node scripts/check_links_and_scripts.mjs
           cd workshop-ui
+          npx tsc -b --noEmit
           npm run build
+
+      - name: Run verification, unit/integration tests, and Playwright E2E gate
+        run: |
+          python scripts/verify_workshop.py --skip-pptx
+          node --test tests/unit/*.test.mjs tests/integration/*.test.mjs
+          cd workshop-ui && npx playwright install --with-deps chromium && npm run test:e2e
+
+      - name: Upload Playwright failure artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-artifacts
+          path: |
+            workshop-ui/playwright-report
+            workshop-ui/test-results
+          if-no-files-found: ignore
+          retention-days: 14
 
       - name: Package Offline Workshop Hub & Desktop Exercise ZIPs
         run: |
           mkdir -p release-artifacts
-          mkdir -p offline-staging/workshop-ui
+          mkdir -p offline-staging/workshop-ui offline-staging/presentation
           cp -r workshop-ui/dist offline-staging/workshop-ui/dist
           cp workshop-ui/server.mjs offline-staging/workshop-ui/server.mjs
           cp start-workshop.bat start-workshop.sh start-beamer.bat start-beamer.sh offline-staging/
-          cp README.md aufgaben.md LOESUNGEN_TRAINER.md offline-staging/
+          cp README.md aufgaben.md LOESUNGEN_TRAINER.md PRESENTER_RUNBOOK.md offline-staging/
+          cp presentation/CCF_HandsOn_Prompt_Werkstatt.pptx offline-staging/presentation/
           (cd offline-staging && zip -rq ../release-artifacts/workshop-offline-bundle.zip .)
 
           for modDir in modules/*/; do
@@ -51,9 +80,32 @@ jobs:
           done
           zip -rq release-artifacts/tierwelt-stufe-ordner.zip stufe-1-chaos stufe-2-skills-guardrails stufe-3-obsidian-vault mcp-server shared
 
+      - name: Smoke test unpacked Offline Bundle
+        run: |
+          SMOKE_DIR=$(mktemp -d)
+          unzip -q release-artifacts/workshop-offline-bundle.zip -d "$SMOKE_DIR"
+          test -f "$SMOKE_DIR/PRESENTER_RUNBOOK.md"
+          test -f "$SMOKE_DIR/presentation/CCF_HandsOn_Prompt_Werkstatt.pptx"
+          PORT=4188 node "$SMOKE_DIR/workshop-ui/server.mjs" &
+          SRV_PID=$!
+          trap "kill $SRV_PID 2>/dev/null || true" EXIT
+          sleep 2
+          curl -fsS http://127.0.0.1:4188/ | grep -q "Prompt-Werkstatt"
+          curl -fsS http://127.0.0.1:4188/modules/catalog.json | grep -q "prompt-werkstatt-tierwelt"
+          unzip -l release-artifacts/tierwelt-stufe-ordner.zip | grep -q "stufe-3-obsidian-vault/AGENTS.md"
+          unzip -l release-artifacts/module-context-engineering-projekt-exercises.zip | grep -q "corpus/"
+
       - name: Upload Offline Release Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: offline-workshop-bundles
           path: release-artifacts/*.zip
           retention-days: 90
+
+      - name: Create GitHub Release on Tag
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${GITHUB_REF#refs/tags/}"
+          gh release create "$TAG" release-artifacts/*.zip --title "Workshop Offline Bundles $TAG" --generate-notes
